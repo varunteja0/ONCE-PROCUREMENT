@@ -147,9 +147,14 @@ class JobNotFoundError(ImportServiceError):
 
 
 def sanitize_filename(name: str) -> str:
-    """Strip path components and unsafe characters from an upload name."""
+    """Strip path components and unsafe characters from an upload name.
 
-    base = Path(name or "upload").name or "upload"
+    Normalises both POSIX (``/``) and Windows (``\\``) separators so the same
+    upload sanitises identically on Linux CI runners and Windows dev boxes.
+    """
+
+    raw = (name or "upload").replace("\\", "/")
+    base = Path(raw).name or "upload"
     cleaned = _FILENAME_SAFE.sub("_", base)
     if not cleaned or set(cleaned) == {"_"} or cleaned in {".", ".."}:
         cleaned = "upload"

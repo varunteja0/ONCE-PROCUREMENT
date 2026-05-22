@@ -30,6 +30,14 @@ from tests.factories import (
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def _clear_public_key_cache_each_test() -> None:
+    """Tests mutate ``_PUBLIC_KEY_CACHE`` (module global) to simulate key
+    rotation / unknown keys. Under randomised test ordering on CI a polluted
+    cache makes the next test see stale entries. Clear before every test."""
+    clear_public_key_cache()
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -25,8 +25,10 @@ def sniff_encoding(path: Path) -> str:
     """Return the most likely text encoding for ``path``.
 
     UTF-8 BOM → ``"utf-8-sig"``. Low-confidence guesses fall back to
-    ``"utf-8"``. ``ascii`` / Latin-1 / Windows-1252 are normalised to
-    ``cp1252`` (a strict superset of the other two).
+    ``"utf-8"`` if the head is valid UTF-8, otherwise to ``cp1252``
+    (the most common Windows/Excel export encoding). ``ascii`` /
+    Latin-1 / Windows-1252 are normalised to ``cp1252`` (a strict
+    superset of the other two).
     """
 
     with path.open("rb") as fh:
@@ -34,13 +36,18 @@ def sniff_encoding(path: Path) -> str:
     if head.startswith(b"\xef\xbb\xbf"):
         return "utf-8-sig"
     guess = chardet.detect(head) or {}
-    enc = (guess.get("encoding") or "utf-8").lower()
+    enc = (guess.get("encoding") or "").lower()
     confidence = float(guess.get("confidence") or 0.0)
-    if not enc or confidence < 0.5:
-        return "utf-8"
     if enc in {"ascii", "iso-8859-1", "windows-1252"}:
         return "cp1252"
-    return enc
+    if enc and confidence >= 0.5:
+        return enc
+    # Low confidence or no guess — pick based on whether head is valid UTF-8.
+    try:
+        head.decode("utf-8")
+        return "utf-8"
+    except UnicodeDecodeError:
+        return "cp1252"
 
 
 def sniff_dialect(sample: str) -> csv.Dialect | type[csv.Dialect]:
