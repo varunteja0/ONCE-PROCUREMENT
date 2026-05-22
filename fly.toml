@@ -1,0 +1,87 @@
+# Once — Backend deployment (Fly.io)
+#
+#   fly launch --no-deploy            (first time, accept generated app name OR keep "once-backend")
+#   fly secrets set ...               (see "Required secrets" below)
+#   fly deploy
+#
+# Single Fly app, three process groups (web / worker / beat) sharing one image.
+# Postgres and Redis are NOT managed here — attach them as separate Fly apps
+# (or any managed provider) and inject DATABASE_URL / REDIS_URL via secrets.
+#
+# Required secrets (set before first deploy):
+#   fly secrets set \
+#     DATABASE_URL="postgresql+asyncpg://USER:PASS@HOST:5432/DB" \
+#     REDIS_URL="redis://default:PASS@HOST:6379/0" \
+#     SECRET_KEY="$(openssl rand -hex 32)" \
+#     JWT_SECRET_KEY="$(openssl rand -hex 32)" \
+#     RECEIPT_SIGNING_KEY_ID="prod-2025-01" \
+#     RECEIPT_SIGNING_PRIVATE_KEY_PEM="$(cat ed25519_priv.pem | base64)" \
+#     SENTRY_DSN="https://...@sentry.io/..."
+
+app = "once-backend"
+primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  LOG_LEVEL = "info"
+  PORT = "8000"
+  WEB_CONCURRENCY = "2"
+  WORKER_CONCURRENCY = "4"
+  PORTAL_SMOKE_TEST_TIMEOUT_SEC = "60"
+  ENABLE_IN_PROCESS_PROCESSOR = "False"
+  ENABLE_TOS_RISKY_PLATFORMS = "False"
+  JWT_ALGORITHM = "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES = "15"
+  REFRESH_TOKEN_EXPIRE_DAYS = "30"
+  PYTHONUNBUFFERED = "1"
+
+# ENTRYPOINT already invokes ./entrypoint.sh — pass only the subcommand here.
+[processes]
+  web    = "api"
+  worker = "worker"
+  beat   = "beat"
+
+[deploy]
+  release_command = "alembic upgrade head"
+  strategy = "rolling"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["web"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 80
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/v1/health/live"
+
+[[vm]]
+  processes = ["web"]
+  size      = "shared-cpu-2x"
+  memory    = "1gb"
+
+# Worker carries Chromium; needs RAM headroom for Playwright contexts.
+[[vm]]
+  processes = ["worker"]
+  size      = "shared-cpu-2x"
+  memory    = "2gb"
+
+[[vm]]
+  processes = ["beat"]
+  size      = "shared-cpu-1x"
+  memory    = "512mb"

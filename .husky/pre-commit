@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Husky pre-commit hook (optional — opt-in via `npx husky install`).
+#
+# This is intentionally thin: pre-commit (the Python framework) owns hook
+# execution via `.pre-commit-config.yaml`. We just delegate so contributors
+# who prefer Husky don't have to install two systems.
+. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
+
+# Run the project's pre-commit hooks on staged files.
+if command -v pre-commit >/dev/null 2>&1; then
+  pre-commit run --hook-stage pre-commit || exit $?
+else
+  echo "[husky] pre-commit not installed; skipping. Install with: pip install pre-commit && pre-commit install" >&2
+fi

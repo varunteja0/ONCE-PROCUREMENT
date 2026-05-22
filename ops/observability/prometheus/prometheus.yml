@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: once-local
+    env: development
+
+# Alert rules are included but commented out until a prod alertmanager is wired.
+# rule_files:
+#   - /etc/prometheus/rules/once-api.rules.yml
+
+scrape_configs:
+  - job_name: once-api
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - backend:8000
+        labels:
+          service: api
+      - targets:
+          - host.docker.internal:8000
+        labels:
+          service: api-host
+    # Token-protected /metrics endpoint. Uncomment when METRICS_TOKEN is set.
+    # authorization:
+    #   type: Bearer
+    #   credentials: ${METRICS_TOKEN}
+
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090

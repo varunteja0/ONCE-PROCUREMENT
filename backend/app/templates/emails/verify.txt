@@ -1,0 +1,13 @@
+Verify your Once email
+
+Hi there,
+
+Use the code below to finish setting up $company_name on Once.
+The code expires in $ttl_minutes minutes.
+
+    $code
+
+If you didn't request this, you can safely ignore this email.
+
+- Once
+One submission. Many carriers. Forever provable.

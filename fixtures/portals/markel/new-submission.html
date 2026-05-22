@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Markel — New Submission</title>
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="bg-blue-700"><h1>Markel Producer Portal</h1><span style="font-size:12px;opacity:0.85">New Submission</span></header>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="new-submission.html" data-action="new-submission">New Submission</a>
+  </nav>
+  <main>
+    <div class="card" id="form-card">
+      <h2 style="margin-top:0">New Application</h2>
+      <div id="form-error" class="error" style="display:none"></div>
+      <form id="submission-form" novalidate>
+        <label for="named_insured" class="required">Insured Legal Name</label>
+        <input id="named_insured" name="named_insured" type="text" required>
+        <label for="fein" class="required">Tax ID (FEIN)</label>
+        <input id="fein" name="fein" type="text" required>
+        <label for="agency_code" class="">Agency Code</label>
+        <input id="agency_code" name="agency_code" type="text" >
+        <label for="effective_date" class="required">Policy Effective Date</label>
+        <input id="effective_date" name="effective_date" type="date" required>
+        <label for="line_of_business" class="required">Product Line</label>
+        <input id="line_of_business" name="line_of_business" type="text" required>
+        <label for="premium" class="required">Estimated Premium</label>
+        <input id="premium" name="premium" type="text" required>
+        <label for="target_states" class="required">States</label>
+        <input id="target_states" name="target_states" type="text" required>
+
+        <button type="submit" data-action="submit-application">Submit Application</button>
+      </form>
+    </div>
+    <div class="card" id="drift-card" style="display:none">
+      <h2 style="margin-top:0">Maintenance</h2>
+      <p>The new-submission form is temporarily unavailable. Please retry later.</p>
+    </div>
+  </main>
+</div>
+<script src="submit.js"></script>
+</body></html>

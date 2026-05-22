@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Sircon — Confirmation</title>
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="bg-blue-700"><h1>Sircon — Producer Licensing</h1><span style="font-size:12px;opacity:0.85">Submitted</span></header>
+<div class="layout">
+  <nav class="sidebar"><a href="dashboard.html">Dashboard</a><a href="new-submission.html" data-action="new-submission">New Submission</a></nav>
+  <main>
+    <div class="card">
+      <h2 style="margin-top:0">License application received</h2>
+      <p>Your license application has been logged. Reference:</p>
+      <div class="confirm-ref" data-testid="confirmation-reference" id="ref"></div>
+      <p style="margin-top:20px;color:#64748b;font-size:13px;">Keep this reference for your records.</p>
+    </div>
+  </main>
+</div>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  document.getElementById('ref').textContent = params.get('ref') || '(missing)';
+</script>
+</body></html>

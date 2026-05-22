@@ -1,0 +1,76 @@
+{% autoescape true %}<section class="mt-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+  <header class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+    <h2 class="font-medium text-slate-900 dark:text-slate-100">Verify it yourself</h2>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      Don't trust us — verify. Use the public key below to check the signature against the canonical JSON of the receipt payload.
+    </p>
+  </header>
+
+  <div class="px-5 py-4">
+    <div class="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 mb-4" role="tablist" data-tabs>
+      <button type="button" role="tab" aria-selected="true" data-tab="curl"
+        class="px-3 py-1.5 text-sm font-medium border-b-2 border-emerald-500 text-slate-900 dark:text-slate-100">cURL</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="python"
+        class="px-3 py-1.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100">Python</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="node"
+        class="px-3 py-1.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100">Node.js</button>
+    </div>
+
+    <div role="tabpanel" data-panel="curl">
+      <pre class="overflow-x-auto rounded-md bg-slate-950 text-slate-100 text-sm p-4 font-mono"><code>curl -s -H "Accept: application/json" \
+  https://verify.getonce.com/verify/{{ receipt_id }}</code></pre>
+    </div>
+
+    <div role="tabpanel" data-panel="python" hidden>
+      <pre class="overflow-x-auto rounded-md bg-slate-950 text-slate-100 text-sm p-4 font-mono"><code>import base64, json, httpx
+from cryptography.hazmat.primitives import serialization
+
+env = httpx.get("https://verify.getonce.com/verify/{{ receipt_id }}.json").json()
+pub = serialization.load_pem_public_key(PUBLIC_KEY_PEM.encode())
+signed = json.dumps(env["payload"], sort_keys=True, separators=(",", ":")).encode()
+pub.verify(base64.b64decode(env["envelope"]["signature"]), signed)  # raises on mismatch</code></pre>
+    </div>
+
+    <div role="tabpanel" data-panel="node" hidden>
+      <pre class="overflow-x-auto rounded-md bg-slate-950 text-slate-100 text-sm p-4 font-mono"><code>import { createPublicKey, verify } from "node:crypto";
+
+const env = await (await fetch("https://verify.getonce.com/verify/{{ receipt_id }}.json")).json();
+const key = createPublicKey(PUBLIC_KEY_PEM);
+const signed = Buffer.from(JSON.stringify(env.payload, Object.keys(env.payload).sort()));
+const ok = verify(null, signed, key, Buffer.from(env.envelope.signature, "base64"));
+console.log("verified:", ok);</code></pre>
+    </div>
+
+    {% if public_key_pem %}
+    <details class="mt-4">
+      <summary class="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">Public key (PEM)</summary>
+      <pre class="mt-2 overflow-x-auto rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs p-3 font-mono whitespace-pre">{{ public_key_pem }}</pre>
+    </details>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+  (function () {
+    var root = document.querySelector('[data-tabs]');
+    if (!root) return;
+    var tabs = root.querySelectorAll('[role="tab"]');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var name = tab.getAttribute('data-tab');
+        tabs.forEach(function (t) {
+          var active = t === tab;
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+          t.classList.toggle('border-emerald-500', active);
+          t.classList.toggle('border-transparent', !active);
+          t.classList.toggle('text-slate-900', active);
+          t.classList.toggle('dark:text-slate-100', active);
+          t.classList.toggle('text-slate-500', !active);
+        });
+        document.querySelectorAll('[data-panel]').forEach(function (p) {
+          p.hidden = p.getAttribute('data-panel') !== name;
+        });
+      });
+    });
+  })();
+</script>{% endautoescape %}

@@ -1,0 +1,36 @@
+{
+  "FromName": "Broker Jane",
+  "MessageStream": "inbound",
+  "From": "jane@brokerage.example",
+  "FromFull": {
+    "Email": "jane@brokerage.example",
+    "Name": "Broker Jane",
+    "MailboxHash": ""
+  },
+  "To": "submissions@acme.in.getonce.com",
+  "ToFull": [
+    {"Email": "submissions@acme.in.getonce.com", "Name": "", "MailboxHash": ""}
+  ],
+  "OriginalRecipient": "submissions@acme.in.getonce.com",
+  "Subject": "Quote request — AmTrust general liability",
+  "MessageID": "<sample-amtrust-1@brokerage.example>",
+  "ReplyTo": "",
+  "MailboxHash": "",
+  "Date": "Wed, 20 May 2026 13:00:00 +0000",
+  "TextBody": "Hi Acme,\n\nPlease find AmTrust GL renewal quote attached.\n\nBest,\nJane",
+  "HtmlBody": "<p>Hi Acme,</p><p>Please find AmTrust GL renewal quote attached.</p>",
+  "StrippedTextReply": "",
+  "Tag": "",
+  "Headers": [
+    {"Name": "X-Spam-Status", "Value": "No"},
+    {"Name": "Received-SPF", "Value": "pass"}
+  ],
+  "Attachments": [
+    {
+      "Name": "amtrust_quote.pdf",
+      "Content": "SGVsbG8gV29ybGQ=",
+      "ContentType": "application/pdf",
+      "ContentLength": 11
+    }
+  ]
+}

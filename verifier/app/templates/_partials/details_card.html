@@ -1,0 +1,61 @@
+{% autoescape true %}<details class="mt-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden" {% if verdict != 'verified' %}open{% endif %}>
+  <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+    Receipt details
+  </summary>
+  <div class="px-5 pb-5 pt-1">
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+      <dt class="text-slate-500 dark:text-slate-400">Receipt ID</dt>
+      <dd class="sm:col-span-2 font-mono break-all">{{ receipt_id }}</dd>
+
+      {% if payload.get('submitted_at') or payload.get('issued_at') %}
+      <dt class="text-slate-500 dark:text-slate-400">Issued at</dt>
+      <dd class="sm:col-span-2 font-mono">{{ payload.get('submitted_at') or payload.get('issued_at') }}</dd>
+      {% endif %}
+
+      {% if payload.get('supplier_id') or payload.get('supplier') %}
+      <dt class="text-slate-500 dark:text-slate-400">Supplier</dt>
+      <dd class="sm:col-span-2 font-mono break-all">
+        {{ payload.get('supplier_id') or '' }}
+        {% if payload.get('supplier') and payload.get('supplier') != payload.get('supplier_id') %}
+          <span class="text-slate-500"> · {{ payload.get('supplier') }}</span>
+        {% endif %}
+      </dd>
+      {% endif %}
+
+      {% if payload.get('portal') %}
+      <dt class="text-slate-500 dark:text-slate-400">Portal</dt>
+      <dd class="sm:col-span-2 font-mono break-all">{{ payload.get('portal') }}</dd>
+      {% endif %}
+
+      {% if payload.get('submission_id') %}
+      <dt class="text-slate-500 dark:text-slate-400">Submission ID</dt>
+      <dd class="sm:col-span-2 font-mono break-all">{{ payload.get('submission_id') }}</dd>
+      {% endif %}
+
+      {% if payload.get('payload_hash') %}
+      <dt class="text-slate-500 dark:text-slate-400">Payload SHA-256</dt>
+      <dd class="sm:col-span-2 font-mono break-all">{{ payload.get('payload_hash') }}</dd>
+      {% endif %}
+
+      <dt class="text-slate-500 dark:text-slate-400">Signer key id</dt>
+      <dd class="sm:col-span-2 font-mono">{{ signing_key_id }}</dd>
+
+      <dt class="text-slate-500 dark:text-slate-400">Algorithm</dt>
+      <dd class="sm:col-span-2 font-mono">Ed25519 · RFC 8785 canonical JSON</dd>
+    </dl>
+
+    <div class="mt-5 flex flex-wrap gap-2">
+      <a href="{{ json_url }}" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
+        Download signed receipt JSON
+      </a>
+      <a href="{{ badge_url }}" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
+        Embed badge (SVG)
+      </a>
+      {% if og_image_url %}
+      <a href="{{ og_image_url }}" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
+        Social card (SVG)
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</details>{% endautoescape %}

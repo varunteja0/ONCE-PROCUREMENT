@@ -1,0 +1,99 @@
+# Once backend — pinned dependencies (Python 3.12)
+
+# Web framework
+fastapi==0.115.*
+uvicorn[standard]==0.30.*
+python-multipart==0.0.*
+email-validator==2.*
+slowapi==0.1.*
+
+# Settings / validation
+pydantic==2.9.*
+pydantic-settings==2.5.*
+
+# Database / migrations
+sqlalchemy==2.0.*
+alembic==1.13.*
+asyncpg==0.29.*
+aiosqlite==0.20.*
+
+# Auth / crypto
+passlib[bcrypt]==1.7.*
+# Pin bcrypt to 4.0.1 — later versions drop the ``__about__`` attribute that
+# passlib 1.7's bcrypt backend inspects on import, which raises ``ValueError``
+# under Python 3.13/3.14. Until passlib ships a release with the fix, pinning
+# is the safest path. See BUILD.md follow-ups.
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.*
+cryptography==43.*
+
+# Background work
+celery==5.4.*
+redis==5.*
+
+# HTTP client
+httpx==0.27.*
+
+# Browser automation
+playwright==1.47.*
+
+# Logging
+structlog==24.*
+
+# Observability
+sentry-sdk[fastapi]==2.18.0
+prometheus-client>=0.20
+
+# Tests / lint
+pytest==8.*
+pytest-asyncio==0.24.*
+pytest-cov==5.*
+pytest-randomly==3.*
+freezegun==1.*
+ruff==0.6.*
+
+# Security scanning (dev only)
+bandit==1.7.*
+pip-audit==2.7.*
+fakeredis==2.*
+
+# --- L4 security hardening ---
+# pyotp: RFC 6238 TOTP for cockpit MFA. Pure-python, no native deps.
+pyotp==2.9.0
+# clamd: TCP/Unix client for ClamAV daemon. We never bundle clamd itself —
+# it runs as a sidecar service in compose / k8s. clamd-py is a tiny client
+# (~300 LOC) with no transitive deps.
+clamd==1.0.2
+# segno: pure-python QR code generator for MFA enrollment URIs (otpauth://).
+# Stdlib-only, no Pillow / no ImageMagick.
+segno==1.6.1
+# --- /L4 security hardening ---
+
+# --- L3.7 imports (bulk CSV/XLSX) ---
+openpyxl>=3.1.5
+chardet>=5.2.0
+# --- /L3.7 imports ---
+
+# --- L3.8 pdf extraction ---
+# PyMuPDF: fast layout-aware backend. Pinned <2 for stability with the
+# 1.24.x API (tested with 1.24.10).
+PyMuPDF>=1.24,<2
+# pdfminer.six: pure-python fallback that ships even when PyMuPDF wheels
+# fail to install on a target platform. Tested with 20240706.
+pdfminer.six>=20240706
+# reportlab: dev/test only - generates synthetic PDFs in pytest fixtures
+# (we never commit binary PDFs to the repo).
+reportlab>=4.2,<5
+# --- /L3.8 pdf extraction ---
+
+# --- Perf harness (dev only) ---
+# locust: HTTP load generator used by `make perf-smoke` / `make perf-baseline`.
+# Pinned <3 to insulate from upcoming breaking changes in the 3.x line.
+locust>=2.31,<3
+# psycopg2-binary: used ONLY by tools/perf/generate_seed_manifest.py to snapshot
+# the demo tenant into seed_manifest.json. We deliberately do not reuse the
+# asyncpg pool the app holds because the manifest is a one-shot read-only
+# script and we want it to work even when the backend container is the only
+# thing not running.
+psycopg2-binary>=2.9,<3
+# --- /Perf harness ---

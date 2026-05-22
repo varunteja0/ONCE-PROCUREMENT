@@ -1,0 +1,11 @@
+Welcome to Once, $company_name
+
+Your account is live. From here, every supplier submission is signed,
+verifiable, and forever auditable.
+
+Open your dashboard:
+$dashboard_url
+
+Reply to this email any time - a human reads every message.
+
+- Once

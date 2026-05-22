@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Markel — Dashboard</title>
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="bg-blue-700"><h1>Markel Producer Portal</h1><span style="font-size:12px;opacity:0.85">Signed in as demo</span></header>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="new-submission.html" data-action="new-submission">New Submission</a>
+    <a href="#">Policies</a>
+    <a href="#">Reports</a>
+  </nav>
+  <main>
+    <div class="card"><h2>Welcome to Markel</h2><p style="color:#64748b">Use the sidebar to start a new submission.</p></div>
+  </main>
+</div>
+<script>
+  var qs = window.location.search;
+  if (qs) document.querySelectorAll('a[href]').forEach(function(a){ if (a.href.indexOf('.html') > -1) a.href = a.href.split('?')[0] + qs; });
+</script>
+</body></html>

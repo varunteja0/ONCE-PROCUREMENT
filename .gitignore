@@ -1,0 +1,155 @@
+# ─── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+develop-eggs/
+downloads/
+sdist/
+wheels/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+.python-version
+.venv/
+venv/
+env/
+ENV/
+.envrc
+celerybeat-schedule
+celerybeat.pid
+
+# ─── Node / JS ───────────────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn-cache/
+.eslintcache
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# ─── Bundler / build output ──────────────────────────────────────────
+dist/
+build/
+out/
+*.local
+
+# ─── Cloudflare Workers / Wrangler ───────────────────────────────────
+.wrangler/
+.dev.vars
+.miniflare/
+
+# ─── Playwright ──────────────────────────────────────────────────────
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ─── Env / secrets ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+!**/fixtures/*.pem
+!**/fixtures/*.key
+
+# ─── Databases / data ────────────────────────────────────────────────
+*.sqlite
+*.sqlite3
+*.db
+postgres-data/
+redis-data/
+
+# ─── Logs ────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── IDE / editors ───────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# ─── OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Extension packaging ─────────────────────────────────────────────
+extension/dist/
+extension/*.zip
+extension/*.crx
+
+# ─── Fly.io ──────────────────────────────────────────────────────────
+.fly/
+fly.toml.local
+
+# ─── Coverage / test artifacts (B10 additions) ───────────────────────
+.cov/
+coverage-final.json
+lcov.info
+junit.xml
+.cache/
+.vite/
+
+# ─── Husky / git-hook framework internals ────────────────────────────
+.husky/_
+
+# ─── Once dev artifacts ──────────────────────────────────────────────
+.once/
+screenshots/
+
+# ─── Backup files ────────────────────────────────────────────────────
+*.bak
+*.orig
+
+# ─── Once: ad-hoc scratch test/log dumps (never commit) ──────────────
+backend/full_test.txt
+backend/test_out.txt
+backend/ptlog*.txt
+backend/vk_out.txt
+backend/all_out.txt
+verifier/all_out.txt
+verifier/vk_api.txt
+**/.coverage
+**/coverage.json
+README.md.new
+wrangler.toml.new
+
+# Once: agent scratch dir
+.once-tmp/

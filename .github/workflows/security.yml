@@ -1,0 +1,70 @@
+name: security
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "extension/**"
+      - "frontend/**"
+      - "oncetax/**"
+      - ".github/workflows/security.yml"
+  schedule:
+    # Weekly on Mondays 04:00 UTC.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bandit:
+    name: bandit (python SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit
+        run: pip install "bandit==1.7.*"
+      - name: Run bandit
+        # -ll  -> only report MEDIUM+ severity
+        # -ii  -> only report MEDIUM+ confidence
+        run: bandit -r backend/app -ll -ii
+
+  pip-audit:
+    name: pip-audit (python deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: pip install "pip-audit==2.7.*"
+      - name: Audit backend requirements
+        run: pip-audit -r backend/requirements.txt --strict
+
+  npm-audit-extension:
+    name: npm audit (extension)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Audit
+        working-directory: extension
+        run: npm audit --audit-level=high
+
+  npm-audit-frontend:
+    name: npm audit (frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Audit
+        working-directory: frontend
+        run: npm audit --audit-level=high

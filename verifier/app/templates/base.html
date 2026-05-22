@@ -1,0 +1,49 @@
+{% autoescape true %}<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Once · Receipt Verification{% endblock %}</title>
+  <meta name="description" content="{% block description %}Cryptographic verification of a Once procurement receipt.{% endblock %}" />
+  <meta name="robots" content="noindex" />
+
+  {# Open Graph / Twitter — nice unfurls in Slack, iMessage, Twitter. #}
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Once" />
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}" />
+  <meta property="og:image" content="{{ og_image_url|default('/static/og-verify.svg', true) }}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="{{ canonical_url|default('', true) }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ self.og_title() }}" />
+  <meta name="twitter:description" content="{{ self.og_description() }}" />
+  <meta name="twitter:image" content="{{ og_image_url|default('/static/og-verify.svg', true) }}" />
+
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="canonical" href="{{ canonical_url|default('', true) }}" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="min-h-full bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur">
+    <div class="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between">
+      <a href="https://getonce.com" class="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+        <img src="/static/once-logo.svg" alt="Once" width="28" height="28" />
+        <span class="font-semibold tracking-tight">Once</span>
+        <span class="text-slate-400 dark:text-slate-500">·</span>
+        <span class="text-slate-600 dark:text-slate-400">Receipt Verification</span>
+      </a>
+      <a href="https://getonce.com/docs/verifier" class="text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">Docs</a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-3xl px-6 py-10">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "_partials/footer.html" %}
+</body>
+</html>{% endautoescape %}

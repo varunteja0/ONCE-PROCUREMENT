@@ -1,0 +1,194 @@
+# Once — local development stack.
+#
+#   docker compose up --build
+#
+# Brings up Postgres + Redis + backend API + Celery worker + Celery beat +
+# the operator frontend. The backend image is built from ./backend and
+# reused for the worker and beat services.
+
+name: ${COMPOSE_PROJECT_NAME:-once}
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-development}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-once}:${POSTGRES_PASSWORD:-once_dev_password}@db:5432/${POSTGRES_DB:-once}
+  REDIS_URL: redis://redis:6379/0
+  SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me-xxxxxxxxxxxxxxxx}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-change-me-yyyyyyyyyyyyy}
+  JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+  REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+  BACKEND_CORS_ORIGINS: '["http://localhost:5173"]'
+  RECEIPT_SIGNING_KEY_ID: ${RECEIPT_SIGNING_KEY_ID:-default}
+  RECEIPT_SIGNING_PRIVATE_KEY_PEM: ${RECEIPT_SIGNING_PRIVATE_KEY_PEM:-}
+  PORTAL_SMOKE_TEST_TIMEOUT_SEC: ${PORTAL_SMOKE_TEST_TIMEOUT_SEC:-60}
+  ENABLE_IN_PROCESS_PROCESSOR: ${ENABLE_IN_PROCESS_PROCESSOR:-False}
+  ENABLE_TOS_RISKY_PLATFORMS: ${ENABLE_TOS_RISKY_PLATFORMS:-False}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+  PORTAL_AMTRUST_URL: ${PORTAL_AMTRUST_URL:-http://portal-fixtures:8101/}
+  PORTAL_MARKEL_URL: ${PORTAL_MARKEL_URL:-http://portal-fixtures:8102/}
+  PORTAL_APPLIED_EPIC_URL: ${PORTAL_APPLIED_EPIC_URL:-http://portal-fixtures:8103/}
+  PORTAL_VERTAFORE_AMS360_URL: ${PORTAL_VERTAFORE_AMS360_URL:-http://portal-fixtures:8104/}
+  PORTAL_SIRCON_URL: ${PORTAL_SIRCON_URL:-http://portal-fixtures:8105/}
+  AMTRUST_USERNAME: ${AMTRUST_USERNAME:-demo}
+  AMTRUST_PASSWORD: ${AMTRUST_PASSWORD:-demo}
+  MARKEL_USERNAME: ${MARKEL_USERNAME:-demo}
+  MARKEL_PASSWORD: ${MARKEL_PASSWORD:-demo}
+  APPLIED_EPIC_USERNAME: ${APPLIED_EPIC_USERNAME:-demo}
+  APPLIED_EPIC_PASSWORD: ${APPLIED_EPIC_PASSWORD:-demo}
+  VERTAFORE_AMS360_USERNAME: ${VERTAFORE_AMS360_USERNAME:-demo}
+  VERTAFORE_AMS360_PASSWORD: ${VERTAFORE_AMS360_PASSWORD:-demo}
+  SIRCON_USERNAME: ${SIRCON_USERNAME:-demo}
+  SIRCON_PASSWORD: ${SIRCON_PASSWORD:-demo}
+  PLAYWRIGHT_HEADLESS: ${PLAYWRIGHT_HEADLESS:-true}
+  SCREENSHOT_DIR: ${SCREENSHOT_DIR:-/var/once/screenshots}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-once}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-once_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-once}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-once} -d ${POSTGRES_DB:-once}" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: once/backend:dev
+    restart: unless-stopped
+    environment: *backend-env
+    # Playwright/Chromium needs shared memory headroom to avoid renderer crashes.
+    shm_size: "1gb"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Run migrations once, then start the API. (On Fly this is done by
+    # [deploy].release_command; in compose we chain it inline.)
+    entrypoint: [ "/usr/bin/tini", "--" ]
+    command: [ "sh", "-c", "./entrypoint.sh migrate && exec ./entrypoint.sh api" ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/v1/health', timeout=2).status==200 else 1)" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    image: once/backend:dev
+    restart: unless-stopped
+    environment: *backend-env
+    shm_size: "1gb"
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [ "worker" ]
+
+  beat:
+    image: once/backend:dev
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [ "beat" ]
+
+  frontend:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    command:
+      - sh
+      - -c
+      - |
+        corepack enable && corepack prepare pnpm@9.12.0 --activate &&
+        pnpm install --frozen-lockfile=false &&
+        pnpm dev --host 0.0.0.0 --port 5173
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  portal-fixtures:
+    build: ./fixtures/portals/_nginx
+    image: once/portal-fixtures:dev
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_AMTRUST_PORT:-8101}:8101"
+      - "${PORTAL_MARKEL_PORT:-8102}:8102"
+      - "${PORTAL_APPLIED_EPIC_PORT:-8103}:8103"
+      - "${PORTAL_VERTAFORE_AMS360_PORT:-8104}:8104"
+      - "${PORTAL_SIRCON_PORT:-8105}:8105"
+    volumes:
+      - ./fixtures/portals:/usr/share/nginx/html:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8101/" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ClamAV antivirus sidecar (L4). Behind the ``full`` profile so the
+  # default ``docker compose up`` doesn't pull the ~600MB image. Enable
+  # with: ``docker compose --profile full up``. When this service is
+  # running, set ``AV_SCANNER_BACKEND=clamd`` in the backend env to wire
+  # real scans; otherwise the backend falls back to ``stub_allow`` and
+  # logs a warning on boot.
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: once-clamav
+    restart: unless-stopped
+    profiles: ["full"]
+    ports:
+      - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    volumes:
+      - clamav-db:/var/lib/clamav
+
+volumes:
+  db-data:
+  redis-data:
+  frontend-node-modules:
+  clamav-db: {}

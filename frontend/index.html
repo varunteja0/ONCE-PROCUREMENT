@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#225ad8" media="(prefers-color-scheme: light)" />
+    <meta
+      name="description"
+      content="Once — supplier-portal submission autopilot for US specialty insurance MGAs. Submit once. Prove it forever."
+    />
+    <meta property="og:title" content="Once Procurement" />
+    <meta
+      property="og:description"
+      content="Submit once. Prove it forever. The submission autopilot for US specialty insurance MGAs."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Once Procurement</title>
+    <script>
+      // Inline theme bootstrap — runs before React mounts so the first paint
+      // honours the persisted theme and avoids a light→dark flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem('once.theme');
+          var theme = stored === 'dark' || stored === 'light' || stored === 'system' ? stored : 'system';
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = theme === 'dark' || (theme === 'system' && prefersDark);
+          if (dark) document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a href="#main-content" class="visually-hidden focus:not-sr-only">Skip to main content</a>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

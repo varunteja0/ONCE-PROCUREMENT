@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% autoescape true %}
+
+{% block title %}{% if verdict == 'verified' %}✓ Verified · Once Receipt{% elif verdict == 'invalid' %}✗ Invalid · Once Receipt{% elif verdict == 'not_found' %}Not found · Once Receipt{% else %}Verification error · Once Receipt{% endif %}{% endblock %}
+
+{% block description %}{{ subtitle }}{% endblock %}
+
+{% block content %}
+  {% if verdict == 'verified' %}
+    {% set tone_bg = 'bg-emerald-50 dark:bg-emerald-950/40' %}
+    {% set tone_border = 'border-emerald-200 dark:border-emerald-900' %}
+    {% set tone_text = 'text-emerald-900 dark:text-emerald-100' %}
+    {% set tone_icon_bg = 'bg-emerald-500' %}
+    {% set icon = '✓' %}
+  {% elif verdict == 'invalid' %}
+    {% set tone_bg = 'bg-rose-50 dark:bg-rose-950/40' %}
+    {% set tone_border = 'border-rose-200 dark:border-rose-900' %}
+    {% set tone_text = 'text-rose-900 dark:text-rose-100' %}
+    {% set tone_icon_bg = 'bg-rose-500' %}
+    {% set icon = '✗' %}
+  {% elif verdict == 'not_found' %}
+    {% set tone_bg = 'bg-amber-50 dark:bg-amber-950/40' %}
+    {% set tone_border = 'border-amber-200 dark:border-amber-900' %}
+    {% set tone_text = 'text-amber-900 dark:text-amber-100' %}
+    {% set tone_icon_bg = 'bg-amber-500' %}
+    {% set icon = '?' %}
+  {% else %}
+    {% set tone_bg = 'bg-slate-50 dark:bg-slate-900' %}
+    {% set tone_border = 'border-slate-200 dark:border-slate-800' %}
+    {% set tone_text = 'text-slate-900 dark:text-slate-100' %}
+    {% set tone_icon_bg = 'bg-slate-500' %}
+    {% set icon = '!' %}
+  {% endif %}
+
+  <section class="rounded-2xl border {{ tone_border }} {{ tone_bg }} p-6 sm:p-8">
+    <div class="flex items-start gap-5">
+      <div class="shrink-0 w-14 h-14 rounded-full {{ tone_icon_bg }} text-white grid place-items-center text-3xl font-bold shadow-sm">
+        {{ icon }}
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight {{ tone_text }}">{{ headline }}</h1>
+        <p class="mt-2 text-slate-700 dark:text-slate-300 leading-relaxed">{{ subtitle }}</p>
+      </div>
+    </div>
+  </section>
+
+  {% include "_partials/details_card.html" %}
+
+  <section class="mt-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6">
+    <h2 class="font-medium text-slate-900 dark:text-slate-100">What does this mean?</h2>
+    <div class="prose prose-sm dark:prose-invert mt-3 text-slate-700 dark:text-slate-300 max-w-none space-y-3">
+      <p>
+        Once issues a receipt every time a supplier submission is delivered to a buyer portal.
+        Each receipt contains the immutable facts of that submission (who submitted what, where, and when) and is signed with an Ed25519 private key held by Once.
+        The signature covers the receipt's canonical-JSON encoding (RFC&nbsp;8785), so even a single byte changed anywhere in the payload would invalidate it.
+      </p>
+      <p>
+        A <strong>verified</strong> result means two things: (1) the receipt was signed by a key Once controls, and (2) the payload you are looking at is byte-for-byte the payload that was signed.
+        That gives you cryptographic certainty about the <em>contents</em> of the submission record.
+      </p>
+      <p>
+        Verification does <strong>not</strong> by itself guarantee legal admissibility, the correctness of the underlying business process, or that the supplier portal actually accepted the data.
+        It is evidence of integrity, not of business outcomes. Pair it with your own audit trail when stakes are high.
+      </p>
+    </div>
+  </section>
+
+  {% include "_partials/code_snippets.html" %}
+{% endblock %}
+
+{% endautoescape %}

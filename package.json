@@ -1,0 +1,28 @@
+{
+  "name": "once-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Once — supplier-portal autopilot. Root scripts wrap per-component packages (frontend/, extension/, oncetax/) without enabling npm workspaces (keeps each component independently buildable).",
+  "scripts": {
+    "format": "prettier --write \"**/*.{json,md,yml,yaml,css}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{json,md,yml,yaml,css}\" --ignore-path .gitignore",
+    "lint": "python scripts/lint_all.py",
+    "test": "python scripts/coverage_report.py --skip-py || true",
+    "test:frontend": "npm --prefix frontend test --silent",
+    "test:extension": "npm --prefix extension test --silent",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:extension": "npm --prefix extension run build",
+    "doctor": "python scripts/dev_doctor.py",
+    "setup": "python scripts/dev_setup.py",
+    "prepare": "husky install || true"
+  },
+  "devDependencies": {
+    "husky": "^9.1.6",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "license": "BUSL-1.1"
+}

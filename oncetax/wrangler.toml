@@ -1,0 +1,32 @@
+name = "oncetax"
+main = "worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Build target — Remix server bundle is produced by `npm run build` (vite).
+# The worker entry (`worker.ts`) lazy-imports `./build/server/index.js` at
+# runtime when present, and serves `/health` directly otherwise.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "oncetax"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "PDF_BUCKET"
+bucket_name = "oncetax-pdfs"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Non-secret config. Secrets live in `.dev.vars` (local) or
+# `wrangler secret put <NAME>` (deployed). See `.dev.vars.example`.
+[vars]
+APP_URL = "https://oncetax.example.com"
+SCOPES = "read_orders,read_customers"
+ENABLE_PDF_GENERATION = "false"
+WEDGE_MODE = "parallel-run-30d"
+
+[observability]
+enabled = true

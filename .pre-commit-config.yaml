@@ -1,0 +1,102 @@
+# See https://pre-commit.com for hook docs and version pins.
+# Install with: pre-commit install && pre-commit install --hook-type commit-msg
+default_language_version:
+  python: python3.12
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # ── Generic safety nets ──────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '(^|/)(\.snap|\.lock|package-lock\.json)$'
+      - id: end-of-file-fixer
+        exclude: '(^|/)(\.snap|package-lock\.json)$'
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: ["--unsafe"]  # docker-compose tags etc.
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # ── Python: ruff (lint + format) ─────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  # ── Python: black (secondary formatter — check only) ─────────────────
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: ["--check", "--quiet", "--line-length=120"]
+
+  # ── Python: mypy (lenient — only obvious typing errors block) ────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args:
+          - "--ignore-missing-imports"
+          - "--follow-imports=silent"
+          - "--no-strict-optional"
+        files: '^backend/app/.*\.py$'
+        additional_dependencies:
+          - pydantic>=2
+          - types-requests
+
+  # ── JS/TS: prettier (formatter for JSON/MD/YAML + JS/TS) ─────────────
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, json, yaml, markdown, css, scss]
+        exclude: |
+          (?x)^(
+            .*/node_modules/.*|
+            .*/dist/.*|
+            .*/\.wrangler/.*|
+            .*/package-lock\.json|
+            extension/public/.*\.min\.js
+          )$
+
+  # ── JS/TS: eslint ────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.13.0
+    hooks:
+      - id: eslint
+        files: '^(frontend|extension)/src/.*\.(js|jsx|ts|tsx)$'
+        additional_dependencies:
+          - eslint@9.13.0
+          - "@typescript-eslint/parser@8.11.0"
+          - "@typescript-eslint/eslint-plugin@8.11.0"
+        args: ["--max-warnings=0"]
+
+  # ── Secrets scan ─────────────────────────────────────────────────────
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.82.13
+    hooks:
+      - id: trufflehog
+        name: trufflehog (verified secrets)
+        entry: trufflehog filesystem . --only-verified --fail
+        language: system
+        pass_filenames: false
+
+  # ── Commit message: conventional commits (OPT-IN) ────────────────────
+  # Enable with:  pre-commit install --hook-type commit-msg
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.31.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

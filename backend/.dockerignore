@@ -1,0 +1,59 @@
+# Once backend .dockerignore — keep build context small and reproducible.
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.eggs
+.venv
+venv
+env
+build
+dist
+
+# Caches / tooling
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+.coverage.*
+htmlcov
+.tox
+.nox
+
+# Tests (not needed in production image)
+tests
+
+# Node / front-end (not part of backend image)
+node_modules
+
+# IDE / editor
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Local env / secrets (NEVER bake into image)
+.env
+.env.*
+!.env.example
+
+# Docker / compose stray files
+Dockerfile.*
+docker-compose*.yml
+
+# Logs
+*.log
+logs/
+
+# Playwright local artifacts (browsers installed inside image, not copied in)
+playwright-report
+test-results

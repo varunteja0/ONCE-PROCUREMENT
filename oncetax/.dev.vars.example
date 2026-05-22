@@ -1,0 +1,23 @@
+# OnceTax — local secrets / dev env. Copy to `.dev.vars` (gitignored)
+# and fill in real values. For deployed envs use `wrangler secret put <NAME>`.
+
+# Shopify app credentials (Partners dashboard → Apps → API credentials)
+SHOPIFY_API_KEY=
+SHOPIFY_API_SECRET=
+SHOPIFY_APP_URL=http://localhost:8788
+SHOPIFY_SCOPES=read_orders,read_customers
+
+# Legacy aliases — read by current code (`getEnv`). Keep in sync with the
+# SHOPIFY_* values above until the codebase migrates.
+APP_URL=http://localhost:8788
+SCOPES=read_orders,read_customers
+
+# Remix / cookie session signing (required once we move sessions off raw KV)
+SESSION_SECRET=replace-with-32-bytes-random-hex
+
+# Transactional email (Resend)
+RESEND_API_KEY=
+
+# Optional: external sales-tax rate provider. Unused in v0 (we ship a static
+# state-base-rate table); wire this in when adding district overlays.
+TAXJAR_API_KEY=

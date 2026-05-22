@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% autoescape true %}
+
+{% block title %}{{ headline|default('Error') }} · Once{% endblock %}
+
+{% block content %}
+  <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
+    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">{{ headline|default('Something went wrong') }}</h1>
+    <p class="mt-3 text-slate-600 dark:text-slate-400">{{ subtitle|default('Please try again or contact support@getonce.com.') }}</p>
+    <a href="https://getonce.com" class="mt-6 inline-block rounded-md bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 font-medium">Back to getonce.com</a>
+  </section>
+{% endblock %}
+
+{% endautoescape %}

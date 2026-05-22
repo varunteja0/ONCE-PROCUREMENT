@@ -1,0 +1,8 @@
+# Locust run outputs — regenerated on every `make perf-smoke` / `make perf-baseline`.
+# The committed baseline.csv is the historical reference; .last_* are transient.
+.last_*
+# Per-developer manifest — regenerate locally with
+#   python tools/perf/generate_seed_manifest.py
+seed_manifest.json
+# Bytecode cache
+__pycache__/

@@ -1,0 +1,45 @@
+{
+  "annotations": {"list": []},
+  "description": "Browser extension metrics — placeholder. The extension does not yet emit metrics. Tracked as future work in docs/OBSERVABILITY.md.",
+  "editable": true,
+  "graphTooltip": 0,
+  "id": null,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false},
+        "content": "# Extension metrics\n\nThe Chrome / Edge extension does not yet emit Prometheus metrics. This dashboard is reserved for future work.\n\n**Planned panels**:\n- Detector dispatches by portal\n- Pre-fill success rate\n- Time saved per portal session\n- Active installs (daily)\n\nTracking issue: see `docs/OBSERVABILITY.md` (Future Work).",
+        "mode": "markdown"
+      },
+      "title": "About",
+      "type": "text"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "id": 2,
+      "options": {"legend": {"displayMode": "list"}},
+      "targets": [
+        {
+          "expr": "extension_events_total",
+          "legendFormat": "events",
+          "refId": "A"
+        }
+      ],
+      "title": "Extension events (no data expected)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["once", "extension"],
+  "templating": {"list": []},
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "Once — Extension",
+  "uid": "once-extension",
+  "version": 1
+}

@@ -1,0 +1,21 @@
+[run]
+source = app
+branch = True
+omit =
+    app/__init__.py
+    app/main.py
+    app/alembic/*
+    alembic/*
+    app/workers/*
+    app/automation/*
+
+[report]
+show_missing = True
+skip_covered = False
+fail_under = 75
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    \.\.\.

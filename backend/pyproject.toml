@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "once-backend"
+version = "0.1.0"
+description = "Once — supplier-portal autopilot backend (FastAPI)"
+requires-python = ">=3.12,<3.13"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["alembic/versions", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "S",   # flake8-bandit
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "B008",  # FastAPI Depends() in defaults
+    "S104",  # 0.0.0.0 bind is intentional in containers
+    "UP042",  # CONTRACTS.md requires str + enum.Enum for canonical status enums
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["B017", "S101", "S105", "S106", "S107", "S310", "S311"]
+"alembic/**/*.py" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = [
+    "ignore::DeprecationWarning:passlib.*",
+    "ignore::DeprecationWarning:jose.*",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = [
+    "app/__init__.py",
+    "app/main.py",
+    "app/alembic/*",
+    "alembic/*",
+    "app/workers/*",
+    "app/automation/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 75
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.",
+]

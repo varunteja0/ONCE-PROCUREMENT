@@ -1,0 +1,87 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 0,
+  "id": null,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (portal) (rate(submissions_total[5m]))",
+          "legendFormat": "{{portal}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Submissions / sec by portal",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (portal) (rate(submissions_total{status=\"succeeded\"}[15m])) / clamp_min(sum by (portal) (rate(submissions_total[15m])), 1e-9)",
+          "legendFormat": "{{portal}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Success rate by portal (15m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (portal) (submissions_in_flight)",
+          "legendFormat": "{{portal}}",
+          "refId": "A"
+        }
+      ],
+      "title": "In-flight submissions (queue depth)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le, portal) (rate(submission_duration_seconds_bucket[15m])))", "legendFormat": "p50 {{portal}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (le, portal) (rate(submission_duration_seconds_bucket[15m])))", "legendFormat": "p95 {{portal}}", "refId": "B"}
+      ],
+      "title": "Time-to-completion by portal",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16},
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum by (portal) (increase(submissions_total{status=\"blocked\"}[1h]))",
+          "legendFormat": "{{portal}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Blocked submissions (1h)",
+      "type": "bargauge"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["once", "submissions"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "Once — Submissions",
+  "uid": "once-submissions",
+  "version": 1
+}

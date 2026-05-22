@@ -1,0 +1,65 @@
+# Normalize line endings across OSes; keep binary files binary.
+# https://git-scm.com/docs/gitattributes
+
+* text=auto eol=lf
+
+# ── Source ───────────────────────────────────────────────────────────
+*.py        text eol=lf diff=python
+*.pyi       text eol=lf diff=python
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.json      text eol=lf
+*.jsonc     text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.svg       text eol=lf
+*.sh        text eol=lf
+*.bash      text eol=lf
+*.sql       text eol=lf
+Dockerfile  text eol=lf
+Makefile    text eol=lf
+
+# Windows-native scripts keep CRLF.
+*.ps1       text eol=crlf
+*.psm1      text eol=crlf
+*.psd1      text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# ── Lockfiles: hide from diffs, but still track ──────────────────────
+package-lock.json   -diff linguist-generated=true
+pnpm-lock.yaml      -diff linguist-generated=true
+yarn.lock           -diff linguist-generated=true
+poetry.lock         -diff linguist-generated=true
+
+# ── Binary assets ────────────────────────────────────────────────────
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.gz        binary
+*.tgz       binary
+*.crx       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+
+# ── Language linguist hints ──────────────────────────────────────────
+extension/node_modules/** linguist-vendored
+frontend/node_modules/**  linguist-vendored
+**/*.min.js               linguist-generated=true
+fixtures/portals/**       linguist-documentation

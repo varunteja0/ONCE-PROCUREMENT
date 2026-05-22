@@ -1,0 +1,36 @@
+/* Small overrides on top of Tailwind CDN. */
+
+:root {
+  color-scheme: light dark;
+}
+
+.font-mono,
+pre,
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1em;
+  margin-right: 0.25rem;
+  transition: transform 120ms ease;
+  color: rgb(100 116 139);
+}
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+:root {
+  --once-verified: #10b981;
+  --once-invalid: #ef4444;
+  --once-warn: #f59e0b;
+}
