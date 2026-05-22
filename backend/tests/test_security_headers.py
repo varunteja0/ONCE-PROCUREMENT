@@ -98,15 +98,11 @@ class TestCSP:
 
 class TestBuildHelper:
     def test_helper_returns_no_csp_when_not_html(self) -> None:
-        headers = build_security_headers(
-            is_local=False, hsts_enabled=True, is_html=False, csp_report_uri=None
-        )
+        headers = build_security_headers(is_local=False, hsts_enabled=True, is_html=False, csp_report_uri=None)
         assert "Content-Security-Policy" not in headers
         assert "Strict-Transport-Security" in headers
 
     def test_helper_omits_hsts_on_local(self) -> None:
-        headers = build_security_headers(
-            is_local=True, hsts_enabled=True, is_html=True, csp_report_uri=None
-        )
+        headers = build_security_headers(is_local=True, hsts_enabled=True, is_html=True, csp_report_uri=None)
         assert "Strict-Transport-Security" not in headers
         assert "Content-Security-Policy" in headers

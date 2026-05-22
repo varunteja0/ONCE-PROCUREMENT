@@ -38,7 +38,6 @@ from app.services.parsers import detect_format, iter_rows
 from app.services.parsers.csv_parser import iter_csv_rows
 from app.services.parsers.xlsx_parser import iter_xlsx_rows
 
-
 FIXTURES = Path(__file__).parent / "fixtures" / "imports"
 
 
@@ -106,8 +105,7 @@ class TestCsvParser:
     def test_handles_quoted_commas_and_newlines(self, tmp_path: Path) -> None:
         p = tmp_path / "quoted.csv"
         p.write_text(
-            'name,fein,state\r\n"Acme, Inc.",12-3456789,CA\r\n'
-            '"Big\nName",98-7654321,NY\r\n',
+            'name,fein,state\r\n"Acme, Inc.",12-3456789,CA\r\n' '"Big\nName",98-7654321,NY\r\n',
             encoding="utf-8",
         )
         rows = list(iter_csv_rows(p))
@@ -133,9 +131,7 @@ class TestCsvParser:
         assert "name" in rows[0] and "state" in rows[0]
 
     def test_iter_rows_dispatch_csv(self) -> None:
-        rows = list(
-            iter_rows(FIXTURES / "suppliers_valid.csv", filename="x.csv")
-        )
+        rows = list(iter_rows(FIXTURES / "suppliers_valid.csv", filename="x.csv"))
         assert len(rows) == 5
 
     def test_detect_format_known_exts(self) -> None:
@@ -185,11 +181,7 @@ class TestXlsxParser:
 
     def test_booleans_stringified(self, tmp_path: Path) -> None:
         p = tmp_path / "s.xlsx"
-        p.write_bytes(
-            _xlsx_bytes(
-                [["name", "fein", "state", "flag"], ["A", "12-3456789", "CA", True]]
-            )
-        )
+        p.write_bytes(_xlsx_bytes([["name", "fein", "state", "flag"], ["A", "12-3456789", "CA", True]]))
         rows = list(iter_xlsx_rows(p))
         assert rows[0]["flag"] == "true"
 
@@ -244,9 +236,7 @@ class TestXlsxParser:
 
     def test_iter_rows_dispatch_xlsx(self, tmp_path: Path) -> None:
         p = tmp_path / "s.xlsx"
-        p.write_bytes(
-            _xlsx_bytes([["name", "fein", "state"], ["A", "12-3456789", "CA"]])
-        )
+        p.write_bytes(_xlsx_bytes([["name", "fein", "state"], ["A", "12-3456789", "CA"]]))
         rows = list(iter_rows(p, filename="s.xlsx"))
         assert rows[0]["name"] == "A"
 
@@ -269,9 +259,7 @@ class TestSupplierImporter:
         assert normalize_fein("1234567") is None
 
     def test_valid_row(self) -> None:
-        vr = self.imp.validate_row(
-            {"name": "Acme", "fein": "123456789", "state": "ca", "email": "a@b.co"}, 2
-        )
+        vr = self.imp.validate_row({"name": "Acme", "fein": "123456789", "state": "ca", "email": "a@b.co"}, 2)
         assert vr.ok
         assert vr.data["legal_name"] == "Acme"
         assert vr.data["ein"] == "12-3456789"
@@ -362,12 +350,8 @@ class TestImportService:
                 file_bytes=b"hi",
             )
 
-    async def test_create_too_large(
-        self, async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setattr(
-            import_service.settings, "import_max_file_size_bytes", 10
-        )
+    async def test_create_too_large(self, async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(import_service.settings, "import_max_file_size_bytes", 10)
         with pytest.raises(import_service.FileTooLargeError):
             await import_service.create_import_job(
                 async_session,
@@ -389,9 +373,7 @@ class TestImportService:
             file_bytes=data,
         )
         await async_session.commit()
-        job = await import_service.run_validation(
-            async_session, tenant_id="tenant-svc-1", job_id=job.id
-        )
+        job = await import_service.run_validation(async_session, tenant_id="tenant-svc-1", job_id=job.id)
         assert job.status == ImportStatus.DRY_RUN_READY
         assert job.total_rows == 5
         assert job.valid_rows == 5
@@ -408,9 +390,7 @@ class TestImportService:
             file_bytes=data,
         )
         await async_session.commit()
-        job = await import_service.run_validation(
-            async_session, tenant_id="tenant-svc-2", job_id=job.id
-        )
+        job = await import_service.run_validation(async_session, tenant_id="tenant-svc-2", job_id=job.id)
         assert job.status == ImportStatus.DRY_RUN_READY
         assert job.total_rows == 5
         assert job.invalid_rows >= 3  # bad fein, missing name, bad state
@@ -426,18 +406,12 @@ class TestImportService:
             file_bytes=data,
         )
         await async_session.commit()
-        job = await import_service.run_validation(
-            async_session, tenant_id="t-mc", job_id=job.id
-        )
+        job = await import_service.run_validation(async_session, tenant_id="t-mc", job_id=job.id)
         assert job.status == ImportStatus.FAILED
 
-    async def test_too_many_rows(
-        self, async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_too_many_rows(self, async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(import_service.settings, "import_max_rows", 2)
-        text = "name,fein,state\r\n" + "\r\n".join(
-            f"R{i},12-345678{i % 10}," "CA" for i in range(10)
-        )
+        text = "name,fein,state\r\n" + "\r\n".join(f"R{i},12-345678{i % 10}," "CA" for i in range(10))
         job = await import_service.create_import_job(
             async_session,
             tenant_id="t-big",
@@ -447,9 +421,7 @@ class TestImportService:
             file_bytes=text.encode("utf-8"),
         )
         await async_session.commit()
-        job = await import_service.run_validation(
-            async_session, tenant_id="t-big", job_id=job.id
-        )
+        job = await import_service.run_validation(async_session, tenant_id="t-big", job_id=job.id)
         assert job.status == ImportStatus.FAILED
 
     async def test_commit_happy(self, async_session: AsyncSession) -> None:
@@ -463,14 +435,10 @@ class TestImportService:
             file_bytes=data,
         )
         await async_session.commit()
-        await import_service.run_validation(
-            async_session, tenant_id="tenant-commit-1", job_id=job.id
-        )
+        await import_service.run_validation(async_session, tenant_id="tenant-commit-1", job_id=job.id)
         await async_session.commit()
 
-        job = await import_service.run_commit(
-            tenant_id="tenant-commit-1", job_id=job.id
-        )
+        job = await import_service.run_commit(tenant_id="tenant-commit-1", job_id=job.id)
         assert job.status == ImportStatus.COMPLETED
         assert job.imported_rows == 5
 
@@ -479,9 +447,7 @@ class TestImportService:
 
         async with _db.AsyncSessionLocal() as s:
             count = await s.scalar(
-                select(__import__("sqlalchemy").func.count(Supplier.id)).where(
-                    Supplier.tenant_id == "tenant-commit-1"
-                )
+                select(__import__("sqlalchemy").func.count(Supplier.id)).where(Supplier.tenant_id == "tenant-commit-1")
             )
             assert count == 5
 
@@ -496,9 +462,7 @@ class TestImportService:
             file_bytes=data,
         )
         await async_session.commit()
-        job = await import_service.run_validation(
-            async_session, tenant_id="t-dup", job_id=job.id
-        )
+        job = await import_service.run_validation(async_session, tenant_id="t-dup", job_id=job.id)
         # First row counts as valid; second is flagged duplicate_fein_in_file
         assert job.valid_rows == 1
         assert job.invalid_rows == 1
@@ -513,18 +477,12 @@ class TestImportService:
             content_type="text/csv",
             file_bytes=data,
         )
-        canceled = await import_service.cancel_job(
-            async_session, tenant_id="t-c", job_id=job.id
-        )
+        canceled = await import_service.cancel_job(async_session, tenant_id="t-c", job_id=job.id)
         assert canceled.status == ImportStatus.CANCELED
         with pytest.raises(import_service.InvalidTransitionError):
-            await import_service.cancel_job(
-                async_session, tenant_id="t-c", job_id=job.id
-            )
+            await import_service.cancel_job(async_session, tenant_id="t-c", job_id=job.id)
 
-    async def test_invalid_transition_commit_from_pending(
-        self, async_session: AsyncSession
-    ) -> None:
+    async def test_invalid_transition_commit_from_pending(self, async_session: AsyncSession) -> None:
         data = (FIXTURES / "suppliers_valid.csv").read_bytes()
         job = await import_service.create_import_job(
             async_session,
@@ -584,9 +542,7 @@ class TestImportsApi:
         mapping: dict[str, str] | None = None,
         on_duplicate: str = "error",
     ) -> dict[str, Any]:
-        data = content if content is not None else (
-            FIXTURES / "suppliers_valid.csv"
-        ).read_bytes()
+        data = content if content is not None else (FIXTURES / "suppliers_valid.csv").read_bytes()
         files = {"file": (filename, data, "text/csv")}
         form: dict[str, str] = {
             "entity_type": entity_type,
@@ -595,22 +551,20 @@ class TestImportsApi:
         if mapping is not None:
             form["mapping"] = json.dumps(mapping)
         resp = await client.post("/v1/imports", files=files, data=form)
-        return resp.json() if resp.headers.get("content-type", "").startswith(
-            "application/json"
-        ) else {"_status": resp.status_code, "_text": resp.text}
+        return (
+            resp.json()
+            if resp.headers.get("content-type", "").startswith("application/json")
+            else {"_status": resp.status_code, "_text": resp.text}
+        )
 
-    async def test_upload_dry_run(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_upload_dry_run(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         body = await self._upload(client)
         assert body.get("status") == "dry_run_ready"
         assert body["total_rows"] == 5
         assert body["valid_rows"] == 5
 
-    async def test_upload_bad_extension(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_upload_bad_extension(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         resp = await client.post(
             "/v1/imports",
@@ -632,44 +586,30 @@ class TestImportsApi:
         assert body["id"] == created["id"]
         assert "errors_preview" in body
 
-    async def test_commit_happy(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_commit_happy(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         created = await self._upload(client)
-        resp = await client.post(
-            f"/v1/imports/{created['id']}/commit", json={"confirmed": True}
-        )
+        resp = await client.post(f"/v1/imports/{created['id']}/commit", json={"confirmed": True})
         assert resp.status_code == 200, resp.text
         body = resp.json()
         assert body["status"] == "completed"
         assert body["imported_rows"] == 5
 
-    async def test_commit_requires_confirmation(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_commit_requires_confirmation(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         created = await self._upload(client)
-        resp = await client.post(
-            f"/v1/imports/{created['id']}/commit", json={"confirmed": False}
-        )
+        resp = await client.post(f"/v1/imports/{created['id']}/commit", json={"confirmed": False})
         assert resp.status_code == 400
 
-    async def test_errors_csv_download(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_errors_csv_download(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
-        created = await self._upload(
-            client, content=(FIXTURES / "suppliers_mixed.csv").read_bytes()
-        )
+        created = await self._upload(client, content=(FIXTURES / "suppliers_mixed.csv").read_bytes())
         resp = await client.get(f"/v1/imports/{created['id']}/errors.csv")
         assert resp.status_code == 200
         assert "text/csv" in resp.headers["content-type"]
         assert "row_number" in resp.text
 
-    async def test_template_and_columns(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_template_and_columns(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         cols = await client.get("/v1/imports/columns/supplier")
         assert cols.status_code == 200
@@ -679,9 +619,7 @@ class TestImportsApi:
         assert tpl.status_code == 200
         assert "name,fein,state" in tpl.text.lower()
 
-    async def test_cross_tenant_404(
-        self, auth_client: tuple[AsyncClient, Any], client: AsyncClient
-    ) -> None:
+    async def test_cross_tenant_404(self, auth_client: tuple[AsyncClient, Any], client: AsyncClient) -> None:
         owner_client, _ = auth_client
         created = await self._upload(owner_client)
         # Register a second tenant via the shared `client` (no auth header)
@@ -711,9 +649,7 @@ class TestImportsApi:
         assert resp.status_code == 200
         assert resp.json()["status"] == "canceled"
 
-    async def test_unknown_entity_type(
-        self, auth_client: tuple[AsyncClient, Any]
-    ) -> None:
+    async def test_unknown_entity_type(self, auth_client: tuple[AsyncClient, Any]) -> None:
         client, _ = auth_client
         resp = await client.get("/v1/imports/columns/widgets")
         assert resp.status_code == 400
@@ -738,14 +674,10 @@ class TestImportTasks:
             file_bytes=data,
         )
         await async_session.commit()
-        result = await asyncio.to_thread(
-            lambda: process_import_job.apply(args=[job.id]).get()
-        )
+        result = await asyncio.to_thread(lambda: process_import_job.apply(args=[job.id]).get())
         assert result["status"] == "dry_run_ready"
 
-    async def test_task_commits_dry_run_ready(
-        self, async_session: AsyncSession
-    ) -> None:
+    async def test_task_commits_dry_run_ready(self, async_session: AsyncSession) -> None:
         from app.workers.tasks.import_tasks import process_import_job
 
         data = (FIXTURES / "suppliers_valid.csv").read_bytes()
@@ -758,22 +690,16 @@ class TestImportTasks:
             file_bytes=data,
         )
         await async_session.commit()
-        await import_service.run_validation(
-            async_session, tenant_id="t-task-2", job_id=job.id
-        )
+        await import_service.run_validation(async_session, tenant_id="t-task-2", job_id=job.id)
         await async_session.commit()
-        result = await asyncio.to_thread(
-            lambda: process_import_job.apply(args=[job.id]).get()
-        )
+        result = await asyncio.to_thread(lambda: process_import_job.apply(args=[job.id]).get())
         assert result["status"] == "completed"
         assert result["imported_rows"] == 5
 
     async def test_task_missing_job(self, async_session: AsyncSession) -> None:
         from app.workers.tasks.import_tasks import process_import_job
 
-        result = await asyncio.to_thread(
-            lambda: process_import_job.apply(args=["no-such-id"]).get()
-        )
+        result = await asyncio.to_thread(lambda: process_import_job.apply(args=["no-such-id"]).get())
         assert result["status"] == "not_found"
 
     async def test_task_skips_terminal(self, async_session: AsyncSession) -> None:
@@ -788,13 +714,9 @@ class TestImportTasks:
             content_type="text/csv",
             file_bytes=data,
         )
-        await import_service.cancel_job(
-            async_session, tenant_id="t-task-3", job_id=job.id
-        )
+        await import_service.cancel_job(async_session, tenant_id="t-task-3", job_id=job.id)
         await async_session.commit()
-        result = await asyncio.to_thread(
-            lambda: process_import_job.apply(args=[job.id]).get()
-        )
+        result = await asyncio.to_thread(lambda: process_import_job.apply(args=[job.id]).get())
         assert result.get("skipped") is True
 
 

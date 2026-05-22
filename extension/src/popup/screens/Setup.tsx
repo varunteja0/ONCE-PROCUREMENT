@@ -1,9 +1,9 @@
-import React, { useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
+import React, { useState } from "react";
 
-import { setApiBase } from "../../lib/storage";
-import { send } from "../../lib/messaging";
 import { login } from "../../lib/api";
+import { send } from "../../lib/messaging";
+import { setApiBase } from "../../lib/storage";
 import { init as vaultInit, isInitialized as vaultIsInitialized } from "../../lib/vault";
 
 interface Props {
@@ -77,14 +77,14 @@ export function Setup({ onDone }: Props): JSX.Element {
           <h1 id="setup-title" className="text-sm font-semibold">
             Welcome to Once
           </h1>
-          <p className="text-[10px] text-slate-500">
-            Sign in to your backend and choose a vault passphrase.
-          </p>
+          <p className="text-[10px] text-slate-500">Sign in to your backend and choose a vault passphrase.</p>
         </div>
       </div>
       <form onSubmit={(e) => void onSubmit(e)} className="p-4 space-y-3 text-xs">
         <div>
-          <label className="label" htmlFor="setup-api">Backend URL</label>
+          <label className="label" htmlFor="setup-api">
+            Backend URL
+          </label>
           <input
             id="setup-api"
             className="input"
@@ -96,7 +96,9 @@ export function Setup({ onDone }: Props): JSX.Element {
           />
         </div>
         <div>
-          <label className="label" htmlFor="setup-email">Email</label>
+          <label className="label" htmlFor="setup-email">
+            Email
+          </label>
           <input
             id="setup-email"
             type="email"
@@ -109,7 +111,9 @@ export function Setup({ onDone }: Props): JSX.Element {
           />
         </div>
         <div>
-          <label className="label" htmlFor="setup-password">Password</label>
+          <label className="label" htmlFor="setup-password">
+            Password
+          </label>
           <input
             id="setup-password"
             type="password"
@@ -123,7 +127,9 @@ export function Setup({ onDone }: Props): JSX.Element {
         </div>
         <div className="border-t border-slate-200 pt-3">
           <div>
-            <label className="label" htmlFor="setup-pass">Vault passphrase</label>
+            <label className="label" htmlFor="setup-pass">
+              Vault passphrase
+            </label>
             <input
               id="setup-pass"
               type="password"
@@ -137,7 +143,9 @@ export function Setup({ onDone }: Props): JSX.Element {
             />
           </div>
           <div className="mt-2">
-            <label className="label" htmlFor="setup-confirm">Confirm passphrase</label>
+            <label className="label" htmlFor="setup-confirm">
+              Confirm passphrase
+            </label>
             <input
               id="setup-confirm"
               type="password"
@@ -156,9 +164,7 @@ export function Setup({ onDone }: Props): JSX.Element {
         </div>
 
         {error ? (
-          <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
-            {error}
-          </div>
+          <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">{error}</div>
         ) : null}
 
         <button type="submit" className="btn-primary w-full" disabled={busy}>

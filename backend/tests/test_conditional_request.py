@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
@@ -97,9 +96,7 @@ class TestConditionalGet:
 
     async def test_if_none_match_mismatch_returns_full_body(self) -> None:
         async with await _client(_build_app()) as c:
-            r = await c.get(
-                "/widgets/1", headers={"If-None-Match": 'W/"not-the-tag"'}
-            )
+            r = await c.get("/widgets/1", headers={"If-None-Match": 'W/"not-the-tag"'})
         assert r.status_code == 200
         assert r.json() == {"id": "1", "name": "alpha"}
 
@@ -124,22 +121,16 @@ class TestIfMatch:
 
     async def test_matching_if_match_proceeds(self) -> None:
         async with await _client(_build_app()) as c:
-            r = await c.patch(
-                "/widgets/1", json={}, headers={"If-Match": '"v1"'}
-            )
+            r = await c.patch("/widgets/1", json={}, headers={"If-Match": '"v1"'})
         assert r.status_code == 200
 
     async def test_mismatched_if_match_returns_412(self) -> None:
         async with await _client(_build_app()) as c:
-            r = await c.patch(
-                "/widgets/1", json={}, headers={"If-Match": '"v2"'}
-            )
+            r = await c.patch("/widgets/1", json={}, headers={"If-Match": '"v2"'})
         assert r.status_code == 412
         assert r.json()["type"].endswith("/precondition-failed")
 
     async def test_wildcard_if_match_with_existing_resource(self) -> None:
         async with await _client(_build_app()) as c:
-            r = await c.patch(
-                "/widgets/1", json={}, headers={"If-Match": "*"}
-            )
+            r = await c.patch("/widgets/1", json={}, headers={"If-Match": "*"})
         assert r.status_code == 200

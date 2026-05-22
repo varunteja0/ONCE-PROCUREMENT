@@ -20,19 +20,20 @@ import asyncio
 import time
 import uuid
 
-import pytest
 from fastapi import FastAPI, Response
 from httpx import ASGITransport, AsyncClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.middleware.idempotency import (
+    MUTATING_METHODS,
     IdempotencyMiddleware,
     InMemoryIdempotencyStore,
-    MUTATING_METHODS,
 )
 from app.utils.errors import install_error_handlers
 
-pytestmark = pytest.mark.asyncio
+# NOTE: no module-level `pytestmark = pytest.mark.asyncio` — asyncio_mode=auto
+# already promotes async test functions, and the mark would attach to sync
+# tests in this file as well, raising PytestUnraisableExceptionWarning.
 
 
 def _build_app(
@@ -57,9 +58,7 @@ def _build_app(
     install_error_handlers(app)
 
     used_store = store or InMemoryIdempotencyStore()
-    app.add_middleware(
-        IdempotencyMiddleware, store=used_store, ttl_seconds=ttl_seconds
-    )
+    app.add_middleware(IdempotencyMiddleware, store=used_store, ttl_seconds=ttl_seconds)
 
     class _TenantSetterMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

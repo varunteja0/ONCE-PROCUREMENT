@@ -20,13 +20,7 @@
 
 import type { PortalPlatform } from "../types/portal";
 import type { SupplierProfile } from "../types/profile";
-import type {
-  SubmissionCreatePayload,
-  SubmissionListItem,
-  SupplierListItem,
-  UserMe,
-  HttpMethod,
-} from "./api";
+import type { HttpMethod, SubmissionCreatePayload, SubmissionListItem, SupplierListItem, UserMe } from "./api";
 
 // ---------------------------------------------------------------------------
 // Common substructures
@@ -150,13 +144,7 @@ export interface ResponseMap {
 export type Response<M extends Message> = ResponseMap[M["type"]];
 
 // Re-exports for downstream consumers (avoid pulling extra modules).
-export type {
-  HttpMethod,
-  SubmissionCreatePayload,
-  SubmissionListItem,
-  SupplierListItem,
-  UserMe,
-};
+export type { HttpMethod, SubmissionCreatePayload, SubmissionListItem, SupplierListItem, UserMe };
 
 // ---------------------------------------------------------------------------
 // chrome.* wrappers (Promise-uniform)
@@ -170,11 +158,7 @@ export class MessagingTransportError extends Error {
 }
 
 function hasRuntime(): boolean {
-  return (
-    typeof chrome !== "undefined" &&
-    !!chrome.runtime &&
-    typeof chrome.runtime.sendMessage === "function"
-  );
+  return typeof chrome !== "undefined" && !!chrome.runtime && typeof chrome.runtime.sendMessage === "function";
 }
 
 /**
@@ -184,20 +168,14 @@ function hasRuntime(): boolean {
  */
 export function send<M extends Message>(message: M): Promise<Response<M>> {
   if (!hasRuntime()) {
-    return Promise.reject(
-      new MessagingTransportError("chrome.runtime is unavailable"),
-    );
+    return Promise.reject(new MessagingTransportError("chrome.runtime is unavailable"));
   }
   return new Promise((resolve, reject) => {
     try {
       chrome.runtime.sendMessage(message, (response: unknown) => {
         const lastError = chrome.runtime.lastError;
         if (lastError) {
-          reject(
-            new MessagingTransportError(
-              lastError.message ?? "sendMessage failed",
-            ),
-          );
+          reject(new MessagingTransportError(lastError.message ?? "sendMessage failed"));
           return;
         }
         if (response === undefined) {
@@ -209,11 +187,7 @@ export function send<M extends Message>(message: M): Promise<Response<M>> {
         resolve(response as Response<M>);
       });
     } catch (err) {
-      reject(
-        new MessagingTransportError(
-          err instanceof Error ? err.message : "sendMessage threw",
-        ),
-      );
+      reject(new MessagingTransportError(err instanceof Error ? err.message : "sendMessage threw"));
     }
   });
 }
@@ -223,9 +197,7 @@ export function send<M extends Message>(message: M): Promise<Response<M>> {
  * from `Err.error` on business failure. Useful when call sites want a
  * single try/catch rather than a discriminated check.
  */
-export async function sendOrThrow<M extends Message>(
-  message: M,
-): Promise<Response<M> & { ok: true }> {
+export async function sendOrThrow<M extends Message>(message: M): Promise<Response<M> & { ok: true }> {
   const resp = await send(message);
   if (!resp.ok) {
     const e = new Error(resp.error);
@@ -252,29 +224,16 @@ export async function notify<M extends Message>(message: M): Promise<void> {
 // Tab messaging (popup → content)
 // ---------------------------------------------------------------------------
 
-export function sendToTab<M extends Message>(
-  tabId: number,
-  message: M,
-): Promise<Response<M>> {
-  if (
-    typeof chrome === "undefined" ||
-    !chrome.tabs ||
-    typeof chrome.tabs.sendMessage !== "function"
-  ) {
-    return Promise.reject(
-      new MessagingTransportError("chrome.tabs.sendMessage is unavailable"),
-    );
+export function sendToTab<M extends Message>(tabId: number, message: M): Promise<Response<M>> {
+  if (typeof chrome === "undefined" || !chrome.tabs || typeof chrome.tabs.sendMessage !== "function") {
+    return Promise.reject(new MessagingTransportError("chrome.tabs.sendMessage is unavailable"));
   }
   return new Promise((resolve, reject) => {
     try {
       chrome.tabs.sendMessage(tabId, message, (response: unknown) => {
         const lastError = chrome.runtime?.lastError;
         if (lastError) {
-          reject(
-            new MessagingTransportError(
-              lastError.message ?? "tabs.sendMessage failed",
-            ),
-          );
+          reject(new MessagingTransportError(lastError.message ?? "tabs.sendMessage failed"));
           return;
         }
         if (response === undefined) {
@@ -284,11 +243,7 @@ export function sendToTab<M extends Message>(
         resolve(response as Response<M>);
       });
     } catch (err) {
-      reject(
-        new MessagingTransportError(
-          err instanceof Error ? err.message : "tabs.sendMessage threw",
-        ),
-      );
+      reject(new MessagingTransportError(err instanceof Error ? err.message : "tabs.sendMessage threw"));
     }
   });
 }
@@ -297,10 +252,7 @@ export function sendToTab<M extends Message>(
 // Background-side router
 // ---------------------------------------------------------------------------
 
-export type Handler<M extends Message> = (
-  message: M,
-  sender: chrome.runtime.MessageSender,
-) => Promise<Response<M>>;
+export type Handler<M extends Message> = (message: M, sender: chrome.runtime.MessageSender) => Promise<Response<M>>;
 
 export type HandlerMap = {
   [K in Message["type"]]?: Handler<Extract<Message, { type: K }>>;
@@ -318,11 +270,7 @@ function isMessage(value: unknown): value is Message {
  */
 export function routeMessages(
   handlers: HandlerMap,
-): (
-  message: unknown,
-  sender: chrome.runtime.MessageSender,
-  sendResponse: (response: unknown) => void,
-) => boolean {
+): (message: unknown, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) => boolean {
   const listener = (
     message: unknown,
     sender: chrome.runtime.MessageSender,
@@ -333,9 +281,7 @@ export function routeMessages(
       return false;
     }
     const type = message.type as Message["type"];
-    const handler = handlers[type] as
-      | Handler<Extract<Message, { type: typeof type }>>
-      | undefined;
+    const handler = handlers[type] as Handler<Extract<Message, { type: typeof type }>> | undefined;
     if (!handler) {
       sendResponse({
         ok: false,
@@ -343,10 +289,7 @@ export function routeMessages(
       } satisfies Err);
       return false;
     }
-    handler(
-      message as Extract<Message, { type: typeof type }>,
-      sender,
-    )
+    handler(message as Extract<Message, { type: typeof type }>, sender)
       .then((resp) => sendResponse(resp))
       .catch((err: unknown) =>
         sendResponse({
@@ -356,11 +299,7 @@ export function routeMessages(
       );
     return true; // keep channel open for async
   };
-  if (
-    typeof chrome !== "undefined" &&
-    chrome.runtime &&
-    chrome.runtime.onMessage
-  ) {
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
     chrome.runtime.onMessage.addListener(listener);
   }
   return listener;

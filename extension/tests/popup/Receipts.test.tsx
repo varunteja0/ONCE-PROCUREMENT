@@ -1,16 +1,16 @@
 /**
  * Tests for popup/screens/Receipts — rendering + verify link.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const listReceipts = vi.fn();
 vi.mock("../../src/lib/api", () => ({
   listReceipts: (...a: unknown[]) => listReceipts(...a),
 }));
 
-import { Receipts } from "../../src/popup/screens/Receipts";
 import type { ReceiptListItem } from "../../src/lib/api";
+import { Receipts } from "../../src/popup/screens/Receipts";
 
 function mk(id: string, overrides: Partial<ReceiptListItem> = {}): ReceiptListItem {
   return {
@@ -56,9 +56,7 @@ describe("Receipts screen", () => {
   });
 
   it("caps the list at 10 entries", async () => {
-    listReceipts.mockResolvedValue(
-      Array.from({ length: 25 }, (_, i) => mk(`r${i.toString().padStart(8, "0")}`)),
-    );
+    listReceipts.mockResolvedValue(Array.from({ length: 25 }, (_, i) => mk(`r${i.toString().padStart(8, "0")}`)));
     const { container } = render(<Receipts />);
     await waitFor(() => {
       expect(container.querySelectorAll("ul li").length).toBe(10);

@@ -14,7 +14,9 @@ from app.services.inbound_attachment_storage import (
     sanitize_extension,
 )
 
-pytestmark = pytest.mark.asyncio
+# NOTE: no module-level `pytestmark = pytest.mark.asyncio` — asyncio_mode=auto
+# already promotes async test functions, and the mark would attach to sync
+# tests in this file as well, raising PytestUnraisableExceptionWarning.
 
 
 def _parsed(
@@ -51,25 +53,19 @@ def _storage(tmp_path, monkeypatch):
 
 
 def test_parse_to_address_subdomain():
-    addr, slug = svc.parse_to_address(
-        "Submissions <submissions@acme.in.getonce.com>", inbound_domain="in.getonce.com"
-    )
+    addr, slug = svc.parse_to_address("Submissions <submissions@acme.in.getonce.com>", inbound_domain="in.getonce.com")
     assert addr == "submissions@acme.in.getonce.com"
     assert slug == "acme"
 
 
 def test_parse_to_address_local_part_only():
-    addr, slug = svc.parse_to_address(
-        "acme@in.getonce.com", inbound_domain="in.getonce.com"
-    )
+    addr, slug = svc.parse_to_address("acme@in.getonce.com", inbound_domain="in.getonce.com")
     assert slug == "acme"
     assert addr.endswith("@in.getonce.com")
 
 
 def test_parse_to_address_strips_plus_tag():
-    _, slug = svc.parse_to_address(
-        "acme+amtrust@in.getonce.com", inbound_domain="in.getonce.com"
-    )
+    _, slug = svc.parse_to_address("acme+amtrust@in.getonce.com", inbound_domain="in.getonce.com")
     assert slug == "acme"
 
 
@@ -141,6 +137,7 @@ async def test_attachment_size_limit_enforced(async_session: AsyncSession, monke
     await _seed_tenant(async_session)
     await async_session.commit()
     from app.config import settings
+
     monkeypatch.setattr(settings, "inbound_max_attachment_size_mb", 0)  # 0 MiB → always too big
     atts = [svc.ParsedAttachment("quote.pdf", "application/pdf", b"X" * 100)]
     with pytest.raises(svc.EmailTooLarge):
@@ -167,9 +164,7 @@ async def test_retry_routing_changes_state(async_session: AsyncSession):
     email, _ = await svc.ingest(async_session, parsed)
     email.status = InboundEmailStatus.FAILED
     await async_session.flush()
-    updated = await svc.retry_routing(
-        async_session, tenant_id=tenant.id, email_id=email.id
-    )
+    updated = await svc.retry_routing(async_session, tenant_id=tenant.id, email_id=email.id)
     assert updated.status == InboundEmailStatus.ROUTED
     _ = tenant
 
@@ -178,7 +173,5 @@ async def test_quarantine_action_sets_status(async_session: AsyncSession):
     tenant = await _seed_tenant(async_session)
     await async_session.commit()
     email, _ = await svc.ingest(async_session, _parsed())
-    updated = await svc.quarantine(
-        async_session, tenant_id=tenant.id, email_id=email.id
-    )
+    updated = await svc.quarantine(async_session, tenant_id=tenant.id, email_id=email.id)
     assert updated.status == InboundEmailStatus.QUARANTINED

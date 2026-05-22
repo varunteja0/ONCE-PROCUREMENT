@@ -41,9 +41,7 @@ describe("sync.mergeByUpdatedAt", () => {
     const local = [{ id: "a", updated_at: "2024-02-01T00:00:00Z", n: 2 }];
     const remote = [{ id: "a", updated_at: "2024-01-01T00:00:00Z", n: 1 }];
     const merged = mergeByUpdatedAt(local, remote);
-    expect(merged).toEqual([
-      { id: "a", updated_at: "2024-02-01T00:00:00Z", n: 2 },
-    ]);
+    expect(merged).toEqual([{ id: "a", updated_at: "2024-02-01T00:00:00Z", n: 2 }]);
   });
 
   it("drops local-only rows (server is authoritative)", () => {

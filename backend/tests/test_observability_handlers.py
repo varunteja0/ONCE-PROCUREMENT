@@ -110,9 +110,7 @@ class TestSentryInit:
             is False
         )
 
-    def test_init_sentry_full_path_initializes_and_is_idempotent(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_init_sentry_full_path_initializes_and_is_idempotent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Cover the success branch: real DSN, sentry_sdk.init mocked so we
         don't actually phone home. The second call must short-circuit via the
         ``_SENTRY_INITIALIZED`` guard.

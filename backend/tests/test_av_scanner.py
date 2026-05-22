@@ -15,7 +15,6 @@ from typing import Any
 import pytest
 
 from app.config import settings
-from app.services import av_scanner
 from app.services.av_scanner import (
     EICAR_TEST_STRING,
     ClamdScanner,

@@ -231,9 +231,7 @@ class TestCursorPagination:
         assert first_ids.isdisjoint(second_ids)
         assert second.prev_cursor is not None
 
-    async def test_end_of_stream_emits_no_next_cursor(
-        self, session: AsyncSession
-    ) -> None:
+    async def test_end_of_stream_emits_no_next_cursor(self, session: AsyncSession) -> None:
         stmt = select(_Item)
         page = await paginate(
             session,

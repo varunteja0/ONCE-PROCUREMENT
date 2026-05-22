@@ -1,0 +1,31 @@
+# CODEOWNERS — Once Procurement
+
+#
+
+# Solo founder repo (May 2026). All paths default to @varunteja0.
+
+# Per-subproject blocks below are groundwork for when collaborators join:
+
+# add their handles to the relevant block without touching the default.
+
+#
+
+# Docs: https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default — everything in the repo
+
+-                       @varunteja0
+
+# Subprojects
+
+/backend/ @varunteja0
+/frontend/ @varunteja0
+/extension/ @varunteja0
+/oncetax/ @varunteja0
+/verifier/ @varunteja0
+
+# Repo plumbing (extra care)
+
+/.github/ @varunteja0
+/CONTRACTS.md @varunteja0
+/AGENTS.md @varunteja0

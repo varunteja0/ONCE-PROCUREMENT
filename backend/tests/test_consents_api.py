@@ -186,9 +186,7 @@ async def test_list_consents_rejects_invalid_limit(
     assert response.status_code == 422
 
 
-async def test_list_consents_filters_by_portal_id(
-    auth_client: tuple[AsyncClient, Any], async_session
-) -> None:
+async def test_list_consents_filters_by_portal_id(auth_client: tuple[AsyncClient, Any], async_session) -> None:
     client, tenant, user = await _auth_context(auth_client, async_session)
     supplier = await make_supplier(async_session, tenant)
     portal_a = await make_portal(async_session)
@@ -222,15 +220,11 @@ async def test_list_consents_filters_by_portal_id(
     assert body["total"] == 2
 
 
-async def test_list_consents_accepts_active_alias(
-    auth_client: tuple[AsyncClient, Any], async_session
-) -> None:
+async def test_list_consents_accepts_active_alias(auth_client: tuple[AsyncClient, Any], async_session) -> None:
     client, tenant, user = await _auth_context(auth_client, async_session)
     supplier = await make_supplier(async_session, tenant)
     portal = await make_portal(async_session)
-    active_consent = await make_consent(
-        async_session, supplier=supplier, portal=portal, granted_by=user
-    )
+    active_consent = await make_consent(async_session, supplier=supplier, portal=portal, granted_by=user)
     await make_consent(
         async_session,
         supplier=supplier,

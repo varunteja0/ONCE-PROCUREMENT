@@ -15,7 +15,9 @@ from app.services.inbound_attachment_storage import (
     sanitize_extension,
 )
 
-pytestmark = pytest.mark.asyncio
+# NOTE: no module-level `pytestmark = pytest.mark.asyncio` — asyncio_mode=auto
+# already promotes async test functions, and the mark would attach to sync
+# tests in this file as well, raising PytestUnraisableExceptionWarning.
 
 
 @pytest.fixture(autouse=True)

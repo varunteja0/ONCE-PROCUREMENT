@@ -83,11 +83,7 @@ def configure_logging(force: bool = False) -> None:
 
     handler = logging.StreamHandler(stream=sys.stdout)
     formatter = structlog.stdlib.ProcessorFormatter(
-        processor=(
-            structlog.dev.ConsoleRenderer(colors=True)
-            if is_dev
-            else structlog.processors.JSONRenderer()
-        ),
+        processor=(structlog.dev.ConsoleRenderer(colors=True) if is_dev else structlog.processors.JSONRenderer()),
         foreign_pre_chain=[
             structlog.contextvars.merge_contextvars,
             _add_service,

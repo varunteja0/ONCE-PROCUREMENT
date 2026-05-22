@@ -1,9 +1,4 @@
-import {
-  Activity as ActivityIcon,
-  Home as HomeIcon,
-  Receipt,
-  Users,
-} from "lucide-react";
+import { Activity as ActivityIcon, Home as HomeIcon, Receipt, Users } from "lucide-react";
 
 import type { Screen } from "../../lib/store";
 
@@ -19,19 +14,9 @@ const TABS: ReadonlyArray<{
   { id: "activity", label: "Activity", Icon: ActivityIcon },
 ];
 
-export function Nav({
-  current,
-  onChange,
-}: {
-  current: Screen;
-  onChange: (s: Screen) => void;
-}): JSX.Element {
+export function Nav({ current, onChange }: { current: Screen; onChange: (s: Screen) => void }): JSX.Element {
   return (
-    <nav
-      className="flex border-b border-slate-200 bg-white"
-      role="tablist"
-      aria-label="Primary navigation"
-    >
+    <nav className="flex border-b border-slate-200 bg-white" role="tablist" aria-label="Primary navigation">
       {TABS.map(({ id, label, Icon }) => {
         const active = current === id;
         return (

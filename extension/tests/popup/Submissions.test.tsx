@@ -1,11 +1,11 @@
 /**
  * Tests for popup/screens/Submissions.
  */
-import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
-import { Submissions } from "../../src/popup/screens/Submissions";
 import type { SubmissionListItem } from "../../src/lib/api";
+import { Submissions } from "../../src/popup/screens/Submissions";
 
 function mk(id: string, status: SubmissionListItem["status"]): SubmissionListItem {
   return {

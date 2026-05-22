@@ -21,37 +21,13 @@
  *    pure transport for API + portal detection + alarm scheduling.
  */
 
-import {
-  routeMessages,
-  type HandlerMap,
-  type Message,
-  type PortalDetection,
-  type SyncStatus,
-} from "../lib/messaging";
-import {
-  storageGet,
-  storageGetOptional,
-  storageRemove,
-  storageSet,
-  STORAGE_KEYS,
-} from "../lib/storage";
-import {
-  detectFromUrl,
-  htmlHash,
-  PORTAL_BADGES,
-} from "./portalDetector";
-import {
-  registerIdleAutoLock,
-  getAutoLockMinutes,
-} from "./autoLock";
-import {
-  syncNow,
-  drainPending,
-  queueSubmission,
-  getStatus as getSyncStatus,
-} from "../lib/sync";
 import { append as appendActivity, list as listActivity, newId as newActivityId } from "../lib/activity";
+import { routeMessages, type HandlerMap, type Message, type PortalDetection, type SyncStatus } from "../lib/messaging";
+import { STORAGE_KEYS, storageGet, storageGetOptional, storageRemove, storageSet } from "../lib/storage";
+import { drainPending, getStatus as getSyncStatus, queueSubmission, syncNow } from "../lib/sync";
 import type { PortalPlatform } from "../types/portal";
+import { getAutoLockMinutes, registerIdleAutoLock } from "./autoLock";
+import { detectFromUrl, htmlHash, PORTAL_BADGES } from "./portalDetector";
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.0.0-dev";
@@ -63,7 +39,6 @@ const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.0
 const ALARM_SYNC = "once.sync";
 const ALARM_RETRY = "once.retry";
 const ALARM_LOCK = "once.lock";
-
 
 function registerAlarms(): void {
   chrome.alarms.create(ALARM_SYNC, { periodInMinutes: 5 });
@@ -113,11 +88,7 @@ async function broadcastLock(): Promise<void> {
 
 const detectionByTab = new Map<number, PortalDetection>();
 
-async function onTabUpdated(
-  tabId: number,
-  changeInfo: chrome.tabs.TabChangeInfo,
-  tab: chrome.tabs.Tab,
-): Promise<void> {
+async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab): Promise<void> {
   // Only react to URL changes / completed loads.
   if (!changeInfo.url && changeInfo.status !== "complete") return;
   const url = changeInfo.url ?? tab.url;
@@ -363,12 +334,7 @@ const handlers: HandlerMap = {
   },
   "api.call": async (m) => {
     try {
-      const result = await apiCall(
-        m.method,
-        m.path,
-        m.body,
-        m.headers ?? {},
-      );
+      const result = await apiCall(m.method, m.path, m.body, m.headers ?? {});
       return { ok: true, status: result.status, json: result.json };
     } catch (err) {
       return {
@@ -432,9 +398,7 @@ const handlers: HandlerMap = {
 
 function bootstrap(): void {
   chrome.runtime.onInstalled.addListener((details) => {
-    console.info(
-      `[once.bg] installed reason=${details.reason} version=${APP_VERSION}`,
-    );
+    console.info(`[once.bg] installed reason=${details.reason} version=${APP_VERSION}`);
   });
 
   routeMessages(handlers);
@@ -455,11 +419,9 @@ function bootstrap(): void {
       // and storage.get is fine. We deliberately accept a small race
       // where the user has just unlocked.
       let cached: number | null = null;
-      void storageGet<number | null>(STORAGE_KEYS.vaultUnlockedAt, null).then(
-        (v) => {
-          cached = v;
-        },
-      );
+      void storageGet<number | null>(STORAGE_KEYS.vaultUnlockedAt, null).then((v) => {
+        cached = v;
+      });
       return cached;
     },
   });

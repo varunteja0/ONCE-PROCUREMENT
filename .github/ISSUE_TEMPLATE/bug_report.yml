@@ -1,0 +1,101 @@
+name: Bug report
+description: Report a defect in Once (backend, frontend, extension, oncetax, verifier).
+title: "[bug] "
+labels: [bug, triage]
+assignees:
+  - varunteja0
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in as much as you can — the more
+        detail, the faster it gets fixed. **Do not paste secrets, tokens, or
+        customer data.** Logs should be scrubbed before posting.
+
+  - type: dropdown
+    id: subproject
+    attributes:
+      label: Subproject
+      description: Which tree is affected?
+      options:
+        - backend (FastAPI + Celery + Playwright)
+        - frontend (React 18 + Vite)
+        - extension (MV3 Chrome extension)
+        - oncetax (Remix on Cloudflare Workers)
+        - verifier (public Ed25519 verifier)
+        - infra / CI / docs
+        - unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How bad is it right now?
+      options:
+        - S0 — production down / data loss / security incident
+        - S1 — major feature broken, no workaround
+        - S2 — feature broken, workaround exists
+        - S3 — cosmetic / minor
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-paragraph description of the bug.
+      placeholder: When I click X, Y happens instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered list. Include the exact commands or clicks.
+      placeholder: |
+        1. `make up`
+        2. POST /v1/submissions with payload …
+        3. Observe 500 in backend logs
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the error message, stack trace, or screenshot. Scrub secrets.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit / version
+      description: Output of `git rev-parse --short HEAD` or the deployed version tag.
+      placeholder: abc1234
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: Windows 11 / macOS 14 / Ubuntu 22.04
+        - Python: 3.12.x
+        - Node: 20.x
+        - Browser (if extension/frontend): Chrome 124
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Anything else — recent changes, related issues, hypotheses.

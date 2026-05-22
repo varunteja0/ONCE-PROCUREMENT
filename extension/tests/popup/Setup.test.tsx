@@ -1,14 +1,12 @@
 /**
  * Tests for popup/screens/Setup — email + password login flow.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const setApiBase = vi.fn<(base: string) => Promise<void>>();
 vi.mock("../../src/lib/storage", async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    "../../src/lib/storage",
-  );
+  const actual = await vi.importActual<Record<string, unknown>>("../../src/lib/storage");
   return {
     ...actual,
     setApiBase: (b: string) => setApiBase(b),
@@ -20,7 +18,10 @@ vi.mock("../../src/lib/messaging", () => ({
   send: (msg: { type: string; passphrase?: string }) => send(msg),
 }));
 
-const login = vi.fn<(email: string, password: string) => Promise<{ access_token: string; refresh_token: string; token_type: string }>>();
+const login =
+  vi.fn<
+    (email: string, password: string) => Promise<{ access_token: string; refresh_token: string; token_type: string }>
+  >();
 vi.mock("../../src/lib/api", () => ({
   login: (e: string, p: string) => login(e, p),
 }));

@@ -60,9 +60,7 @@ def test_redact_email_basic() -> None:
 async def test_transition_incomplete_to_active(async_session) -> None:
     await _make_tenant(async_session)
     sub = await _make_sub(async_session, status=SubscriptionStatus.INCOMPLETE)
-    await billing_service.transition_status(
-        async_session, sub, to_status=SubscriptionStatus.ACTIVE
-    )
+    await billing_service.transition_status(async_session, sub, to_status=SubscriptionStatus.ACTIVE)
     assert sub.status == SubscriptionStatus.ACTIVE
 
 
@@ -71,9 +69,7 @@ async def test_transition_active_to_past_due_sets_past_due_since(
 ) -> None:
     await _make_tenant(async_session)
     sub = await _make_sub(async_session, status=SubscriptionStatus.ACTIVE)
-    await billing_service.transition_status(
-        async_session, sub, to_status=SubscriptionStatus.PAST_DUE
-    )
+    await billing_service.transition_status(async_session, sub, to_status=SubscriptionStatus.PAST_DUE)
     assert sub.status == SubscriptionStatus.PAST_DUE
     assert sub.past_due_since is not None
 
@@ -84,18 +80,14 @@ async def test_transition_past_due_back_to_active_clears_marker(
     await _make_tenant(async_session)
     sub = await _make_sub(async_session, status=SubscriptionStatus.PAST_DUE)
     sub.past_due_since = datetime.now(UTC)
-    await billing_service.transition_status(
-        async_session, sub, to_status=SubscriptionStatus.ACTIVE
-    )
+    await billing_service.transition_status(async_session, sub, to_status=SubscriptionStatus.ACTIVE)
     assert sub.past_due_since is None
 
 
 async def test_transition_active_to_canceled_immediate(async_session) -> None:
     tenant = await _make_tenant(async_session)
     sub = await _make_sub(async_session, status=SubscriptionStatus.ACTIVE)
-    await billing_service.transition_status(
-        async_session, sub, to_status=SubscriptionStatus.CANCELED
-    )
+    await billing_service.transition_status(async_session, sub, to_status=SubscriptionStatus.CANCELED)
     assert sub.status == SubscriptionStatus.CANCELED
     assert sub.canceled_at is not None
     assert tenant.is_active is False
@@ -130,9 +122,7 @@ async def test_transition_unknown_status_raises(async_session) -> None:
     await _make_tenant(async_session)
     sub = await _make_sub(async_session, status=SubscriptionStatus.ACTIVE)
     with pytest.raises(BillingStateError):
-        await billing_service.transition_status(
-            async_session, sub, to_status="bogus"
-        )
+        await billing_service.transition_status(async_session, sub, to_status="bogus")
 
 
 async def test_pause_and_resume(async_session) -> None:
@@ -234,9 +224,7 @@ async def test_list_invoices_only_returns_tenant_rows(async_session) -> None:
         amount_due_cents=200,
         amount_paid_cents=200,
     )
-    items, total = await billing_service.list_invoices_for_tenant(
-        async_session, tenant_id="t-a"
-    )
+    items, total = await billing_service.list_invoices_for_tenant(async_session, tenant_id="t-a")
     assert total == 1
     assert items[0].stripe_invoice_id == "in_a"
 

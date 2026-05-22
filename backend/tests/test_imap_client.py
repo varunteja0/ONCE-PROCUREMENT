@@ -17,7 +17,9 @@ from app.models import Tenant
 from app.services.inbound_attachment_storage import LocalInboundStorage, reset_storage_for_tests
 from app.workers import imap_client
 
-pytestmark = pytest.mark.asyncio
+# NOTE: no module-level `pytestmark = pytest.mark.asyncio` — asyncio_mode=auto
+# already promotes async test functions, and the mark would attach to sync
+# tests in this file as well, raising PytestUnraisableExceptionWarning.
 
 
 def _raw_eml(

@@ -10,18 +10,10 @@
 
 import { create } from "zustand";
 
-import type { PortalDetection } from "./messaging";
 import type { SupplierListItem } from "./api";
+import type { PortalDetection } from "./messaging";
 
-export type Screen =
-  | "setup"
-  | "locked"
-  | "home"
-  | "suppliers"
-  | "submissions"
-  | "receipts"
-  | "activity"
-  | "settings";
+export type Screen = "setup" | "locked" | "home" | "suppliers" | "submissions" | "receipts" | "activity" | "settings";
 
 export interface PopupState {
   screen: Screen;
@@ -95,8 +87,7 @@ export const selectActiveSupplier = (s: PopupState): string | null => {
   return s.activeSupplierByTab[s.tabId] ?? null;
 };
 
-export const selectIsReady = (s: PopupState): boolean =>
-  s.hasConnection && s.vaultUnlocked;
+export const selectIsReady = (s: PopupState): boolean => s.hasConnection && s.vaultUnlocked;
 
 export const __test__ = {
   initialState,

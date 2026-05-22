@@ -179,35 +179,21 @@ interface SaveTokensResponse {
 // ---------------------------------------------------------------------------
 
 function sendMessage<TReq, TResp>(message: TReq): Promise<TResp> {
-  if (
-    typeof chrome === "undefined" ||
-    !chrome.runtime ||
-    !chrome.runtime.sendMessage
-  ) {
-    return Promise.reject(
-      new ApiTransportError("chrome.runtime.sendMessage is unavailable"),
-    );
+  if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+    return Promise.reject(new ApiTransportError("chrome.runtime.sendMessage is unavailable"));
   }
   return new Promise<TResp>((resolve, reject) => {
     try {
       chrome.runtime.sendMessage(message, (response: unknown) => {
         const lastError = chrome.runtime.lastError;
         if (lastError) {
-          reject(
-            new ApiTransportError(
-              lastError.message ?? "chrome.runtime.sendMessage failed",
-            ),
-          );
+          reject(new ApiTransportError(lastError.message ?? "chrome.runtime.sendMessage failed"));
           return;
         }
         resolve(response as TResp);
       });
     } catch (err) {
-      reject(
-        new ApiTransportError(
-          err instanceof Error ? err.message : "sendMessage threw",
-        ),
-      );
+      reject(new ApiTransportError(err instanceof Error ? err.message : "sendMessage threw"));
     }
   });
 }
@@ -222,12 +208,7 @@ function extractErrorCode(body: unknown, fallback: string): string {
   return fallback;
 }
 
-async function call<T>(
-  method: HttpMethod,
-  path: string,
-  body?: unknown,
-  headers?: Record<string, string>,
-): Promise<T> {
+async function call<T>(method: HttpMethod, path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
   const msg: ApiCallMessage = { type: "API_CALL", method, path };
   if (body !== undefined) msg.body = body;
   if (headers !== undefined) msg.headers = headers;
@@ -239,12 +220,7 @@ async function call<T>(
   }
   if (!resp.ok) {
     const code = extractErrorCode(resp.json, resp.error ?? "http_error");
-    throw new ApiError(
-      `${method} ${path} failed: ${code}`,
-      resp.status,
-      resp.json,
-      code,
-    );
+    throw new ApiError(`${method} ${path} failed: ${code}`, resp.status, resp.json, code);
   }
   return resp.json as T;
 }
@@ -253,10 +229,7 @@ async function call<T>(
 // Endpoints
 // ---------------------------------------------------------------------------
 
-export async function login(
-  email: string,
-  password: string,
-): Promise<TokenPair> {
+export async function login(email: string, password: string): Promise<TokenPair> {
   const tokens = await call<TokenPair>("POST", "/v1/auth/login", {
     email,
     password,
@@ -267,9 +240,7 @@ export async function login(
     refresh: tokens.refresh_token,
   });
   if (!save || !save.ok) {
-    throw new ApiTransportError(
-      save && save.error ? save.error : "failed to persist tokens",
-    );
+    throw new ApiTransportError(save && save.error ? save.error : "failed to persist tokens");
   }
   return tokens;
 }
@@ -299,9 +270,7 @@ export function listSuppliers(): Promise<SupplierListItem[]> {
   return call<SupplierListItem[]>("GET", "/v1/suppliers");
 }
 
-export function createSubmission(
-  payload: SubmissionCreatePayload,
-): Promise<SubmissionRead> {
+export function createSubmission(payload: SubmissionCreatePayload): Promise<SubmissionRead> {
   return call<SubmissionRead>("POST", "/v1/submissions", payload);
 }
 
@@ -313,29 +282,18 @@ export function listReceipts(): Promise<ReceiptListItem[]> {
   return call<ReceiptListItem[]>("GET", "/v1/receipts");
 }
 
-export function getSubmissionReceipt(
-  submissionId: string,
-): Promise<ReceiptListItem> {
-  return call<ReceiptListItem>(
-    "GET",
-    `/v1/submissions/${submissionId}/receipt`,
-  );
+export function getSubmissionReceipt(submissionId: string): Promise<ReceiptListItem> {
+  return call<ReceiptListItem>("GET", `/v1/submissions/${submissionId}/receipt`);
 }
 
-export async function getConsentForPortal(
-  supplierId: string,
-  portalId: string,
-): Promise<ConsentRead | null> {
+export async function getConsentForPortal(supplierId: string, portalId: string): Promise<ConsentRead | null> {
   const params = new URLSearchParams({
     supplier_id: supplierId,
     portal_id: portalId,
     active: "true",
     limit: "1",
   });
-  const list = await call<ConsentList>(
-    "GET",
-    `/v1/consents?${params.toString()}`,
-  );
+  const list = await call<ConsentList>("GET", `/v1/consents?${params.toString()}`);
   return list.items[0] ?? null;
 }
 

@@ -28,10 +28,9 @@ beforeEach(() => {
 
 describe("background portal.detect handler", () => {
   it("keys the detection cache by sender.tab.id", async () => {
-    const resp = await handlers["portal.detect"]!(
-      { type: "portal.detect", detection: detection() },
-      { tab: { id: 42 } } as chrome.runtime.MessageSender,
-    );
+    const resp = await handlers["portal.detect"]!({ type: "portal.detect", detection: detection() }, {
+      tab: { id: 42 },
+    } as chrome.runtime.MessageSender);
     expect(resp).toEqual({ ok: true, stored: true });
     expect(detectionByTab.get(42)?.portal).toBe("applied_epic");
 

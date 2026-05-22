@@ -5,14 +5,14 @@
  * matching filler, and surfaces an in-page toast plus a `FILL_REPORT`
  * message back to the background for telemetry.
  */
+import { send } from "../lib/messaging";
+import type { PortalPlatform } from "../types/portal";
 import type { SupplierProfile } from "../types/profile";
 import { isSupplierProfile } from "../types/profile";
-import type { PortalPlatform } from "../types/portal";
-import { send } from "../lib/messaging";
-import * as appliedEpic from "./fillers/applied_epic";
+import type { FillerContext, FillerFn, FillReport } from "./fillers/_shared";
 import * as amtrust from "./fillers/amtrust";
+import * as appliedEpic from "./fillers/applied_epic";
 import * as markel from "./fillers/markel";
-import type { FillerFn, FillReport, FillerContext } from "./fillers/_shared";
 
 // ---------------------------------------------------------------------------
 // Idempotency guard — content scripts can be re-injected
@@ -85,11 +85,7 @@ function isContentFillMessage(value: unknown): value is ContentFillMessage {
 }
 
 function registerFillListener(): void {
-  if (
-    typeof chrome === "undefined" ||
-    !chrome.runtime ||
-    !chrome.runtime.onMessage
-  ) {
+  if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.onMessage) {
     return;
   }
   chrome.runtime.onMessage.addListener(
@@ -107,8 +103,7 @@ function registerFillListener(): void {
       const ctx: FillerContext = {
         hostname: window.location.hostname,
         portal: message.portal,
-        log: (m, extra) =>
-          console.info(`[once.cs:${message.portal}] ${m}`, extra ?? {}),
+        log: (m, extra) => console.info(`[once.cs:${message.portal}] ${m}`, extra ?? {}),
       };
       void (async () => {
         try {
@@ -282,11 +277,7 @@ void (async () => {
   }
   const durationMs = Math.round(performance.now() - started);
 
-  toast.finish(
-    `filled ${report.filled.length}/${
-      report.filled.length + report.skipped.length
-    } fields`,
-  );
+  toast.finish(`filled ${report.filled.length}/${report.filled.length + report.skipped.length} fields`);
 
   await reportToBackground({
     type: "FILL_REPORT",

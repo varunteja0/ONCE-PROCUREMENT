@@ -65,21 +65,17 @@ interface SendMessageRequest {
 }
 
 function stubProfileFetch(profile: SupplierProfile | null): void {
-  chrome.runtime.sendMessage = vi.fn(
-    (msg: unknown, cb?: (resp: unknown) => void) => {
-      const req = (msg ?? {}) as SendMessageRequest;
-      let response: unknown;
-      if (req.type === "profile.active") {
-        response = profile === null
-          ? { ok: false, error: "locked" }
-          : { ok: true, profile, locked: false };
-      } else {
-        response = undefined;
-      }
-      if (typeof cb === "function") cb(response);
-      return Promise.resolve(response);
-    },
-  ) as unknown as typeof chrome.runtime.sendMessage;
+  chrome.runtime.sendMessage = vi.fn((msg: unknown, cb?: (resp: unknown) => void) => {
+    const req = (msg ?? {}) as SendMessageRequest;
+    let response: unknown;
+    if (req.type === "profile.active") {
+      response = profile === null ? { ok: false, error: "locked" } : { ok: true, profile, locked: false };
+    } else {
+      response = undefined;
+    }
+    if (typeof cb === "function") cb(response);
+    return Promise.resolve(response);
+  }) as unknown as typeof chrome.runtime.sendMessage;
 }
 
 async function loadDispatcher(): Promise<void> {
@@ -149,9 +145,7 @@ describe("dispatcher", () => {
 
     await loadDispatcher();
 
-    const sendMessage = chrome.runtime.sendMessage as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const sendMessage = chrome.runtime.sendMessage as unknown as ReturnType<typeof vi.fn>;
     const calls = sendMessage.mock.calls;
     expect(calls.length).toBeGreaterThanOrEqual(1);
     expect(calls[0]![0]).toEqual({ type: "profile.active" });
@@ -181,9 +175,7 @@ describe("dispatcher", () => {
 
     // Also: no GET_ACTIVE_PROFILE message is sent because detection returns
     // early before the profile fetch.
-    const sendMessage = chrome.runtime.sendMessage as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const sendMessage = chrome.runtime.sendMessage as unknown as ReturnType<typeof vi.fn>;
     expect(sendMessage).not.toHaveBeenCalled();
   });
 

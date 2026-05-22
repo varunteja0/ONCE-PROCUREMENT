@@ -20,11 +20,9 @@ beforeEach(() => {
 
 describe("getSubmissionReceipt", () => {
   it("issues GET /v1/submissions/:id/receipt", async () => {
-    chrome.runtime.sendMessage = vi.fn(
-      (_msg: unknown, cb: (resp: unknown) => void) => {
-        cb({ ok: true, status: 200, json: { id: "rcpt-1" } });
-      },
-    ) as unknown as typeof chrome.runtime.sendMessage;
+    chrome.runtime.sendMessage = vi.fn((_msg: unknown, cb: (resp: unknown) => void) => {
+      cb({ ok: true, status: 200, json: { id: "rcpt-1" } });
+    }) as unknown as typeof chrome.runtime.sendMessage;
 
     const out = await getSubmissionReceipt("sub-abc");
     expect(out).toEqual({ id: "rcpt-1" });
@@ -39,20 +37,18 @@ describe("getSubmissionReceipt", () => {
 
 describe("getConsentForPortal", () => {
   it("queries /v1/consents with supplier_id, portal_id, active=true, limit=1", async () => {
-    chrome.runtime.sendMessage = vi.fn(
-      (_msg: unknown, cb: (resp: unknown) => void) => {
-        cb({
-          ok: true,
-          status: 200,
-          json: {
-            items: [{ id: "consent-1" }],
-            total: 1,
-            limit: 1,
-            offset: 0,
-          },
-        });
-      },
-    ) as unknown as typeof chrome.runtime.sendMessage;
+    chrome.runtime.sendMessage = vi.fn((_msg: unknown, cb: (resp: unknown) => void) => {
+      cb({
+        ok: true,
+        status: 200,
+        json: {
+          items: [{ id: "consent-1" }],
+          total: 1,
+          limit: 1,
+          offset: 0,
+        },
+      });
+    }) as unknown as typeof chrome.runtime.sendMessage;
 
     const out = await getConsentForPortal("sup-1", "portal-1");
     expect(out).toEqual({ id: "consent-1" });
@@ -69,15 +65,13 @@ describe("getConsentForPortal", () => {
   });
 
   it("returns null when the API returns no items", async () => {
-    chrome.runtime.sendMessage = vi.fn(
-      (_msg: unknown, cb: (resp: unknown) => void) => {
-        cb({
-          ok: true,
-          status: 200,
-          json: { items: [], total: 0, limit: 1, offset: 0 },
-        });
-      },
-    ) as unknown as typeof chrome.runtime.sendMessage;
+    chrome.runtime.sendMessage = vi.fn((_msg: unknown, cb: (resp: unknown) => void) => {
+      cb({
+        ok: true,
+        status: 200,
+        json: { items: [], total: 0, limit: 1, offset: 0 },
+      });
+    }) as unknown as typeof chrome.runtime.sendMessage;
 
     const out = await getConsentForPortal("sup-1", "portal-1");
     expect(out).toBeNull();

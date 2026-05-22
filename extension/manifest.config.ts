@@ -20,8 +20,7 @@ const API_HOST_PERMISSIONS: string[] = [
 export default defineManifest({
   manifest_version: 3,
   name: "Once — Supplier Portal Autopilot",
-  description:
-    "Automates insurance supplier portal submissions with a tamper-evident receipt for every action.",
+  description: "Automates insurance supplier portal submissions with a tamper-evident receipt for every action.",
   version: "0.1.0",
   action: {
     default_popup: "src/popup/popup.html",

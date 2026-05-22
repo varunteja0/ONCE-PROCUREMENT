@@ -1,0 +1,125 @@
+# Dependabot — Once Procurement
+# Weekly grouped updates, Mondays 04:00 UTC, all PRs assigned to @varunteja0.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # ── Backend (FastAPI + SQLAlchemy 2.0 async + Celery) ───────────────
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    assignees:
+      - varunteja0
+    labels:
+      - dependencies
+      - backend
+    commit-message:
+      prefix: "deps(backend)"
+    groups:
+      backend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── Frontend (React 18 + Vite + TanStack Query) ─────────────────────
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    assignees:
+      - varunteja0
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: "deps(frontend)"
+    groups:
+      frontend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── Extension (MV3 + Vite + @crxjs) ─────────────────────────────────
+  - package-ecosystem: npm
+    directory: /extension
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    assignees:
+      - varunteja0
+    labels:
+      - dependencies
+      - extension
+    commit-message:
+      prefix: "deps(extension)"
+    groups:
+      extension-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── OnceTax (Remix on Cloudflare Workers) ───────────────────────────
+  - package-ecosystem: npm
+    directory: /oncetax
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    assignees:
+      - varunteja0
+    labels:
+      - dependencies
+      - oncetax
+    commit-message:
+      prefix: "deps(oncetax)"
+    groups:
+      oncetax-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── GitHub Actions ──────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    assignees:
+      - varunteja0
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "deps(actions)"
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

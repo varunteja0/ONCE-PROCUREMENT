@@ -32,6 +32,11 @@ from typing import Any
 
 import pytest
 
+# Skip cleanly when backend-only deps (sqlalchemy, etc.) aren't installed
+# in this environment — happens in the verifier-only CI job. Local dev and
+# the cross-project integration job have backend deps available.
+pytest.importorskip("sqlalchemy", reason="backend deps not installed in verifier-only env")
+
 # --- Namespace surgery (must run before any backend-only imports) ---------
 import app as _verifier_app_pkg  # already loaded by verifier/conftest.py
 

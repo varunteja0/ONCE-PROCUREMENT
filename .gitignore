@@ -153,3 +153,8 @@ wrangler.toml.new
 
 # Once: agent scratch dir
 .once-tmp/
+
+# More pytest scratch dumps
+baseline_test.txt
+pytest_after.txt
+pytest_before.txt

@@ -25,8 +25,7 @@ function mockFetchSequence(responses: FetchResp[]): ReturnType<typeof vi.fn> {
       json: async () => next.body,
     } as unknown as Response;
   });
-  (globalThis as unknown as { fetch: typeof fetch }).fetch =
-    fn as unknown as typeof fetch;
+  (globalThis as unknown as { fetch: typeof fetch }).fetch = fn as unknown as typeof fetch;
   return fn;
 }
 
@@ -57,14 +56,10 @@ describe("background apiCall 401 → refresh → retry", () => {
     expect(fn).toHaveBeenCalledTimes(3);
     const refreshCall = fn.mock.calls[1]![0] as string;
     expect(String(refreshCall)).toContain("/v1/auth/refresh");
-    const retryHeaders = (fn.mock.calls[2]![1] as RequestInit)
-      .headers as Record<string, string>;
+    const retryHeaders = (fn.mock.calls[2]![1] as RequestInit).headers as Record<string, string>;
     expect(retryHeaders["Authorization"]).toBe("Bearer fresh-access");
 
-    const stored = await chrome.storage.local.get([
-      STORAGE_KEYS.access,
-      STORAGE_KEYS.refresh,
-    ]);
+    const stored = await chrome.storage.local.get([STORAGE_KEYS.access, STORAGE_KEYS.refresh]);
     expect(stored[STORAGE_KEYS.access]).toBe("fresh-access");
     expect(stored[STORAGE_KEYS.refresh]).toBe("rotated");
   });

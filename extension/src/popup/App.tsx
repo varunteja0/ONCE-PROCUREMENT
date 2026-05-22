@@ -13,23 +13,16 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-import { send } from "../lib/messaging";
-import { getTokens, clearTokens } from "../lib/storage";
-import {
-  isInitialized as vaultIsInitialized,
-  lock as vaultLock,
-  __test__ as vaultDebug,
-} from "../lib/vault";
-import {
-  getCachedSubmissions,
-  getCachedSuppliers,
-} from "../lib/sync";
 import type { SubmissionListItem, UserMe } from "../lib/api";
 import type { PortalDetection } from "../lib/messaging";
+import { send } from "../lib/messaging";
+import { clearTokens, getTokens } from "../lib/storage";
 import { usePopupStore, type Screen } from "../lib/store";
+import { getCachedSubmissions, getCachedSuppliers } from "../lib/sync";
+import { __test__ as vaultDebug, isInitialized as vaultIsInitialized, lock as vaultLock } from "../lib/vault";
 
-import { Banner, Header, Shell } from "./components/Shell";
 import { Nav } from "./components/Nav";
+import { Banner, Header, Shell } from "./components/Shell";
 import { Activity } from "./screens/Activity";
 import { Home } from "./screens/Home";
 import { Locked } from "./screens/Locked";
@@ -48,10 +41,7 @@ interface BootState {
 }
 
 async function bootstrap(): Promise<BootState> {
-  const [tokens, vaultInitialized] = await Promise.all([
-    getTokens(),
-    vaultIsInitialized(),
-  ]);
+  const [tokens, vaultInitialized] = await Promise.all([getTokens(), vaultIsInitialized()]);
   const vaultUnlocked = vaultDebug.getSessionKey() !== null;
 
   let tabId: number | null = null;
@@ -101,9 +91,7 @@ export function App(): JSX.Element {
 
   const [user, setUser] = useState<UserMe | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
-  const [boot, setBoot] = useState<"loading" | "setup" | "locked" | "ready">(
-    "loading",
-  );
+  const [boot, setBoot] = useState<"loading" | "setup" | "locked" | "ready">("loading");
 
   const refresh = useCallback(async (): Promise<void> => {
     const state = await bootstrap();
@@ -123,22 +111,10 @@ export function App(): JSX.Element {
       return;
     }
     setBoot("ready");
-    const [cs, ss] = await Promise.all([
-      getCachedSuppliers(),
-      getCachedSubmissions(),
-    ]);
+    const [cs, ss] = await Promise.all([getCachedSuppliers(), getCachedSubmissions()]);
     setSuppliers(cs);
     setSubmissions(ss);
-  }, [
-    setBoot,
-    setDetection,
-    setHasConnection,
-    setScreen,
-    setSubmissions,
-    setSuppliers,
-    setTabId,
-    setVaultUnlocked,
-  ]);
+  }, [setBoot, setDetection, setHasConnection, setScreen, setSubmissions, setSuppliers, setTabId, setVaultUnlocked]);
 
   useEffect(() => {
     void refresh();
@@ -177,9 +153,7 @@ export function App(): JSX.Element {
     return (
       <Shell>
         <Header onSettings={onSettings} />
-        <div className="flex-1 flex items-center justify-center text-xs text-slate-500">
-          Loading…
-        </div>
+        <div className="flex-1 flex items-center justify-center text-xs text-slate-500">Loading…</div>
       </Shell>
     );
   }
@@ -206,24 +180,13 @@ export function App(): JSX.Element {
 
   return (
     <Shell>
-      <Header
-        email={user?.email ?? null}
-        onSettings={onSettings}
-        onLock={() => void onLock()}
-        lockable
-      />
+      <Header email={user?.email ?? null} onSettings={onSettings} onLock={() => void onLock()} lockable />
       {banner ? <Banner kind={banner.kind} text={banner.text} /> : null}
       <Nav current={screen} onChange={(s: Screen) => setScreen(s)} />
       <main className="flex-1 overflow-y-auto" aria-live="polite">
-        {screen === "home" ? (
-          <Home suppliers={suppliers} detection={detection} />
-        ) : null}
-        {screen === "suppliers" ? (
-          <Suppliers suppliers={suppliers} onRefreshed={setSuppliers} />
-        ) : null}
-        {screen === "submissions" ? (
-          <Submissions submissions={submissions} />
-        ) : null}
+        {screen === "home" ? <Home suppliers={suppliers} detection={detection} /> : null}
+        {screen === "suppliers" ? <Suppliers suppliers={suppliers} onRefreshed={setSuppliers} /> : null}
+        {screen === "submissions" ? <Submissions submissions={submissions} /> : null}
         {screen === "receipts" ? <Receipts /> : null}
         {screen === "activity" ? <Activity /> : null}
       </main>

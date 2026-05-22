@@ -62,9 +62,7 @@ async def list_consents(
         items_result = await session.execute(stmt)
         all_rows = list(items_result.scalars().all())
         filtered = [
-            row
-            for row in all_rows
-            if portal_id in (row.portal_ids_json or []) or "*" in (row.portal_ids_json or [])
+            row for row in all_rows if portal_id in (row.portal_ids_json or []) or "*" in (row.portal_ids_json or [])
         ]
         total = len(filtered)
         page = filtered[offset : offset + limit]

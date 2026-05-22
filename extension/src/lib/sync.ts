@@ -15,22 +15,19 @@
  */
 
 import {
-  listSuppliers,
-  listSubmissions,
-  listPortals,
   createSubmission,
   getSubmissionReceipt,
+  listPortals,
+  listSubmissions,
+  listSuppliers,
+  type PortalListItem,
+  type ReceiptListItem,
   type SubmissionCreatePayload,
   type SubmissionListItem,
   type SupplierListItem,
-  type PortalListItem,
-  type ReceiptListItem,
 } from "./api";
-import {
-  storageGet,
-  storageSet,
-} from "./storage";
 import type { SyncStatus } from "./messaging";
+import { storageGet, storageSet } from "./storage";
 
 // ---------------------------------------------------------------------------
 // Cache shape stored in chrome.storage.local
@@ -74,36 +71,22 @@ export interface PendingSubmission {
 // ---------------------------------------------------------------------------
 
 export async function getCachedSuppliers(): Promise<SupplierListItem[]> {
-  const cache = await storageGet<SuppliersCache | null>(
-    SYNC_KEYS.suppliers,
-    null,
-  );
+  const cache = await storageGet<SuppliersCache | null>(SYNC_KEYS.suppliers, null);
   return cache?.items ?? [];
 }
 
 export async function getCachedSubmissions(): Promise<SubmissionListItem[]> {
-  const cache = await storageGet<SubmissionsCache | null>(
-    SYNC_KEYS.submissions,
-    null,
-  );
+  const cache = await storageGet<SubmissionsCache | null>(SYNC_KEYS.submissions, null);
   return cache?.items ?? [];
 }
 
 export async function getCachedPortals(): Promise<PortalListItem[]> {
-  const cache = await storageGet<PortalsCache | null>(
-    SYNC_KEYS.portals,
-    null,
-  );
+  const cache = await storageGet<PortalsCache | null>(SYNC_KEYS.portals, null);
   return cache?.items ?? [];
 }
 
-export async function getCachedReceipt(
-  submissionId: string,
-): Promise<ReceiptListItem | null> {
-  return storageGet<ReceiptListItem | null>(
-    `${SYNC_KEYS.receipts}.${submissionId}`,
-    null,
-  );
+export async function getCachedReceipt(submissionId: string): Promise<ReceiptListItem | null> {
+  return storageGet<ReceiptListItem | null>(`${SYNC_KEYS.receipts}.${submissionId}`, null);
 }
 
 export async function getStatus(): Promise<SyncStatus> {
@@ -132,9 +115,10 @@ async function setStatus(patch: Partial<SyncStatus>): Promise<SyncStatus> {
  * `updated_at`. Items only present remotely are added; items only
  * present locally are dropped (server is authoritative).
  */
-export function mergeByUpdatedAt<
-  T extends { id: string; updated_at: string },
->(local: readonly T[], remote: readonly T[]): T[] {
+export function mergeByUpdatedAt<T extends { id: string; updated_at: string }>(
+  local: readonly T[],
+  remote: readonly T[],
+): T[] {
   const out = new Map<string, T>();
   for (const r of remote) out.set(r.id, r);
   for (const l of local) {
@@ -144,9 +128,7 @@ export function mergeByUpdatedAt<
       out.set(l.id, l);
     }
   }
-  return Array.from(out.values()).sort((a, b) =>
-    a.id.localeCompare(b.id),
-  );
+  return Array.from(out.values()).sort((a, b) => a.id.localeCompare(b.id));
 }
 
 // ---------------------------------------------------------------------------
@@ -161,9 +143,7 @@ async function setPending(items: PendingSubmission[]): Promise<void> {
   await storageSet(SYNC_KEYS.pending, items);
 }
 
-export async function queueSubmission(
-  payload: SubmissionCreatePayload,
-): Promise<PendingSubmission> {
+export async function queueSubmission(payload: SubmissionCreatePayload): Promise<PendingSubmission> {
   const pending = await getPending();
   const entry: PendingSubmission = {
     id: `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,

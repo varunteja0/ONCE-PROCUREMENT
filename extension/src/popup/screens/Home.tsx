@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
 import { Camera, CheckCircle2, Loader2, Send, ShieldAlert } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { send, sendToTab } from "../../lib/messaging";
-import { getProfile } from "../../lib/vault";
-import { usePopupStore, selectActiveSupplier } from "../../lib/store";
-import { getCachedPortals } from "../../lib/sync";
-import { getConsentForPortal } from "../../lib/api";
 import type { SupplierListItem } from "../../lib/api";
+import { getConsentForPortal } from "../../lib/api";
 import type { PortalDetection } from "../../lib/messaging";
+import { send, sendToTab } from "../../lib/messaging";
+import { selectActiveSupplier, usePopupStore } from "../../lib/store";
+import { getCachedPortals } from "../../lib/sync";
+import { getProfile } from "../../lib/vault";
 
 interface Props {
   suppliers: SupplierListItem[];
@@ -42,9 +42,7 @@ export function Home({ suppliers, detection }: Props): JSX.Element {
     try {
       // Profile is keyed by supplier id in the vault. Fall back to "default"
       // when nothing has been stored yet so first-run still works.
-      const profile =
-        (await getProfile(activeSupplier.id)) ??
-        (await getProfile("default"));
+      const profile = (await getProfile(activeSupplier.id)) ?? (await getProfile("default"));
       if (!profile) {
         setBanner({
           kind: "error",
@@ -134,12 +132,16 @@ export function Home({ suppliers, detection }: Props): JSX.Element {
 
   return (
     <section className="p-3 space-y-3" aria-labelledby="home-title">
-      <h2 id="home-title" className="sr-only">Home</h2>
+      <h2 id="home-title" className="sr-only">
+        Home
+      </h2>
 
       <DetectedCard detection={detection} />
 
       <div>
-        <label className="label" htmlFor="home-supplier">Supplier</label>
+        <label className="label" htmlFor="home-supplier">
+          Supplier
+        </label>
         <select
           id="home-supplier"
           className="input"
@@ -199,9 +201,7 @@ function DetectedCard({ detection }: { detection: PortalDetection | null }): JSX
         <ShieldAlert className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" aria-hidden />
         <div>
           <div className="font-medium text-slate-700">No portal detected</div>
-          <div className="mt-0.5">
-            Navigate to a supported carrier portal to enable filling.
-          </div>
+          <div className="mt-0.5">Navigate to a supported carrier portal to enable filling.</div>
         </div>
       </div>
     );
@@ -218,10 +218,7 @@ function DetectedCard({ detection }: { detection: PortalDetection | null }): JSX
           <div className="text-[10px] text-slate-500 truncate" title={detection.url}>
             {detection.hostname}
           </div>
-          <div
-            className="mt-1 text-[10px] text-slate-500"
-            data-testid="confidence"
-          >
+          <div className="mt-1 text-[10px] text-slate-500" data-testid="confidence">
             confidence {pct}%
           </div>
         </div>

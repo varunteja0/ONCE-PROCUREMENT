@@ -4,8 +4,8 @@
  *  - resolves the active consent_record_id from the backend
  *  - sends `submission.capture` with the canonical payload shape
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const send = vi.fn();
 const sendToTab = vi.fn();
@@ -29,10 +29,10 @@ vi.mock("../../src/lib/vault", () => ({
   getProfile: (...a: unknown[]) => getProfile(...a),
 }));
 
-import { Home } from "../../src/popup/screens/Home";
-import { usePopupStore, __test__ } from "../../src/lib/store";
 import type { SupplierListItem } from "../../src/lib/api";
 import type { PortalDetection } from "../../src/lib/messaging";
+import { __test__, usePopupStore } from "../../src/lib/store";
+import { Home } from "../../src/popup/screens/Home";
 
 const supplier: SupplierListItem = {
   id: "sup-1",
@@ -61,25 +61,19 @@ beforeEach(() => {
 
 describe("Home onCapture", () => {
   it("resolves portal + consent and sends submission.capture", async () => {
-    getCachedPortals.mockResolvedValue([
-      { id: "p-applied", platform: "applied_epic", display_name: "AE" },
-    ]);
+    getCachedPortals.mockResolvedValue([{ id: "p-applied", platform: "applied_epic", display_name: "AE" }]);
     getConsentForPortal.mockResolvedValue({ id: "c-123" });
     send.mockResolvedValue({ ok: true, id: "sub-12345678" });
 
     render(<Home suppliers={[supplier]} detection={detection} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Capture this submission/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Capture this submission/i }));
 
     await waitFor(() => {
       expect(send).toHaveBeenCalledTimes(1);
     });
     expect(getConsentForPortal).toHaveBeenCalledWith("sup-1", "p-applied");
 
-    const [msg] = send.mock.calls[0] as [
-      { type: string; payload: Record<string, unknown> },
-    ];
+    const [msg] = send.mock.calls[0] as [{ type: string; payload: Record<string, unknown> }];
     expect(msg.type).toBe("submission.capture");
     expect(msg.payload.supplier_id).toBe("sup-1");
     expect(msg.payload.portal_id).toBe("p-applied");
@@ -88,15 +82,11 @@ describe("Home onCapture", () => {
   });
 
   it("blocks capture when no consent exists", async () => {
-    getCachedPortals.mockResolvedValue([
-      { id: "p-applied", platform: "applied_epic", display_name: "AE" },
-    ]);
+    getCachedPortals.mockResolvedValue([{ id: "p-applied", platform: "applied_epic", display_name: "AE" }]);
     getConsentForPortal.mockResolvedValue(null);
 
     render(<Home suppliers={[supplier]} detection={detection} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Capture this submission/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Capture this submission/i }));
 
     await waitFor(() => {
       expect(getConsentForPortal).toHaveBeenCalled();
@@ -108,9 +98,7 @@ describe("Home onCapture", () => {
     getCachedPortals.mockResolvedValue([]);
 
     render(<Home suppliers={[supplier]} detection={detection} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Capture this submission/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Capture this submission/i }));
 
     await waitFor(() => {
       expect(getCachedPortals).toHaveBeenCalled();

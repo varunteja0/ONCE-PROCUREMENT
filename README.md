@@ -2,8 +2,33 @@
 
 > **Once — supplier-portal autopilot for specialty insurance.**
 
-[![CI](https://github.com/once-inc/once-procurement/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/varunteja0/ONCE-PROCUREMENT/ci.yml?branch=main&label=CI)](https://github.com/varunteja0/ONCE-PROCUREMENT/actions/workflows/ci.yml)
+[![Extension](https://img.shields.io/github/actions/workflow/status/varunteja0/ONCE-PROCUREMENT/extension.yml?branch=main&label=extension)](https://github.com/varunteja0/ONCE-PROCUREMENT/actions/workflows/extension.yml)
+[![Deploy backend](https://img.shields.io/github/actions/workflow/status/varunteja0/ONCE-PROCUREMENT/deploy-backend.yml?branch=main&label=deploy%20backend)](https://github.com/varunteja0/ONCE-PROCUREMENT/actions/workflows/deploy-backend.yml)
+[![Deploy frontend](https://img.shields.io/github/actions/workflow/status/varunteja0/ONCE-PROCUREMENT/deploy-frontend.yml?branch=main&label=deploy%20frontend)](https://github.com/varunteja0/ONCE-PROCUREMENT/actions/workflows/deploy-frontend.yml)
+[![Deploy verifier](https://img.shields.io/github/actions/workflow/status/varunteja0/ONCE-PROCUREMENT/deploy-verifier.yml?branch=main&label=deploy%20verifier)](https://github.com/varunteja0/ONCE-PROCUREMENT/actions/workflows/deploy-verifier.yml)
 [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE)
+
+## Status (May 2026)
+
+Local L2 build is **green across all four suites**, with real Playwright
+submitters and the extension popup ↔ backend round-trip wired:
+
+| Subproject   | Tests passing          |
+| ------------ | ---------------------- |
+| `backend/`   | **1144** (`pytest -q`) |
+| `frontend/`  | **165** (`vitest run`) |
+| `extension/` | **84** (`vitest run`)  |
+| `verifier/`  | ~10 (`pytest -q`)      |
+
+Real submitters in `backend/app/automation/submitters/` (with integration
+tests in `backend/tests/integration/`): Vertafore AMS360, Sircon,
+AmTrust, Applied Epic, Markel. Cockpit, billing, operator MFA, audit
+hash-chain, verifier API keys, imports + AV, inbound email routing
+(IMAP + Postmark), and the COI / LossRun / ProducerLicense /
+EOCertificate / AcordForm / RiskSchedule data model are all live.
+
+See [`LOCAL-BUILD.md`](LOCAL-BUILD.md) for the full status snapshot.
 
 Once captures a producer/MGA submission once, fans it out to every carrier
 portal that matters (AmTrust, Markel, Applied Epic, Vertafore AMS360,
@@ -54,16 +79,16 @@ once-procurement/
 
 ## Tech stack (summary)
 
-| Layer       | Choice                                                      |
-| ----------- | ----------------------------------------------------------- |
-| Backend     | Python 3.12 · FastAPI · SQLAlchemy 2.0 (async) · Celery     |
-| Workers     | Playwright (Chromium) for portal automation                 |
-| Database    | Postgres 16 (prod) · SQLite (unit tests, schema-portable)   |
-| Frontend    | React 18 · Vite · TanStack Query · Zustand · Tailwind       |
-| Extension   | MV3 · Vite + @crxjs · WebCrypto vault                       |
-| Verifier    | Tiny stateless FastAPI service · public Ed25519 verify only |
-| OnceTax     | Remix on Cloudflare Workers · D1 + R2 + KV                  |
-| Receipts    | Ed25519 signatures over canonical JSON, audit hash-chain    |
+| Layer       | Choice                                                                  |
+| ----------- | ----------------------------------------------------------------------- |
+| Backend     | Python 3.12 · FastAPI · SQLAlchemy 2.0 (async) · Celery                 |
+| Workers     | Playwright (Chromium) for portal automation                             |
+| Database    | Postgres 16 (prod) · SQLite (unit tests, schema-portable)               |
+| Frontend    | React 18 · Vite · TanStack Query · Zustand · Tailwind                   |
+| Extension   | MV3 · Vite + @crxjs · WebCrypto vault                                   |
+| Verifier    | Tiny stateless FastAPI service · public Ed25519 verify only             |
+| OnceTax     | Remix on Cloudflare Workers · D1 + R2 + KV                              |
+| Receipts    | Ed25519 signatures over canonical JSON, audit hash-chain                |
 | Infra (dev) | docker compose: db · redis · backend · worker · beat · 5 nginx fixtures |
 
 ## Subproject rules
@@ -82,19 +107,19 @@ assistants (Copilot, Cursor, Codex, Aider, Claude Code).
 
 ## Further reading
 
-| Doc                                                    | Why                                                 |
-| ------------------------------------------------------ | --------------------------------------------------- |
-| [`CONTRACTS.md`](CONTRACTS.md)                         | Locked-in stack, model names, env vars. Normative.  |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md)                   | System diagram, request lifecycle, trust boundaries.|
-| [`LOCAL-BUILD.md`](LOCAL-BUILD.md)                     | Local-only build mode + current L2/L3 status.       |
-| [`ROADMAP.md`](ROADMAP.md)                             | Phase plan from "demo" → "signed customers".        |
-| [`BUILD.md`](BUILD.md)                                 | Verify-locally commands for every subsystem.        |
-| [`docs/RUNBOOK.md`](docs/RUNBOOK.md)                   | On-call procedures, key rotation, restore.          |
-| [`docs/DEPLOY.md`](docs/DEPLOY.md)                     | Production deploy (Fly.io + Vercel + Cloudflare).   |
-| [`docs/API.md`](docs/API.md)                           | REST catalogue with examples.                       |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)   | Common errors → fixes (mirrors CHEATSHEET).         |
-| [`SECURITY.md`](SECURITY.md)                           | Disclosure policy — `security@once.io`, 90-day window. |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md)                   | Dev environment + PR conventions.                   |
+| Doc                                                  | Why                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| [`CONTRACTS.md`](CONTRACTS.md)                       | Locked-in stack, model names, env vars. Normative.     |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md)                 | System diagram, request lifecycle, trust boundaries.   |
+| [`LOCAL-BUILD.md`](LOCAL-BUILD.md)                   | Local-only build mode + current L2/L3 status.          |
+| [`ROADMAP.md`](ROADMAP.md)                           | Phase plan from "demo" → "signed customers".           |
+| [`BUILD.md`](BUILD.md)                               | Verify-locally commands for every subsystem.           |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md)                 | On-call procedures, key rotation, restore.             |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md)                   | Production deploy (Fly.io + Vercel + Cloudflare).      |
+| [`docs/API.md`](docs/API.md)                         | REST catalogue with examples.                          |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Common errors → fixes (mirrors CHEATSHEET).            |
+| [`SECURITY.md`](SECURITY.md)                         | Disclosure policy — `security@once.io`, 90-day window. |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)                 | Dev environment + PR conventions.                      |
 
 ## Status
 

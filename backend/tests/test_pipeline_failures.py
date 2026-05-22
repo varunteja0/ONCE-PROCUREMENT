@@ -38,7 +38,6 @@ from tests.factories import (
     make_tenant,
 )
 
-
 # ---------------------------------------------------------------------------
 # Pure classification table
 # ---------------------------------------------------------------------------
@@ -60,9 +59,7 @@ class TestClassifyFailure:
             (SubmitterNotFound("s"), 1, SubmissionStatus.FAILED),
         ],
     )
-    def test_known_exception_mappings(
-        self, exc: BaseException, attempt: int, expected: SubmissionStatus
-    ) -> None:
+    def test_known_exception_mappings(self, exc: BaseException, attempt: int, expected: SubmissionStatus) -> None:
         status, msg = _classify_failure(exc, attempt)
         assert status is expected
         assert isinstance(msg, str)
@@ -96,9 +93,7 @@ async def _seed(async_session) -> str:
     supplier = await make_supplier(async_session, tenant)
     portal = await make_portal(async_session, platform=PortalPlatform.AMTRUST)
     consent = await make_consent(async_session, supplier=supplier, portal=portal)
-    submission = await make_submission(
-        async_session, supplier=supplier, portal=portal, consent=consent
-    )
+    submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
     await async_session.commit()
     return submission.id
 
@@ -112,9 +107,7 @@ def _raising_submitter(exc: BaseException) -> Any:
 
 
 class TestProcessSubmission:
-    async def test_captcha_marks_blocked(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_captcha_marks_blocked(self, async_session, signing_key, monkeypatch) -> None:
         monkeypatch.setattr(
             pipeline,
             "_get_submitter",
@@ -124,9 +117,7 @@ class TestProcessSubmission:
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.BLOCKED
 
-    async def test_rate_limited_marks_retrying(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_rate_limited_marks_retrying(self, async_session, signing_key, monkeypatch) -> None:
         monkeypatch.setattr(
             pipeline,
             "_get_submitter",
@@ -136,9 +127,7 @@ class TestProcessSubmission:
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.RETRYING
 
-    async def test_permanent_marks_failed(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_permanent_marks_failed(self, async_session, signing_key, monkeypatch) -> None:
         monkeypatch.setattr(
             pipeline,
             "_get_submitter",
@@ -148,9 +137,7 @@ class TestProcessSubmission:
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.FAILED
 
-    async def test_unsupported_marks_platform_unsupported(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_unsupported_marks_platform_unsupported(self, async_session, signing_key, monkeypatch) -> None:
         def _no_submitter(_platform: PortalPlatform) -> Any:
             raise PortalUnsupported("nope", platform=_platform.value)
 
@@ -159,9 +146,7 @@ class TestProcessSubmission:
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.PLATFORM_UNSUPPORTED
 
-    async def test_submitter_not_found_marks_failed(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_submitter_not_found_marks_failed(self, async_session, signing_key, monkeypatch) -> None:
         def _no_submitter(_platform: PortalPlatform) -> Any:
             raise SubmitterNotFound("no", platform=_platform.value)
 
@@ -170,9 +155,7 @@ class TestProcessSubmission:
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.FAILED
 
-    async def test_double_claim_raises_not_claimable(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_double_claim_raises_not_claimable(self, async_session, signing_key, monkeypatch) -> None:
         monkeypatch.setattr(
             pipeline,
             "_get_submitter",
@@ -185,16 +168,12 @@ class TestProcessSubmission:
         with pytest.raises(SubmissionNotClaimable):
             await process_submission(sid, async_session)
 
-    async def test_success_path_signs_receipt(
-        self, async_session, signing_key, monkeypatch
-    ) -> None:
+    async def test_success_path_signs_receipt(self, async_session, signing_key, monkeypatch) -> None:
         class _OkSubmitter:
             async def submit(self, **_: Any) -> dict[str, str]:
                 return {"status": "ok"}
 
-        monkeypatch.setattr(
-            pipeline, "_get_submitter", lambda _p: _OkSubmitter()
-        )
+        monkeypatch.setattr(pipeline, "_get_submitter", lambda _p: _OkSubmitter())
         sid = await _seed(async_session)
         result = await process_submission(sid, async_session)
         assert result.status is SubmissionStatus.COMPLETED

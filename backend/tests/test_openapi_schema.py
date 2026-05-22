@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -101,10 +100,7 @@ class TestPerOperationDecorations:
                 if method.lower() not in {"get", "post", "patch", "delete"}:
                     continue
                 assert "default" in op["responses"]
-                assert (
-                    op["responses"]["default"]["$ref"]
-                    == "#/components/responses/Problem"
-                )
+                assert op["responses"]["default"]["$ref"] == "#/components/responses/Problem"
 
     def test_every_operation_has_rate_limit_extension(self) -> None:
         schema = build_openapi(_build_app())
