@@ -24,7 +24,7 @@ passlib[bcrypt]==1.7.*
 # under Python 3.13/3.14. Until passlib ships a release with the fix, pinning
 # is the safest path. See BUILD.md follow-ups.
 bcrypt==4.0.1
-python-jose[cryptography]==3.3.*
+python-jose[cryptography]==3.5.*
 cryptography==43.*
 
 # Background work
