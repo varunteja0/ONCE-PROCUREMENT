@@ -126,11 +126,7 @@ async def get_email(
     if email is None:
         raise HTTPException(status_code=404, detail="not_found")
     att_rows = list(
-        (
-            await session.execute(
-                select(InboundAttachment).where(InboundAttachment.inbound_email_id == email.id)
-            )
-        )
+        (await session.execute(select(InboundAttachment).where(InboundAttachment.inbound_email_id == email.id)))
         .scalars()
         .all()
     )
@@ -173,14 +169,10 @@ async def retry_email(
     if email is None:
         raise HTTPException(status_code=404, detail="not_found")
     try:
-        updated = await inbound_email_service.retry_routing(
-            session, tenant_id=tenant_id, email_id=email_id
-        )
+        updated = await inbound_email_service.retry_routing(session, tenant_id=tenant_id, email_id=email_id)
     except inbound_email_service.InboundIngestError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return InboundRetryResponse(
-        id=updated.id, status=updated.status.value, routing_error=updated.routing_error
-    )
+    return InboundRetryResponse(id=updated.id, status=updated.status.value, routing_error=updated.routing_error)
 
 
 @router.post("/{email_id}/quarantine", response_model=InboundRetryResponse)
@@ -197,12 +189,8 @@ async def quarantine_email(
     )
     if email is None:
         raise HTTPException(status_code=404, detail="not_found")
-    updated = await inbound_email_service.quarantine(
-        session, tenant_id=tenant_id, email_id=email_id
-    )
-    return InboundRetryResponse(
-        id=updated.id, status=updated.status.value, routing_error=updated.routing_error
-    )
+    updated = await inbound_email_service.quarantine(session, tenant_id=tenant_id, email_id=email_id)
+    return InboundRetryResponse(id=updated.id, status=updated.status.value, routing_error=updated.routing_error)
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +302,9 @@ async def reorder_rules(
     await session.flush()
     await session.commit()
 
-    refreshed = select(InboundRoutingRule).where(
-        InboundRoutingRule.tenant_id == tenant_id
-    ).order_by(InboundRoutingRule.priority.asc())
+    refreshed = (
+        select(InboundRoutingRule)
+        .where(InboundRoutingRule.tenant_id == tenant_id)
+        .order_by(InboundRoutingRule.priority.asc())
+    )
     return [_rule_to_read(r) for r in (await session.execute(refreshed)).scalars().all()]

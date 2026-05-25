@@ -18,7 +18,7 @@ export interface CsvColumn<T> {
 
 /** Escape a single CSV field per RFC 4180. */
 function escapeField(raw: string | number | boolean | null | undefined): string {
-  if (raw === null || raw === undefined) return '';
+  if (raw === null || raw === undefined) return "";
   const s = String(raw);
   // Quote if the field contains a comma, double quote, CR, or LF.
   if (/[",\r\n]/.test(s)) {
@@ -31,10 +31,8 @@ function escapeField(raw: string | number | boolean | null | undefined): string 
  * Serialise rows into a CSV string. Uses CRLF line endings per RFC 4180.
  */
 export function toCsv<T>(rows: readonly T[], columns: ReadonlyArray<CsvColumn<T>>): string {
-  const header = columns.map((c) => escapeField(c.header)).join(',');
-  const body = rows
-    .map((row) => columns.map((c) => escapeField(c.value(row))).join(','))
-    .join('\r\n');
+  const header = columns.map((c) => escapeField(c.header)).join(",");
+  const body = rows.map((row) => columns.map((c) => escapeField(c.value(row))).join(",")).join("\r\n");
   return body.length === 0 ? `${header}\r\n` : `${header}\r\n${body}\r\n`;
 }
 
@@ -43,9 +41,9 @@ export function toCsv<T>(rows: readonly T[], columns: ReadonlyArray<CsvColumn<T>
  * Prepends a UTF-8 BOM so Excel opens it correctly.
  */
 export function downloadCsv(filename: string, csv: string): void {
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);

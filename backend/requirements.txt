@@ -24,8 +24,18 @@ passlib[bcrypt]==1.7.*
 # under Python 3.13/3.14. Until passlib ships a release with the fix, pinning
 # is the safest path. See BUILD.md follow-ups.
 bcrypt==4.0.1
-python-jose[cryptography]==3.3.*
+# JWT: PyJWT (maintained) replaces python-jose, which is unmaintained and
+# carries unresolved CVE-2024-33663 (algorithm confusion) and
+# CVE-2024-33664 (JWT bomb DoS). We pin algorithm allow-lists explicitly
+# at every decode call (see app/utils/security.py, app/services/operator_auth.py,
+# app/api/v1/onboarding.py).
+PyJWT>=2.9,<3
 cryptography==43.*
+# RFC 8785 JSON Canonicalization Scheme — pure-Python, zero deps,
+# Apache-2.0, by Trail of Bits. Replaces the homegrown encoder in
+# app/utils/canonical_json.py. Pin exact: receipts are signed against
+# its byte output, and a bump here is a signing-key-class event.
+rfc8785==0.1.4
 
 # Background work
 celery==5.4.*

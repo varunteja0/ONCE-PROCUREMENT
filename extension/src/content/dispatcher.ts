@@ -8,8 +8,7 @@
 import { send } from "../lib/messaging";
 import type { PortalPlatform } from "../types/portal";
 import type { SupplierProfile } from "../types/profile";
-import { isSupplierProfile } from "../types/profile";
-import type { FillerContext, FillerFn, FillReport } from "./fillers/_shared";
+import type { FillerContext, FillerFn } from "./fillers/_shared";
 import * as amtrust from "./fillers/amtrust";
 import * as appliedEpic from "./fillers/applied_epic";
 import * as markel from "./fillers/markel";
@@ -94,6 +93,11 @@ function registerFillListener(): void {
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response: ContentFillResponse) => void,
     ): boolean => {
+      // Defense-in-depth: reject messages from any sender other than this
+      // extension. MV3 already blocks externally_connectable by default,
+      // but if that's ever loosened we don't want the content script to
+      // honour fill commands from arbitrary origins.
+      if (_sender.id !== chrome.runtime.id) return false;
       if (!isContentFillMessage(message)) return false;
       const filler = FILLERS[message.portal];
       if (!filler) {
@@ -103,7 +107,7 @@ function registerFillListener(): void {
       const ctx: FillerContext = {
         hostname: window.location.hostname,
         portal: message.portal,
-        log: (m, extra) => console.info(`[once.cs:${message.portal}] ${m}`, extra ?? {}),
+        log: () => undefined,
       };
       void (async () => {
         try {
@@ -134,42 +138,6 @@ const FILLERS: Partial<Record<PortalPlatform, FillerFn>> = {
   amtrust: amtrust.fill,
   markel: markel.fill,
 };
-
-// ---------------------------------------------------------------------------
-// Background messaging
-// ---------------------------------------------------------------------------
-
-interface FillReportMessage {
-  type: "FILL_REPORT";
-  portal: PortalPlatform;
-  hostname: string;
-  url: string;
-  filled: string[];
-  skipped: string[];
-  durationMs: number;
-}
-
-async function loadProfile(): Promise<SupplierProfile | null> {
-  try {
-    const resp = await send({ type: "profile.active" });
-    if (!resp.ok) return null;
-    const profile = resp.profile;
-    if (profile === null) return null;
-    if (!isSupplierProfile(profile)) return null;
-    return profile;
-  } catch (err) {
-    console.warn("[once.cs] failed to load profile", err);
-    return null;
-  }
-}
-
-async function reportToBackground(msg: FillReportMessage): Promise<void> {
-  try {
-    await chrome.runtime.sendMessage(msg);
-  } catch (err) {
-    console.warn("[once.cs] failed to send FILL_REPORT", err);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Floating toast (shadow-DOM isolated)
@@ -248,46 +216,16 @@ void (async () => {
   const filler = FILLERS[portal];
   if (!filler) return;
 
-  const toast = mountToast();
-
-  const profile = await loadProfile();
-  if (!profile) {
-    toast.fail("vault locked or no active profile");
-    return;
-  }
-
-  const ctx: FillerContext = {
-    hostname,
-    portal,
-    log: (msg, extra) => console.info(`[once.cs:${portal}] ${msg}`, extra ?? {}),
-    onProgress: (r: FillReport) => {
-      const total = r.filled.length + r.skipped.length;
-      toast.update(r.filled.length, total);
+  await send({
+    type: "portal.detect",
+    detection: {
+      portal,
+      hostname,
+      url: fullUrl,
+      confidence: 0.9,
+      html_hash: `${document.documentElement?.innerHTML.length ?? 0}:${document.title}`,
     },
-  };
-
-  const started = performance.now();
-  let report: FillReport;
-  try {
-    report = await filler(profile, ctx);
-  } catch (err) {
-    console.error("[once.cs] filler threw", err);
-    toast.fail("filler error — see console");
-    return;
-  }
-  const durationMs = Math.round(performance.now() - started);
-
-  toast.finish(`filled ${report.filled.length}/${report.filled.length + report.skipped.length} fields`);
-
-  await reportToBackground({
-    type: "FILL_REPORT",
-    portal,
-    hostname,
-    url: fullUrl,
-    filled: report.filled,
-    skipped: report.skipped,
-    durationMs,
-  });
+  }).catch(() => undefined);
 })();
 
 // Exported for unit tests.

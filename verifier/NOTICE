@@ -1,0 +1,32 @@
+Once Receipt Verifier
+Copyright 2025-2026 Once Inc.
+
+This product includes software developed at Once Inc. (https://getonce.com).
+
+================================================================================
+Licensing
+================================================================================
+
+The contents of THIS DIRECTORY (the `verifier/` subtree) are licensed under the
+Apache License, Version 2.0. See the accompanying LICENSE file or
+http://www.apache.org/licenses/LICENSE-2.0 for the full text.
+
+The rest of the `once-procurement` repository is licensed under the Business
+Source License 1.1 (see the root LICENSE file), with a Change Date of
+2029-01-27 that automatically converts it to Apache License 2.0.
+
+This split is intentional. The verifier is a standalone, deliberately small
+microservice whose entire purpose is to let third parties (customers,
+regulators, E&O insurers, journalists) audit Once-signed receipts WITHOUT
+running, trusting, or licensing the rest of the Once stack. To preserve that
+auditability, we license it under a permissive OSI-approved license today,
+ahead of the broader repository's BSL change date.
+
+================================================================================
+Cryptographic disclosure
+================================================================================
+
+This product uses the Ed25519 signature scheme (RFC 8032) and RFC 8785
+canonical JSON for signature payload normalization. No cryptographic
+primitives are implemented in this project; verification is delegated to
+`cryptography` (https://cryptography.io/), which itself wraps OpenSSL.

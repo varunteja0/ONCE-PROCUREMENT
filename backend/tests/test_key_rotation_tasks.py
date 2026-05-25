@@ -18,9 +18,12 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from sqlalchemy import func, select
 
 import app.db as app_db
+from app.config import settings
 from app.models import AuditLog, KeyRotationLog, SigningKey
 from app.workers.tasks.key_rotation_tasks import (
     rotate_signing_key_task,
@@ -35,15 +38,21 @@ def _now() -> datetime:
     return datetime.now(tz=UTC)
 
 
+def _private_key_pem() -> str:
+    key = Ed25519PrivateKey.generate()
+    return key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("ascii")
+
+
 async def _insert_signing_key(*, age_days: int) -> str:
     async with app_db.AsyncSessionLocal() as session:
         key = SigningKey(
             id=str(uuid.uuid4()),
             algorithm="ed25519",
-            public_key_pem=(
-                "-----BEGIN PUBLIC KEY-----\nseed-public-key-pem\n"
-                "-----END PUBLIC KEY-----\n"
-            ),
+            public_key_pem=("-----BEGIN PUBLIC KEY-----\nseed-public-key-pem\n" "-----END PUBLIC KEY-----\n"),
             description=f"seed key (age={age_days}d)",
             created_at=_now() - timedelta(days=age_days),
         )
@@ -53,9 +62,7 @@ async def _insert_signing_key(*, age_days: int) -> str:
         return key.id
 
 
-async def _insert_rotation_log(
-    *, key_name: str, age_days: int
-) -> str:
+async def _insert_rotation_log(*, key_name: str, age_days: int) -> str:
     async with app_db.AsyncSessionLocal() as session:
         row = KeyRotationLog(
             key_name=key_name,
@@ -89,27 +96,23 @@ async def test_rotate_signing_key_below_threshold_skips(cockpit_app) -> None:  #
 
     # No new SigningKey, no KeyRotationLog, no AuditLog row written.
     async with app_db.AsyncSessionLocal() as session:
-        signing_count = int(
-            (
-                await session.execute(select(func.count(SigningKey.id)))
-            ).scalar_one()
-            or 0
-        )
-        rotation_count = int(
-            (
-                await session.execute(select(func.count(KeyRotationLog.id)))
-            ).scalar_one()
-            or 0
-        )
+        signing_count = int((await session.execute(select(func.count(SigningKey.id)))).scalar_one() or 0)
+        rotation_count = int((await session.execute(select(func.count(KeyRotationLog.id)))).scalar_one() or 0)
     assert signing_count == 1
     assert rotation_count == 0
 
 
-async def test_rotate_signing_key_triggers_rotation(cockpit_app) -> None:  # noqa: ANN001
+async def test_rotate_signing_key_triggers_rotation(cockpit_app, monkeypatch) -> None:  # noqa: ANN001
     old_key_id = await _insert_signing_key(age_days=400)
+    monkeypatch.setattr(settings, "receipt_next_signing_key_id", "next-test-key")
+    monkeypatch.setattr(
+        settings,
+        "receipt_next_signing_private_key_pem",
+        _private_key_pem(),
+    )
 
     summary = await asyncio.to_thread(rotate_signing_key_task)
-    assert summary["status"] == "rotated"
+    assert summary["status"] == "ready_for_cutover"
     assert summary["previous_key_id"] == old_key_id
     assert summary["new_key_id"] != old_key_id
     assert summary["age_days_of_previous"] >= 399
@@ -117,36 +120,19 @@ async def test_rotate_signing_key_triggers_rotation(cockpit_app) -> None:  # noq
 
     async with app_db.AsyncSessionLocal() as session:
         # A new SigningKey row exists; the OLD key is NOT revoked.
-        signing_count = int(
-            (
-                await session.execute(select(func.count(SigningKey.id)))
-            ).scalar_one()
-            or 0
-        )
+        signing_count = int((await session.execute(select(func.count(SigningKey.id)))).scalar_one() or 0)
         assert signing_count == 2
 
-        old = (
-            await session.execute(
-                select(SigningKey).where(SigningKey.id == old_key_id)
-            )
-        ).scalar_one()
+        old = (await session.execute(select(SigningKey).where(SigningKey.id == old_key_id))).scalar_one()
         assert old.revoked_at is None
 
-        new = (
-            await session.execute(
-                select(SigningKey).where(SigningKey.id == new_key_id)
-            )
-        ).scalar_one()
+        new = (await session.execute(select(SigningKey).where(SigningKey.id == new_key_id))).scalar_one()
         assert new.algorithm == "ed25519"
         assert "BEGIN PUBLIC KEY" in new.public_key_pem
 
         # KeyRotationLog row recorded with automated=True.
         rot = (
-            await session.execute(
-                select(KeyRotationLog).where(
-                    KeyRotationLog.key_name == "receipt_signing_key"
-                )
-            )
+            await session.execute(select(KeyRotationLog).where(KeyRotationLog.key_name == "receipt_signing_key"))
         ).scalar_one()
         assert rot.new_key_id == new_key_id
         assert rot.previous_key_id == old_key_id
@@ -156,11 +142,7 @@ async def test_rotate_signing_key_triggers_rotation(cockpit_app) -> None:  # noq
         assert rot.metadata_json["task"] == "keys.rotate_signing_key"
 
         # AuditLog system-level row (tenant_id IS NULL).
-        audit = (
-            await session.execute(
-                select(AuditLog).where(AuditLog.action == "key_rotation")
-            )
-        ).scalar_one()
+        audit = (await session.execute(select(AuditLog).where(AuditLog.action == "key_rotation"))).scalar_one()
         assert audit.tenant_id is None
         assert audit.resource_type == "signing_key"
         assert audit.resource_id == new_key_id
@@ -171,11 +153,18 @@ async def test_rotate_signing_key_triggers_rotation(cockpit_app) -> None:  # noq
 
 async def test_rotate_signing_key_idempotent_within_window(  # noqa: ANN001
     cockpit_app,
+    monkeypatch,
 ) -> None:
     await _insert_signing_key(age_days=400)
+    monkeypatch.setattr(settings, "receipt_next_signing_key_id", "next-test-key")
+    monkeypatch.setattr(
+        settings,
+        "receipt_next_signing_private_key_pem",
+        _private_key_pem(),
+    )
 
     first = await asyncio.to_thread(rotate_signing_key_task)
-    assert first["status"] == "rotated"
+    assert first["status"] == "ready_for_cutover"
 
     # Second run picks the freshly-rotated key (age 0) and skips.
     second = await asyncio.to_thread(rotate_signing_key_task)
@@ -186,9 +175,7 @@ async def test_rotate_signing_key_idempotent_within_window(  # noqa: ANN001
         rotation_count = int(
             (
                 await session.execute(
-                    select(func.count(KeyRotationLog.id)).where(
-                        KeyRotationLog.key_name == "receipt_signing_key"
-                    )
+                    select(func.count(KeyRotationLog.id)).where(KeyRotationLog.key_name == "receipt_signing_key")
                 )
             ).scalar_one()
             or 0
@@ -210,11 +197,7 @@ async def test_warn_jwt_secret_no_history_alerts(cockpit_app) -> None:  # noqa: 
     assert summary["reason"] == "no_rotation_history"
 
     async with app_db.AsyncSessionLocal() as session:
-        audit = (
-            await session.execute(
-                select(AuditLog).where(AuditLog.action == "key_rotation.warn")
-            )
-        ).scalar_one()
+        audit = (await session.execute(select(AuditLog).where(AuditLog.action == "key_rotation.warn"))).scalar_one()
         assert audit.tenant_id is None
         assert audit.resource_id == "jwt_secret_key"
         assert audit.metadata_json is not None
@@ -234,11 +217,7 @@ async def test_warn_jwt_secret_recent_ok(cockpit_app) -> None:  # noqa: ANN001
     async with app_db.AsyncSessionLocal() as session:
         warn_count = int(
             (
-                await session.execute(
-                    select(func.count(AuditLog.id)).where(
-                        AuditLog.action == "key_rotation.warn"
-                    )
-                )
+                await session.execute(select(func.count(AuditLog.id)).where(AuditLog.action == "key_rotation.warn"))
             ).scalar_one()
             or 0
         )

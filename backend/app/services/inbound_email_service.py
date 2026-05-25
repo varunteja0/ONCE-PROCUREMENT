@@ -128,8 +128,13 @@ def _extract_address(raw: str) -> str:
     return raw.lower()
 
 
-def parse_to_address(to_field: str, *, inbound_domain: str) -> tuple[str, str]:
-    """Return ``(canonical_to_address, tenant_slug)``.
+def parse_to_address(to_field: str, *, inbound_domain: str) -> tuple[str, str, str | None]:
+    """Return ``(canonical_to_address, tenant_slug, shared_token)``.
+
+    ``shared_token`` is the substring after the first ``+`` in the
+    local-part, e.g. ``submissions+abc123@<slug>.in.getonce.com`` →
+    ``"abc123"``. Returns ``None`` when no ``+`` is present so legacy
+    tenants (``inbound_secret_token IS NULL``) still route.
 
     Raises :class:`TenantNotFound` when the address local-part can't be
     mapped to a tenant slug under ``inbound_domain``.
@@ -142,20 +147,20 @@ def parse_to_address(to_field: str, *, inbound_domain: str) -> tuple[str, str]:
     domain = domain.lower().strip()
     inbound_domain = inbound_domain.lower().strip()
     if not domain.endswith(inbound_domain):
-        raise TenantNotFound(
-            f"To: domain {domain!r} does not match inbound domain {inbound_domain!r}"
-        )
-    # local-part may look like "submissions+tag@<slug>.in.getonce.com" or
-    # "submissions@<slug>.in.getonce.com" — derive slug from subdomain.
+        raise TenantNotFound(f"To: domain {domain!r} does not match inbound domain {inbound_domain!r}")
+    # local-part may look like "submissions+<token>@<slug>.in.getonce.com"
+    # or "submissions@<slug>.in.getonce.com" — derive slug from subdomain.
     sub = domain[: -len(inbound_domain)].rstrip(".")
+    local_head, _, local_tag = local.partition("+")
+    shared_token = local_tag.strip() or None
     if not sub:
         # Catch-all: local-part is the slug, e.g. ``slug@in.getonce.com``.
-        slug = local.split("+", 1)[0].strip()
+        slug = local_head.strip()
     else:
         slug = sub.split(".")[0]
     if not slug:
         raise TenantNotFound(f"Could not derive tenant slug from {address!r}")
-    return address, slug
+    return address, slug, shared_token
 
 
 async def _resolve_tenant(session: AsyncSession, slug: str) -> Tenant:
@@ -168,9 +173,7 @@ async def _resolve_tenant(session: AsyncSession, slug: str) -> Tenant:
     return tenant
 
 
-async def _existing_email(
-    session: AsyncSession, *, message_id: str
-) -> InboundEmail | None:
+async def _existing_email(session: AsyncSession, *, message_id: str) -> InboundEmail | None:
     stmt = select(InboundEmail).where(InboundEmail.message_id == message_id)
     return (await session.execute(stmt)).scalar_one_or_none()
 
@@ -184,14 +187,11 @@ def _enforce_size_limits(parsed: ParsedEmail) -> None:
     for att in parsed.attachments:
         if len(att.content) > max_att:
             raise EmailTooLarge(
-                f"Attachment {att.filename!r} exceeds "
-                f"{settings.inbound_max_attachment_size_mb} MiB"
+                f"Attachment {att.filename!r} exceeds " f"{settings.inbound_max_attachment_size_mb} MiB"
             )
         total += len(att.content)
     if total > max_email:
-        raise EmailTooLarge(
-            f"Email exceeds {settings.inbound_max_email_size_mb} MiB total"
-        )
+        raise EmailTooLarge(f"Email exceeds {settings.inbound_max_email_size_mb} MiB total")
 
 
 async def _store_attachments(
@@ -212,9 +212,7 @@ async def _store_attachments(
             )
             continue
         try:
-            stored = storage.put(
-                email_id=email_id, filename=att.filename, content=att.content
-            )
+            stored = storage.put(email_id=email_id, filename=att.filename, content=att.content)
         except InfectedFileError as exc:
             # Per-attachment failure — do NOT kill the whole email. The
             # storage layer has already emitted a structured
@@ -255,9 +253,7 @@ async def _store_attachments(
     return rows
 
 
-async def _load_rules(
-    session: AsyncSession, *, tenant_id: str
-) -> list[InboundRoutingRule]:
+async def _load_rules(session: AsyncSession, *, tenant_id: str) -> list[InboundRoutingRule]:
     stmt = (
         select(InboundRoutingRule)
         .where(
@@ -369,10 +365,29 @@ async def ingest(
 
     _enforce_size_limits(parsed)
 
-    to_address, slug = parse_to_address(
+    to_address, slug, presented_token = parse_to_address(
         parsed.to_address, inbound_domain=settings.inbound_email_domain
     )
     tenant = await _resolve_tenant(session, slug)
+
+    # Per-tenant routing-secret enforcement (audit gap G). Legacy tenants
+    # where ``inbound_secret_token`` is NULL are accepted without a token
+    # to preserve backwards compatibility; operations should backfill via
+    # the cockpit and then make this column NOT NULL in a follow-up.
+    # Constant-time comparison via ``secrets.compare_digest``.
+    import secrets as _secrets
+
+    expected_token = tenant.inbound_secret_token
+    if expected_token:
+        if not presented_token or not _secrets.compare_digest(str(presented_token), str(expected_token)):
+            _logger.warning(
+                "inbound.routing_token_mismatch",
+                tenant_id=tenant.id,
+                slug=slug,
+                message_id=parsed.message_id,
+                presented_token_present=presented_token is not None,
+            )
+            raise TenantNotFound(f"Inbound routing token missing or invalid for tenant {slug!r}")
 
     spam_score = score_spam(
         from_address=parsed.from_address,
@@ -410,13 +425,9 @@ async def ingest(
         raise
 
     if parsed.raw_bytes:
-        email.raw_storage_url = storage.put_raw_email(
-            email_id=email.id, content=parsed.raw_bytes
-        )
+        email.raw_storage_url = storage.put_raw_email(email_id=email.id, content=parsed.raw_bytes)
 
-    att_rows = await _store_attachments(
-        storage=storage, email_id=email.id, attachments=parsed.attachments
-    )
+    att_rows = await _store_attachments(storage=storage, email_id=email.id, attachments=parsed.attachments)
     for row in att_rows:
         session.add(row)
     await session.flush()
@@ -457,9 +468,7 @@ async def _route(
         return
 
     try:
-        result = await router.route(
-            session, email=email, attachments=attachments, rule=rule
-        )
+        result = await router.route(session, email=email, attachments=attachments, rule=rule)
     except Exception as exc:  # pragma: no cover - defensive
         _logger.exception("inbound.router_failed", email_id=email.id, error=str(exc))
         email.status = InboundEmailStatus.FAILED
@@ -479,9 +488,7 @@ async def _route(
     await session.flush()
 
 
-async def retry_routing(
-    session: AsyncSession, *, tenant_id: str, email_id: str
-) -> InboundEmail:
+async def retry_routing(session: AsyncSession, *, tenant_id: str, email_id: str) -> InboundEmail:
     """Re-run routing for an existing email (operator action).
 
     ``tenant_id`` is required for defense-in-depth: a cross-tenant
@@ -491,15 +498,11 @@ async def retry_routing(
 
     if not tenant_id:
         raise InboundIngestError("tenant_id is required")
-    stmt = select(InboundEmail).where(
-        InboundEmail.id == email_id, InboundEmail.tenant_id == tenant_id
-    )
+    stmt = select(InboundEmail).where(InboundEmail.id == email_id, InboundEmail.tenant_id == tenant_id)
     email = (await session.execute(stmt)).scalar_one_or_none()
     if email is None:
         raise InboundIngestError(f"InboundEmail {email_id!r} not found")
-    att_stmt = select(InboundAttachment).where(
-        InboundAttachment.inbound_email_id == email.id
-    )
+    att_stmt = select(InboundAttachment).where(InboundAttachment.inbound_email_id == email.id)
     attachments = list((await session.execute(att_stmt)).scalars().all())
     email.status = InboundEmailStatus.PARSING
     email.routing_error = None
@@ -508,9 +511,7 @@ async def retry_routing(
     return email
 
 
-async def quarantine(
-    session: AsyncSession, *, tenant_id: str, email_id: str
-) -> InboundEmail:
+async def quarantine(session: AsyncSession, *, tenant_id: str, email_id: str) -> InboundEmail:
     """Mark *email_id* as quarantined.
 
     ``tenant_id`` is required: cross-tenant access raises
@@ -519,9 +520,7 @@ async def quarantine(
 
     if not tenant_id:
         raise InboundIngestError("tenant_id is required")
-    stmt = select(InboundEmail).where(
-        InboundEmail.id == email_id, InboundEmail.tenant_id == tenant_id
-    )
+    stmt = select(InboundEmail).where(InboundEmail.id == email_id, InboundEmail.tenant_id == tenant_id)
     email = (await session.execute(stmt)).scalar_one_or_none()
     if email is None:
         raise InboundIngestError(f"InboundEmail {email_id!r} not found")

@@ -3,12 +3,13 @@
 Three tasks, scheduled via Celery Beat (see celery_app.py):
 
 * ``keys.rotate_signing_key`` (weekly): if the active receipt-signing key
-  is older than 365 days, generate a new Ed25519 keypair, register the new
-  public key in ``signing_keys``, and append a ``KeyRotationLog`` + system
-  ``AuditLog`` row. The OLD key is NOT revoked - it remains valid for
-  verifying historical receipts. The new private key PEM is logged once
-  for the operator to install in the KMS / Fly secret manager; the task
-  itself never persists private material.
+    is older than 365 days, register the public half of the operator-provided
+    ``RECEIPT_NEXT_SIGNING_PRIVATE_KEY_PEM`` under
+    ``RECEIPT_NEXT_SIGNING_KEY_ID`` and append a ``KeyRotationLog`` + system
+    ``AuditLog`` row. The OLD key is NOT revoked - it remains valid for
+    verifying historical receipts. Private material is never logged or
+    persisted; operators cut traffic over by promoting the next-key env vars
+    to the active ``RECEIPT_SIGNING_*`` pair and restarting.
 
 * ``keys.warn_jwt_secret_age`` (daily, threshold 90d): emits a structured
   alert + ``key_rotation.warn`` AuditLog row when the most recent
@@ -22,18 +23,17 @@ Three tasks, scheduled via Celery Beat (see celery_app.py):
 from __future__ import annotations
 
 import asyncio
-import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from sqlalchemy import desc, select
 
 import app.db as app_db
+from app.config import settings
 from app.models import AuditLog, KeyRotationLog, SigningKey
 from app.schemas.compliance import KeyRotationCreate
 from app.services.key_rotation_service import record_rotation
+from app.utils.crypto import derive_public_pem, load_signing_key
 from app.utils.logging import get_logger
 from app.workers.celery_app import celery_app
 
@@ -70,32 +70,7 @@ def _aware(dt: datetime | None) -> datetime | None:
     return dt
 
 
-def _generate_ed25519_keypair() -> tuple[str, str]:
-    """Return ``(private_pem, public_pem)`` for a fresh Ed25519 key.
-
-    Private PEM is intended for one-shot logging so the operator can move
-    it into the KMS / Fly secret manager; it is never persisted by Once.
-    """
-    private_key = Ed25519PrivateKey.generate()
-    private_pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).decode("ascii")
-    public_pem = (
-        private_key.public_key()
-        .public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-        .decode("ascii")
-    )
-    return private_pem, public_pem
-
-
-async def _last_rotation(
-    session: Any, *, key_name: str
-) -> KeyRotationLog | None:
+async def _last_rotation(session: Any, *, key_name: str) -> KeyRotationLog | None:
     stmt = (
         select(KeyRotationLog)
         .where(KeyRotationLog.key_name == key_name)
@@ -113,12 +88,7 @@ async def _last_rotation(
 async def _run_rotate_signing_key() -> dict[str, Any]:
     now = _utcnow()
     async with app_db.AsyncSessionLocal() as session:
-        stmt = (
-            select(SigningKey)
-            .where(SigningKey.revoked_at.is_(None))
-            .order_by(desc(SigningKey.created_at))
-            .limit(1)
-        )
+        stmt = select(SigningKey).where(SigningKey.revoked_at.is_(None)).order_by(desc(SigningKey.created_at)).limit(1)
         active = (await session.execute(stmt)).scalars().first()
 
         if active is None:
@@ -139,16 +109,38 @@ async def _run_rotate_signing_key() -> dict[str, Any]:
                 "active_key_id": active.id,
             }
 
-        # Rotate: generate new keypair, register public key, append ledger.
-        private_pem, public_pem = _generate_ed25519_keypair()
+        next_key_id = settings.receipt_next_signing_key_id.strip()
+        next_private_pem = settings.receipt_next_signing_private_key_pem.strip()
+        if not next_key_id or not next_private_pem:
+            _logger.warning(
+                "signing_key_rotation_handoff_required",
+                active_key_id=active.id,
+                age_days=age_days,
+                threshold_days=SIGNING_KEY_MAX_AGE_DAYS,
+            )
+            return {
+                "status": "handoff_required",
+                "reason": "missing_next_signing_key_secret",
+                "age_days": age_days,
+                "threshold_days": SIGNING_KEY_MAX_AGE_DAYS,
+                "active_key_id": active.id,
+            }
+
+        existing_next = await session.get(SigningKey, next_key_id)
+        if existing_next is not None:
+            return {
+                "status": "ready_for_cutover",
+                "new_key_id": next_key_id,
+                "previous_key_id": active.id,
+                "reason": "next_key_already_registered",
+            }
+
+        public_pem = derive_public_pem(load_signing_key(next_private_pem))
         new_key = SigningKey(
-            id=str(uuid.uuid4()),
+            id=next_key_id,
             algorithm="ed25519",
             public_key_pem=public_pem,
-            description=(
-                "Auto-rotated by keys.rotate_signing_key on "
-                f"{now.date().isoformat()}"
-            ),
+            description=("Pre-registered by keys.rotate_signing_key on " f"{now.date().isoformat()}"),
         )
         session.add(new_key)
         await session.flush()  # populate new_key.id
@@ -159,9 +151,7 @@ async def _run_rotate_signing_key() -> dict[str, Any]:
                 key_name="receipt_signing_key",
                 new_key_id=new_key.id,
                 previous_key_id=active.id,
-                notes=(
-                    "Automated rotation by keys.rotate_signing_key beat task."
-                ),
+                notes="Next receipt-signing key pre-registered for operator cutover.",
                 metadata_json={
                     "automated": True,
                     "task": "keys.rotate_signing_key",
@@ -188,21 +178,22 @@ async def _run_rotate_signing_key() -> dict[str, Any]:
 
         await session.commit()
 
-        # One-shot operator handoff: log the new private PEM so the on-call
-        # can install it. The task itself never persists private material.
-        _logger.warning(
-            "signing_key_rotation_private_key_handoff_required",
+        import hashlib
+
+        public_fp = hashlib.sha256(public_pem.encode("ascii")).hexdigest()
+        _logger.info(
+            "signing_key_rotation_next_key_registered",
             new_key_id=new_key.id,
             previous_key_id=active.id,
-            public_key_pem=public_pem,
-            private_key_pem=private_pem,
+            public_key_sha256=public_fp,
         )
 
         return {
-            "status": "rotated",
+            "status": "ready_for_cutover",
             "new_key_id": new_key.id,
             "previous_key_id": active.id,
             "age_days_of_previous": age_days,
+            "public_key_sha256": public_fp,
         }
 
 
@@ -220,9 +211,7 @@ def rotate_signing_key_task() -> dict[str, Any]:
     """
 
     started_at = _utcnow()
-    _logger.info(
-        "signing_key_rotation_job_started", at=started_at.isoformat()
-    )
+    _logger.info("signing_key_rotation_job_started", at=started_at.isoformat())
     try:
         summary = asyncio.run(_run_rotate_signing_key())
     except Exception as exc:  # pragma: no cover - top-level safety net
@@ -254,9 +243,7 @@ def rotate_signing_key_task() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-async def _run_warn_secret_age(
-    *, key_name: str, threshold_days: int, task_name: str
-) -> dict[str, Any]:
+async def _run_warn_secret_age(*, key_name: str, threshold_days: int, task_name: str) -> dict[str, Any]:
     now = _utcnow()
     async with app_db.AsyncSessionLocal() as session:
         last = await _last_rotation(session, key_name=key_name)
@@ -312,9 +299,7 @@ async def _run_warn_secret_age(
         }
 
 
-def _run_warn_task(
-    *, key_name: str, threshold_days: int, task_name: str
-) -> dict[str, Any]:
+def _run_warn_task(*, key_name: str, threshold_days: int, task_name: str) -> dict[str, Any]:
     started_at = _utcnow()
     _logger.info(
         "secret_age_check_started",
@@ -387,5 +372,3 @@ def warn_db_password_age_task() -> dict[str, Any]:
         threshold_days=DB_PASSWORD_MAX_AGE_DAYS,
         task_name="keys.warn_db_password_age",
     )
-
-

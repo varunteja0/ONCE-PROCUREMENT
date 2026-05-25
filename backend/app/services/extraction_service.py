@@ -104,15 +104,11 @@ class InMemoryPdfLoader:
         )
         self._store[key] = blob
 
-    async def __call__(
-        self, tenant_id: str, source_type: str, source_id: str
-    ) -> bytes:
+    async def __call__(self, tenant_id: str, source_type: str, source_id: str) -> bytes:
         try:
             return self._store[(tenant_id, source_type, source_id)]
         except KeyError as exc:
-            raise PdfLoaderError(
-                f"no pdf for tenant={tenant_id} type={source_type} id={source_id}"
-            ) from exc
+            raise PdfLoaderError(f"no pdf for tenant={tenant_id} type={source_type} id={source_id}") from exc
 
 
 # Module-level default loader so the worker + API can share the same one.
@@ -195,9 +191,7 @@ async def run_extraction(
     pdf_loader = loader or get_default_loader()
 
     try:
-        blob = await pdf_loader(
-            row.tenant_id, row.source_document_type, row.source_document_id
-        )
+        blob = await pdf_loader(row.tenant_id, row.source_document_type, row.source_document_id)
     except PdfLoaderError as exc:
         row.status = ExtractionStatus.FAILED.value
         row.error = f"loader: {exc}"
@@ -213,9 +207,7 @@ async def run_extraction(
     try:
         # Run the (CPU-bound) parser in a thread so we don't block the loop.
         timeout = getattr(settings, "extractor_timeout_seconds", 30)
-        pages = await asyncio.wait_for(
-            asyncio.to_thread(extract_pages, blob), timeout=timeout
-        )
+        pages = await asyncio.wait_for(asyncio.to_thread(extract_pages, blob), timeout=timeout)
     except PdfEncryptedError:
         row.status = ExtractionStatus.FAILED.value
         row.error = "pdf_encrypted"
@@ -255,9 +247,7 @@ async def run_extraction(
     return row
 
 
-async def get_extraction(
-    session: AsyncSession, *, tenant_id: str, extraction_id: str
-) -> ExtractionResult | None:
+async def get_extraction(session: AsyncSession, *, tenant_id: str, extraction_id: str) -> ExtractionResult | None:
     """Load an extraction with a single tenant-filtered SELECT.
 
     Cross-tenant ids return ``None`` (caller treats as 404). The previous
@@ -283,9 +273,7 @@ async def list_extractions(
 ) -> tuple[list[ExtractionResult], int]:
     stmt = select(ExtractionResult).where(ExtractionResult.tenant_id == tenant_id)
     if document_type is not None:
-        stmt = stmt.where(
-            ExtractionResult.source_document_type == document_type.value
-        )
+        stmt = stmt.where(ExtractionResult.source_document_type == document_type.value)
     total_stmt = stmt.with_only_columns(ExtractionResult.id)
     total_rows = (await session.execute(total_stmt)).all()
     total = len(total_rows)
@@ -302,9 +290,7 @@ async def accept_extraction(
     user_id: str | None,
     fields: dict[str, Any],
 ) -> ExtractionResult:
-    row = await get_extraction(
-        session, tenant_id=tenant_id, extraction_id=extraction_id
-    )
+    row = await get_extraction(session, tenant_id=tenant_id, extraction_id=extraction_id)
     if row is None:
         raise ExtractionNotFoundError(extraction_id)
     # Merge user overrides over the extractor output.
@@ -325,9 +311,7 @@ async def reject_extraction(
     user_id: str | None,
     reason: str | None,
 ) -> ExtractionResult:
-    row = await get_extraction(
-        session, tenant_id=tenant_id, extraction_id=extraction_id
-    )
+    row = await get_extraction(session, tenant_id=tenant_id, extraction_id=extraction_id)
     if row is None:
         raise ExtractionNotFoundError(extraction_id)
     row.status = ExtractionStatus.REJECTED.value
@@ -362,9 +346,5 @@ class ExtractionService:
             document_id=document_id,
         )
 
-    async def run(
-        self, session: AsyncSession, *, extraction_id: str
-    ) -> ExtractionResult:
-        return await run_extraction(
-            session, extraction_id=extraction_id, loader=self._loader
-        )
+    async def run(self, session: AsyncSession, *, extraction_id: str) -> ExtractionResult:
+        return await run_extraction(session, extraction_id=extraction_id, loader=self._loader)

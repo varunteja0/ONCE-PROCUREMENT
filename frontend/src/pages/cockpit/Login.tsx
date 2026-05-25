@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Shield } from 'lucide-react';
-import { useCockpit } from '@/hooks/useCockpit';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { toast } from '@/lib/toast';
-import { sanitizeRedirect } from '@/lib/security';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { useCockpit } from "@/hooks/useCockpit";
+import { sanitizeRedirect } from "@/lib/security";
+import { toast } from "@/lib/toast";
+import { Shield } from "lucide-react";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface LocationState {
   from?: string;
@@ -16,13 +16,11 @@ export default function CockpitLogin(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectTo = sanitizeRedirect(
-    (location.state as LocationState | null)?.from ?? '/cockpit',
-  );
+  const redirectTo = sanitizeRedirect((location.state as LocationState | null)?.from ?? "/cockpit");
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [totp, setTotp] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [totp, setTotp] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent): Promise<void> {
@@ -34,10 +32,10 @@ export default function CockpitLogin(): JSX.Element {
         password,
         totp_code: totp.length > 0 ? totp : undefined,
       });
-      toast.success('Cockpit unlocked.');
+      toast.success("Cockpit unlocked.");
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      toast.error(err, 'Cockpit login failed');
+      toast.error(err, "Cockpit login failed");
     } finally {
       setSubmitting(false);
     }
@@ -51,9 +49,7 @@ export default function CockpitLogin(): JSX.Element {
       >
         <div className="mb-6 flex items-center gap-2">
           <Shield className="h-6 w-6 text-amber-700 dark:text-amber-300" aria-hidden="true" />
-          <h1 className="text-2xl font-semibold text-amber-900 dark:text-amber-100">
-            Founder Cockpit
-          </h1>
+          <h1 className="text-2xl font-semibold text-amber-900 dark:text-amber-100">Founder Cockpit</h1>
         </div>
         <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
           Operator surface — all actions are recorded to the cockpit audit log.
@@ -88,7 +84,7 @@ export default function CockpitLogin(): JSX.Element {
             onChange={(e) => setTotp(e.target.value)}
           />
           <Button type="submit" fullWidth loading={submitting} disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Enter cockpit'}
+            {submitting ? "Signing in…" : "Enter cockpit"}
           </Button>
         </form>
       </div>

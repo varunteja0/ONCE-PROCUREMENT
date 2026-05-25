@@ -1,12 +1,8 @@
-import { create } from 'zustand';
-import {
-  ACCESS_TOKEN_KEY,
-  REFRESH_TOKEN_KEY,
-  tokenStorage,
-} from '@/services/api';
-import type { TokenPair, UserMe } from '@/services/api';
+import type { TokenPair, UserMe } from "@/services/api";
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, tokenStorage } from "@/services/api";
+import { create } from "zustand";
 
-const USER_STORAGE_KEY = 'once.user';
+const USER_STORAGE_KEY = "once.user";
 
 interface PersistedSession {
   user: UserMe | null;
@@ -14,7 +10,7 @@ interface PersistedSession {
 }
 
 function loadPersistedSession(): PersistedSession {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return { user: null, tenantId: null };
   }
   try {
@@ -28,7 +24,7 @@ function loadPersistedSession(): PersistedSession {
 }
 
 function persistUser(user: UserMe | null): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     if (user) {
       window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
@@ -57,8 +53,7 @@ export interface AuthState {
 }
 
 const { user: initialUser, tenantId: initialTenantId } = loadPersistedSession();
-const initialAuthenticated =
-  initialUser !== null && tokenStorage.getAccess() !== null;
+const initialAuthenticated = initialUser !== null && tokenStorage.getAccess() !== null;
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: initialUser,
@@ -89,13 +84,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (
-      event.key === ACCESS_TOKEN_KEY ||
-      event.key === REFRESH_TOKEN_KEY ||
-      event.key === USER_STORAGE_KEY
-    ) {
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === ACCESS_TOKEN_KEY || event.key === REFRESH_TOKEN_KEY || event.key === USER_STORAGE_KEY) {
       useAuthStore.getState().hydrate();
     }
   });

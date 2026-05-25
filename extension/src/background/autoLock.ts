@@ -14,10 +14,7 @@
  * `STORAGE_KEYS.autoLockMinutes` (defaults to 15).
  */
 
-import {
-  storageGet,
-  STORAGE_KEYS,
-} from "../lib/storage";
+import { STORAGE_KEYS, storageGet } from "../lib/storage";
 
 const DEFAULT_AUTO_LOCK_MIN = 15;
 
@@ -25,16 +22,13 @@ interface LockHooks {
   /** Called when this module decides the vault should lock. */
   lock: () => void | Promise<void>;
   /** Get current "vault unlocked at" wall-clock ms or null. */
-  unlockedAt: () => number | null;
+  unlockedAt: () => number | null | Promise<number | null>;
   /** Optional clock for tests. */
   now?: () => number;
 }
 
 export async function getAutoLockMinutes(): Promise<number> {
-  const v = await storageGet<number>(
-    STORAGE_KEYS.autoLockMinutes,
-    DEFAULT_AUTO_LOCK_MIN,
-  );
+  const v = await storageGet<number>(STORAGE_KEYS.autoLockMinutes, DEFAULT_AUTO_LOCK_MIN);
   if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) {
     return DEFAULT_AUTO_LOCK_MIN;
   }
@@ -59,11 +53,7 @@ export function shouldLockNow(
 }
 
 export function registerIdleAutoLock(hooks: LockHooks): () => void {
-  if (
-    typeof chrome === "undefined" ||
-    !chrome.idle ||
-    !chrome.idle.onStateChanged
-  ) {
+  if (typeof chrome === "undefined" || !chrome.idle || !chrome.idle.onStateChanged) {
     return () => undefined;
   }
   // 60s polling threshold — minimum supported by chrome.idle.
@@ -75,7 +65,8 @@ export function registerIdleAutoLock(hooks: LockHooks): () => void {
   const listener = async (state: chrome.idle.IdleState): Promise<void> => {
     const threshold = await getAutoLockMinutes();
     const now = (hooks.now ?? Date.now)();
-    if (shouldLockNow(state, hooks.unlockedAt(), threshold, now)) {
+    const unlockedAt = await hooks.unlockedAt();
+    if (shouldLockNow(state, unlockedAt, threshold, now)) {
       await hooks.lock();
     }
   };

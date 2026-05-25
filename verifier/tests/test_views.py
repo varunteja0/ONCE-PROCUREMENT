@@ -13,7 +13,6 @@ import pytest
 import respx
 from fastapi.testclient import TestClient
 
-
 RECEIPT_ID = "11111111-1111-1111-1111-111111111111"
 
 
@@ -45,9 +44,7 @@ def test_verify_default_returns_html(
         "text/html,application/xhtml+xml,application/xml;q=0.9,"
         "image/avif,image/webp,*/*;q=0.8"
     )
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": browser_accept}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": browser_accept})
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")
     assert "Verified" in resp.text
@@ -62,9 +59,7 @@ def test_verify_html_accept_renders_template(
         return_value=httpx.Response(200, json=signed_envelope)
     )
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"})
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")
     assert "Verified" in resp.text
@@ -82,17 +77,13 @@ def test_verify_invalid_signature_html_shows_invalid(
 ) -> None:
     tampered = copy.deepcopy(signed_envelope)
     raw = base64.b64decode(tampered["signature"])
-    tampered["signature"] = base64.b64encode(
-        bytes([raw[0] ^ 0x01]) + raw[1:]
-    ).decode("ascii")
+    tampered["signature"] = base64.b64encode(bytes([raw[0] ^ 0x01]) + raw[1:]).decode(
+        "ascii"
+    )
 
-    respx.get(_backend_url()).mock(
-        return_value=httpx.Response(200, json=tampered)
-    )
+    respx.get(_backend_url()).mock(return_value=httpx.Response(200, json=tampered))
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"})
     assert resp.status_code == 200
     assert "Invalid" in resp.text
     assert "tampered" in resp.text.lower() or "does not match" in resp.text.lower()
@@ -104,9 +95,7 @@ def test_verify_not_found_html_friendly_page(configured_app: Any) -> None:
         return_value=httpx.Response(404, json={"detail": "nope"})
     )
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "text/html"})
     assert resp.status_code == 404
     assert resp.headers["content-type"].startswith("text/html")
     assert "not found" in resp.text.lower()
@@ -120,9 +109,7 @@ def test_verify_not_found_json_default_when_accept_json(
         return_value=httpx.Response(404, json={"detail": "nope"})
     )
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": "application/json"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "application/json"})
     assert resp.status_code == 404
     assert resp.headers["content-type"].startswith("application/json")
     body = resp.json()
@@ -161,9 +148,7 @@ def test_json_extension_forces_json_even_with_html_accept(
         return_value=httpx.Response(200, json=signed_envelope)
     )
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}.json", headers={"Accept": "text/html"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}.json", headers={"Accept": "text/html"})
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("application/json")
     body = resp.json()
@@ -219,13 +204,11 @@ def test_badge_invalid_is_red_svg(
 ) -> None:
     tampered = copy.deepcopy(signed_envelope)
     raw = base64.b64decode(tampered["signature"])
-    tampered["signature"] = base64.b64encode(
-        bytes([raw[0] ^ 0x01]) + raw[1:]
-    ).decode("ascii")
-
-    respx.get(_backend_url()).mock(
-        return_value=httpx.Response(200, json=tampered)
+    tampered["signature"] = base64.b64encode(bytes([raw[0] ^ 0x01]) + raw[1:]).decode(
+        "ascii"
     )
+
+    respx.get(_backend_url()).mock(return_value=httpx.Response(200, json=tampered))
     client = TestClient(configured_app)
     resp = client.get(f"/verify/{RECEIPT_ID}/badge.svg")
     assert resp.status_code == 200
@@ -253,9 +236,7 @@ def test_json_endpoint_back_compat_shape(
         return_value=httpx.Response(200, json=signed_envelope)
     )
     client = TestClient(configured_app)
-    resp = client.get(
-        f"/verify/{RECEIPT_ID}", headers={"Accept": "application/json"}
-    )
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "application/json"})
     assert resp.status_code == 200
     body = resp.json()
     # Existing JSON contract preserved (verified, payload, public_key_pem,
@@ -263,3 +244,43 @@ def test_json_endpoint_back_compat_shape(
     for key in ("verified", "payload", "public_key_pem", "signing_key_id"):
         assert key in body, f"missing {key}"
     assert body["verified"] is True
+
+
+@respx.mock
+def test_json_endpoint_fetches_public_key_by_signing_key_id(
+    configured_app: Any,
+    signed_envelope: dict[str, Any],
+    public_key_pem: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import _PUBLIC_KEY_CACHE, settings
+
+    _PUBLIC_KEY_CACHE.clear()
+    monkeypatch.setattr(settings, "public_key_pem", "")
+    monkeypatch.setattr(settings, "signing_key_id", "static-key")
+    signed_envelope = {**signed_envelope, "signing_key_id": "rotated-key"}
+
+    respx.get(_backend_url()).mock(
+        return_value=httpx.Response(200, json=signed_envelope)
+    )
+    respx.get("https://api.test.local/v1/keys/rotated-key").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "key_id": "rotated-key",
+                "algorithm": "Ed25519",
+                "public_key_pem": public_key_pem,
+                "created_at": "2026-05-25T00:00:00Z",
+                "status": "active",
+            },
+        )
+    )
+
+    client = TestClient(configured_app)
+    resp = client.get(f"/verify/{RECEIPT_ID}", headers={"Accept": "application/json"})
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["verified"] is True
+    assert body["signing_key_id"] == "rotated-key"
+    assert body["public_key_pem"] == public_key_pem

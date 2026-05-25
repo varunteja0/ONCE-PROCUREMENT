@@ -56,9 +56,7 @@ async def _run_for_all_tenants() -> dict[str, Any]:
                 # If a digest already exists, verify_daily_digest will compare
                 # against it; otherwise we persist a fresh digest below.
                 try:
-                    await verify_daily_digest(
-                        session, tenant_id=tenant_id, day_utc=day_utc
-                    )
+                    await verify_daily_digest(session, tenant_id=tenant_id, day_utc=day_utc)
                     summary["tenants_verified"] += 1
                     continue
                 except AuditHashMismatch as exc:
@@ -69,27 +67,19 @@ async def _run_for_all_tenants() -> dict[str, Any]:
                             {
                                 "tenant_id": tenant_id,
                                 "stored_digest": exc.context.get("stored_digest"),
-                                "recomputed_digest": exc.context.get(
-                                    "recomputed_digest"
-                                ),
+                                "recomputed_digest": exc.context.get("recomputed_digest"),
                             }
                         )
                         _logger.error(
                             "audit_hash_mismatch",
                             tenant_id=tenant_id,
                             day_utc=str(day_utc),
-                            **{
-                                k: v
-                                for k, v in exc.context.items()
-                                if k not in {"tenant_id", "day_utc"}
-                            },
+                            **{k: v for k, v in exc.context.items() if k not in {"tenant_id", "day_utc"}},
                         )
                         continue
 
                 # No digest yet — compute and persist.
-                row = await ensure_daily_digest(
-                    session, tenant_id=tenant_id, day_utc=day_utc
-                )
+                row = await ensure_daily_digest(session, tenant_id=tenant_id, day_utc=day_utc)
                 summary["tenants_new"] += 1
                 _logger.info(
                     "audit_hash_digest_new",
@@ -145,10 +135,7 @@ def verify_nightly_audit_hash_task() -> dict[str, Any]:
     finished_at = datetime.now(tz=UTC)
     summary.update(
         {
-            "status": "ok"
-            if summary["tenants_mismatched"] == 0
-            and summary["tenants_failed"] == 0
-            else "alert",
+            "status": "ok" if summary["tenants_mismatched"] == 0 and summary["tenants_failed"] == 0 else "alert",
             "started_at": started_at.isoformat(),
             "finished_at": finished_at.isoformat(),
             "duration_sec": (finished_at - started_at).total_seconds(),
@@ -193,33 +180,23 @@ async def _generate_export(export_id: str) -> dict[str, Any]:
 
         try:
             # Resolve scope → row filter.
-            stmt = select(AuditLogEntry).where(
-                AuditLogEntry.tenant_id == export.tenant_id
-            )
+            stmt = select(AuditLogEntry).where(AuditLogEntry.tenant_id == export.tenant_id)
             params = export.scope_params or {}
-            if export.scope_type == AuditExportScope.SUPPLIER and params.get(
-                "supplier_id"
-            ):
+            if export.scope_type == AuditExportScope.SUPPLIER and params.get("supplier_id"):
                 stmt = stmt.where(
                     AuditLogEntry.resource_type == "supplier",
                     AuditLogEntry.resource_id == str(params["supplier_id"]),
                 )
-            elif export.scope_type == AuditExportScope.SUBMISSION and params.get(
-                "submission_id"
-            ):
+            elif export.scope_type == AuditExportScope.SUBMISSION and params.get("submission_id"):
                 stmt = stmt.where(
                     AuditLogEntry.resource_type == "submission",
                     AuditLogEntry.resource_id == str(params["submission_id"]),
                 )
             elif export.scope_type == AuditExportScope.DATE_RANGE:
                 if params.get("from"):
-                    stmt = stmt.where(
-                        AuditLogEntry.occurred_at >= _parse_iso(params["from"])
-                    )
+                    stmt = stmt.where(AuditLogEntry.occurred_at >= _parse_iso(params["from"]))
                 if params.get("to"):
-                    stmt = stmt.where(
-                        AuditLogEntry.occurred_at < _parse_iso(params["to"])
-                    )
+                    stmt = stmt.where(AuditLogEntry.occurred_at < _parse_iso(params["to"]))
 
             stmt = stmt.order_by(AuditLogEntry.chain_position.asc())
             rows = list((await session.execute(stmt)).scalars().all())
@@ -247,9 +224,7 @@ async def _generate_export(export_id: str) -> dict[str, Any]:
                     "chain_position": r.chain_position,
                     "this_hash": r.this_hash,
                     "occurred_at": r.occurred_at,
-                    "actor_type": r.actor_type.value
-                    if hasattr(r.actor_type, "value")
-                    else str(r.actor_type),
+                    "actor_type": r.actor_type.value if hasattr(r.actor_type, "value") else str(r.actor_type),
                     "actor_id": r.actor_id,
                     "action_verb": r.action_verb,
                     "resource_type": r.resource_type,
@@ -273,7 +248,7 @@ async def _generate_export(export_id: str) -> dict[str, Any]:
                         "id": r["id"],
                         "chain_position": r["chain_position"],
                         "this_hash": r["this_hash"],
-                        "occurred_at": r["occurred_at"]
+                        "occurred_at": r["occurred_at"]  # type: ignore[union-attr]
                         .astimezone(UTC)
                         .isoformat()
                         .replace("+00:00", "Z")
@@ -307,9 +282,11 @@ async def _generate_export(export_id: str) -> dict[str, Any]:
             envelope["pdf_sha256"] = pdf_sha256
 
             sign_envelope(envelope)
-            envelope_bytes = canonical_json_bytes(envelope) if False else _json.dumps(
-                envelope, sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")
+            envelope_bytes = (
+                canonical_json_bytes(envelope)
+                if False
+                else _json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            )
             envelope_sha256 = hashlib.sha256(envelope_bytes).hexdigest()
 
             # Write to a temp dir owned by the process; expires_at is recorded
@@ -348,9 +325,7 @@ async def _generate_export(export_id: str) -> dict[str, Any]:
                 export.error = f"{type(exc).__name__}: {exc}"
                 export.completed_at = datetime.now(tz=UTC)
                 await session.commit()
-            _logger.exception(
-                "audit_export_failed", export_id=export_id, error=str(exc)
-            )
+            _logger.exception("audit_export_failed", export_id=export_id, error=str(exc))
             return {"status": "failed", "export_id": export_id, "error": str(exc)}
 
 
@@ -385,8 +360,11 @@ def generate_audit_export_task(export_id: str) -> dict[str, Any]:
         }
 
 
-__all__ = list(set(__all__) | {
-    "generate_audit_export_task",
-    "generate_audit_export_sync",
-})
+__all__ = list(
+    set(__all__)
+    | {
+        "generate_audit_export_task",
+        "generate_audit_export_sync",
+    }
+)
 # --- /L3.10 audit export ---

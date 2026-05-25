@@ -114,6 +114,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Lint (ruff)
+        run: ruff check .
+
       - name: Test (pytest)
         run: pytest -q
 
@@ -139,8 +142,43 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Type-check
+        run: npx tsc --noEmit
+
       - name: Test (vitest)
         run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+  # ────────────────────────────────────────────────────────────
+  # OnceTax — Node 20, typecheck + vitest + build (Cloudflare Workers / Remix)
+  # ────────────────────────────────────────────────────────────
+  oncetax:
+    name: oncetax (node20)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: oncetax
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # NOTE: oncetax/package-lock.json is not yet committed. Once it
+          # is, switch this job back to `npm ci` and re-enable the cache
+          # via `cache: npm` + `cache-dependency-path: oncetax/package-lock.json`.
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test --silent
 
       - name: Build
         run: npm run build

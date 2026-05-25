@@ -12,10 +12,8 @@ import copy
 from typing import Any
 
 import httpx
-import pytest
 import respx
 from fastapi.testclient import TestClient
-
 
 RECEIPT_ID = "11111111-1111-1111-1111-111111111111"
 
@@ -120,5 +118,7 @@ def test_canonical_json_matches_backend_format() -> None:
     from app.canonical import canonical_json_bytes
 
     # Keys must be sorted by UTF-16-BE; nested order preserved; no whitespace.
-    encoded = canonical_json_bytes({"b": 1, "a": [3, 2, 1], "c": {"y": True, "x": None}})
+    encoded = canonical_json_bytes(
+        {"b": 1, "a": [3, 2, 1], "c": {"y": True, "x": None}}
+    )
     assert encoded == b'{"a":[3,2,1],"b":1,"c":{"x":null,"y":true}}'

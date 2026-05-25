@@ -17,9 +17,10 @@ import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
+import jwt
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from jose import JWTError, jwt
+from jwt import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -136,9 +137,7 @@ def _onboarding_secret() -> str:
     return settings.jwt_secret_key
 
 
-def _mint_onboarding_token(
-    *, tenant_id: str, user_id: str, email: str, email_verified: bool
-) -> tuple[str, int]:
+def _mint_onboarding_token(*, tenant_id: str, user_id: str, email: str, email_verified: bool) -> tuple[str, int]:
     issued = _utcnow()
     expires = issued + timedelta(minutes=settings.onboarding_session_ttl_minutes)
     payload = {
@@ -157,10 +156,8 @@ def _mint_onboarding_token(
 
 def _decode_onboarding_token(token: str) -> dict[str, Any]:
     try:
-        payload = jwt.decode(
-            token, _onboarding_secret(), algorithms=[settings.jwt_algorithm]
-        )
-    except JWTError as exc:
+        payload = jwt.decode(token, _onboarding_secret(), algorithms=[settings.jwt_algorithm])
+    except PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "invalid_onboarding_token", "message": str(exc)},
@@ -189,9 +186,7 @@ async def _get_onboarding_context(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "user_not_found", "message": "User no longer exists."},
         )
-    tenant = (
-        await session.execute(select(Tenant).where(Tenant.id == tenant_id))
-    ).scalar_one_or_none()
+    tenant = (await session.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
     if tenant is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -273,9 +268,7 @@ def _decrypt_credentials(token: str) -> tuple[str, str]:  # pragma: no cover (he
 # ---------------------------------------------------------------------------
 
 
-async def _send_verification_email(
-    *, code: str, email: str, ttl_minutes: int, company_name: str
-) -> None:
+async def _send_verification_email(*, code: str, email: str, ttl_minutes: int, company_name: str) -> None:
     dispatcher = email_dispatcher_module.get_email_dispatcher()
     subject, html, text = email_dispatcher_module.render_verify_email(
         code=code, ttl_minutes=ttl_minutes, company_name=company_name
@@ -315,9 +308,7 @@ async def start_onboarding(
 
     email = payload.email.lower().strip()
 
-    policy = validate_password(
-        payload.password, email=email, tenant_name=payload.company_name
-    )
+    policy = validate_password(payload.password, email=email, tenant_name=payload.company_name)
     if not policy.valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -328,9 +319,7 @@ async def start_onboarding(
             },
         )
 
-    existing_user = (
-        await session.execute(select(User).where(User.email == email))
-    ).scalar_one_or_none()
+    existing_user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
     if existing_user is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -392,9 +381,7 @@ async def start_onboarding(
         company_name=tenant.name,
     )
 
-    token, ttl = _mint_onboarding_token(
-        tenant_id=tenant.id, user_id=user.id, email=email, email_verified=False
-    )
+    token, ttl = _mint_onboarding_token(tenant_id=tenant.id, user_id=user.id, email=email, email_verified=False)
 
     _write_audit(
         session,
@@ -454,13 +441,9 @@ async def verify_email(
     ctx.tenant.is_active = True
     await session.flush()
 
-    state = await onboarding_service.advance_to(
-        session, tenant_id=ctx.tenant.id, target=OnboardingStep.EMAIL_VERIFIED
-    )
+    state = await onboarding_service.advance_to(session, tenant_id=ctx.tenant.id, target=OnboardingStep.EMAIL_VERIFIED)
     # And immediately bump to PROFILE so the wizard moves forward.
-    state = await onboarding_service.advance_to(
-        session, tenant_id=ctx.tenant.id, target=OnboardingStep.PROFILE
-    )
+    state = await onboarding_service.advance_to(session, tenant_id=ctx.tenant.id, target=OnboardingStep.PROFILE)
 
     _write_audit(
         session,
@@ -483,9 +466,7 @@ async def _finalize_email_verification(
 ) -> VerifyEmailResponse:
     tu_row = (
         await session.execute(
-            select(TenantUser).where(
-                TenantUser.user_id == ctx.user.id, TenantUser.tenant_id == ctx.tenant.id
-            )
+            select(TenantUser).where(TenantUser.user_id == ctx.user.id, TenantUser.tenant_id == ctx.tenant.id)
         )
     ).scalar_one()
     tokens = issue_token_pair(ctx.user, tu_row)
@@ -554,9 +535,7 @@ async def save_company_profile(
     state.company_profile_json = profile
 
     # Mirror legal_name onto the Tenant row.
-    tenant = (
-        await session.execute(select(Tenant).where(Tenant.id == tenant_user.tenant_id))
-    ).scalar_one()
+    tenant = (await session.execute(select(Tenant).where(Tenant.id == tenant_user.tenant_id))).scalar_one()
     tenant.name = profile["legal_name"]
 
     state = await onboarding_service.advance_to(
@@ -592,9 +571,7 @@ async def connect_portal(
     # Validate the portal exists.
     from app.models import Portal
 
-    portal = (
-        await session.execute(select(Portal).where(Portal.id == payload.portal_id))
-    ).scalar_one_or_none()
+    portal = (await session.execute(select(Portal).where(Portal.id == payload.portal_id))).scalar_one_or_none()
     if portal is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -694,9 +671,7 @@ async def run_first_submission(
 
     from app.models import Portal
 
-    portal = (
-        await session.execute(select(Portal).where(Portal.id == payload.portal_id))
-    ).scalar_one_or_none()
+    portal = (await session.execute(select(Portal).where(Portal.id == payload.portal_id))).scalar_one_or_none()
     if portal is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -762,9 +737,7 @@ async def skip_step(
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OnboardingStateRead:
     step = OnboardingStep(payload.step)
-    state = await onboarding_service.skip_step(
-        session, tenant_id=tenant_user.tenant_id, step=step
-    )
+    state = await onboarding_service.skip_step(session, tenant_id=tenant_user.tenant_id, step=step)
     _write_audit(
         session,
         request=request,
@@ -787,17 +760,11 @@ async def complete_onboarding(
     tenant_user: CurrentTenantUser,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OnboardingCompleteResponse:
-    state = await onboarding_service.mark_completed(
-        session, tenant_id=tenant_user.tenant_id
-    )
+    state = await onboarding_service.mark_completed(session, tenant_id=tenant_user.tenant_id)
 
     # Best-effort welcome email — failures must not block onboarding.
-    tenant = (
-        await session.execute(select(Tenant).where(Tenant.id == tenant_user.tenant_id))
-    ).scalar_one()
-    user = (
-        await session.execute(select(User).where(User.id == tenant_user.user_id))
-    ).scalar_one()
+    tenant = (await session.execute(select(Tenant).where(Tenant.id == tenant_user.tenant_id))).scalar_one()
+    user = (await session.execute(select(User).where(User.id == tenant_user.user_id))).scalar_one()
     try:
         dispatcher = email_dispatcher_module.get_email_dispatcher()
         subject, html, text = email_dispatcher_module.render_welcome_email(

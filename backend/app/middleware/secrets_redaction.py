@@ -52,6 +52,7 @@ SENSITIVE_KEYS: frozenset[str] = frozenset(
         "cookie",
         "set-cookie",
         "private_key",
+        "private_key_pem",
         "signing_key",
         "client_secret",
         "aws_secret",
@@ -179,7 +180,9 @@ def redact_event_dict(event_dict: MutableMapping[str, Any]) -> MutableMapping[st
     return _walk(event_dict, depth=0)
 
 
-def structlog_redactor(_logger: Any, _method_name: str, event_dict: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def structlog_redactor(
+    _logger: Any, _method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """structlog processor signature."""
 
     try:

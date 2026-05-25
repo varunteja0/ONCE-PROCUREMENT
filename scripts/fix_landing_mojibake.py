@@ -1,4 +1,5 @@
 """One-shot mojibake fix for landing/index.html; safe to delete after running."""
+
 from __future__ import annotations
 
 import pathlib
@@ -42,8 +43,7 @@ fixed = fixed.replace(
 
 landing_path.write_bytes(fixed)
 leftover = sum(
-    fixed.count(marker)
-    for marker in (b"\xc3\xa2", b"\xc3\x82", b"\xc3\xb0")
+    fixed.count(marker) for marker in (b"\xc3\xa2", b"\xc3\x82", b"\xc3\xb0")
 )
 if leftover:
     raise SystemExit(f"leftover mojibake markers: {leftover}")

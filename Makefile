@@ -162,7 +162,7 @@ fmt: ## Auto-format Python + TS/JSON/MD/YAML across the repo.
 
 .PHONY: typecheck
 typecheck: ## mypy backend + tsc frontend/extension/verifier-types.
-	cd $(BACKEND_DIR) && $(MYPY) app || true
+	cd $(BACKEND_DIR) && $(MYPY) app
 	cd $(FRONTEND_DIR) && npx tsc --noEmit
 	cd $(EXTENSION_DIR) && npx tsc --noEmit
 

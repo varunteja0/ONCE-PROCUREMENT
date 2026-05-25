@@ -9,33 +9,33 @@
 /* ---------------------- Core enums + auth -------------------------------- */
 
 export type PortalPlatform =
-  | 'applied_epic'
-  | 'vertafore_ams360'
-  | 'vertafore_sircon'
-  | 'amtrust'
-  | 'markel'
-  | 'nationwide_es'
-  | 'cna'
-  | 'guidewire'
-  | 'hawksoft'
-  | 'ezlynx'
-  | 'nowcerts';
+  | "applied_epic"
+  | "vertafore_ams360"
+  | "vertafore_sircon"
+  | "amtrust"
+  | "markel"
+  | "nationwide_es"
+  | "cna"
+  | "guidewire"
+  | "hawksoft"
+  | "ezlynx"
+  | "nowcerts";
 
 export type SubmissionStatus =
-  | 'queued'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'retrying'
-  | 'blocked'
-  | 'platform_unsupported';
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "retrying"
+  | "blocked"
+  | "platform_unsupported";
 
-export type ConsentScope = 'read_only' | 'submit_on_behalf' | 'submit_and_sign';
+export type ConsentScope = "read_only" | "submit_on_behalf" | "submit_and_sign";
 
 export interface TokenPair {
   access_token: string;
   refresh_token: string;
-  token_type: 'bearer';
+  token_type: "bearer";
 }
 
 export interface UserMe {
@@ -334,7 +334,7 @@ export interface EoCertificateCreateInput {
   notes?: string | null;
 }
 
-export type AcordFormType = '125' | '126' | '127' | '128' | '130' | '140';
+export type AcordFormType = "125" | "126" | "127" | "128" | "130" | "140";
 
 export interface AcordForm {
   id: string;

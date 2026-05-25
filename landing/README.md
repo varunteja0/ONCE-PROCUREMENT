@@ -2,18 +2,31 @@
 
 Static one-pager that lives at the root of `getonce.com`. The app (React/Vite)
 lives at `app.getonce.com` and the verifier at `verify.getonce.com` — this
-folder is intentionally just `index.html` + `vercel.json` so the marketing
-root deploys in ~2 seconds and never blocks on the app build.
+folder is intentionally static HTML so the marketing root deploys in ~2 seconds
+and never blocks on the app build.
 
 ## Stack
-- Single HTML file.
+
+- Static HTML pages: landing page plus lightweight trust/legal pages.
 - Tailwind via the `cdn.tailwindcss.com` script (no build step).
 - Inter from Google Fonts.
 - Calendly inline embed (`varun-once/discovery`) — provision the slug at
   https://calendly.com before first launch, or the iframe will show "page
   not found".
 
+## Trust pages
+
+- `/security` — security overview and buyer review packet.
+- `/privacy` — plain-English pilot privacy policy.
+- `/terms` — pilot terms summary.
+- `/dpa` — data processing addendum summary and subprocessors.
+
+These pages are intentionally conservative. Do not claim SOC 2, GLBA, HIPAA,
+legal admissibility, or production carrier coverage unless the artifact exists
+and the implementation is verified.
+
 ## Local preview
+
 Any static server works:
 
 ```bash
@@ -37,10 +50,10 @@ native Git integration (no GitHub Actions needed for the static site).
 
 In Cloudflare DNS, add:
 
-| Name           | Type  | Value                  | Proxy    |
-| -------------- | ----- | ---------------------- | -------- |
-| `getonce.com`  | CNAME | `cname.vercel-dns.com` | DNS-only |
-| `www`          | CNAME | `cname.vercel-dns.com` | DNS-only |
+| Name          | Type  | Value                  | Proxy    |
+| ------------- | ----- | ---------------------- | -------- |
+| `getonce.com` | CNAME | `cname.vercel-dns.com` | DNS-only |
+| `www`         | CNAME | `cname.vercel-dns.com` | DNS-only |
 
 Cloudflare supports CNAME flattening at the apex; otherwise use Vercel's A
 record `76.76.21.21`.

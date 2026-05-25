@@ -1,54 +1,46 @@
 // --- L3.10 audit ---
-import { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Download, FileText } from 'lucide-react';
-import { useAuditList } from '@/hooks/useAudit';
-import { AuditTimeline } from '@/components/audit/AuditTimeline';
-import { ChainVerificationBadge } from '@/components/audit/ChainVerificationBadge';
-import type { AuditActorType } from '@/services/auditApi';
-import {
-  Button,
-  EmptyState,
-  PaginationControls,
-  Skeleton,
-  Tooltip,
-} from '@/components/ui';
-import { downloadCsv, toCsv } from '@/lib/csv';
-import { toast } from '@/lib/toast';
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { ChainVerificationBadge } from "@/components/audit/ChainVerificationBadge";
+import { Button, EmptyState, PaginationControls, Skeleton, Tooltip } from "@/components/ui";
+import { useAuditList } from "@/hooks/useAudit";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import { toast } from "@/lib/toast";
+import type { AuditActorType } from "@/services/auditApi";
+import { Download, FileText } from "lucide-react";
+import { useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 const PAGE_SIZE = 100;
 
-const ACTOR_OPTIONS: ReadonlyArray<{ value: '' | AuditActorType; label: string }> = [
-  { value: '', label: 'All' },
-  { value: 'user', label: 'User' },
-  { value: 'operator', label: 'Operator' },
-  { value: 'system', label: 'System' },
-  { value: 'inbound_email', label: 'Inbound email' },
-  { value: 'webhook', label: 'Webhook' },
-  { value: 'worker', label: 'Worker' },
+const ACTOR_OPTIONS: ReadonlyArray<{ value: "" | AuditActorType; label: string }> = [
+  { value: "", label: "All" },
+  { value: "user", label: "User" },
+  { value: "operator", label: "Operator" },
+  { value: "system", label: "System" },
+  { value: "inbound_email", label: "Inbound email" },
+  { value: "webhook", label: "Webhook" },
+  { value: "worker", label: "Worker" },
 ];
 
 const ALLOWED_ACTORS: ReadonlyArray<AuditActorType> = [
-  'user',
-  'operator',
-  'system',
-  'inbound_email',
-  'webhook',
-  'worker',
+  "user",
+  "operator",
+  "system",
+  "inbound_email",
+  "webhook",
+  "worker",
 ];
 
-function parseActor(raw: string | null): '' | AuditActorType {
-  if (!raw) return '';
-  return (ALLOWED_ACTORS as ReadonlyArray<string>).includes(raw)
-    ? (raw as AuditActorType)
-    : '';
+function parseActor(raw: string | null): "" | AuditActorType {
+  if (!raw) return "";
+  return (ALLOWED_ACTORS as ReadonlyArray<string>).includes(raw) ? (raw as AuditActorType) : "";
 }
 
 export default function AuditLog(): JSX.Element {
   const [params, setParams] = useSearchParams();
-  const actorType = parseActor(params.get('actor'));
-  const resourceType = params.get('resource') ?? '';
-  const page = Math.max(1, Number(params.get('page') ?? '1'));
+  const actorType = parseActor(params.get("actor"));
+  const resourceType = params.get("resource") ?? "";
+  const page = Math.max(1, Number(params.get("page") ?? "1"));
 
   const queryParams = useMemo(
     () => ({
@@ -65,7 +57,7 @@ export default function AuditLog(): JSX.Element {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
       mutator(out);
-      out.set('page', '1');
+      out.set("page", "1");
       return out;
     });
   }
@@ -73,7 +65,7 @@ export default function AuditLog(): JSX.Element {
   function setPage(next: number): void {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
-      out.set('page', String(next));
+      out.set("page", String(next));
       return out;
     });
   }
@@ -81,18 +73,18 @@ export default function AuditLog(): JSX.Element {
   function exportCsv(): void {
     const items = data?.items ?? [];
     if (items.length === 0) {
-      toast.error('Nothing to export.');
+      toast.error("Nothing to export.");
       return;
     }
     const csv = toCsv(items, [
-      { header: 'Occurred at', value: (r) => r.occurred_at },
-      { header: 'Chain position', value: (r) => r.chain_position },
-      { header: 'Actor type', value: (r) => r.actor_type },
-      { header: 'Actor email', value: (r) => r.actor_email ?? '' },
-      { header: 'Action', value: (r) => r.action_verb },
-      { header: 'Resource type', value: (r) => r.resource_type },
-      { header: 'Resource ID', value: (r) => r.resource_id ?? '' },
-      { header: 'Resource label', value: (r) => r.resource_label ?? '' },
+      { header: "Occurred at", value: (r) => r.occurred_at },
+      { header: "Chain position", value: (r) => r.chain_position },
+      { header: "Actor type", value: (r) => r.actor_type },
+      { header: "Actor email", value: (r) => r.actor_email ?? "" },
+      { header: "Action", value: (r) => r.action_verb },
+      { header: "Resource type", value: (r) => r.resource_type },
+      { header: "Resource ID", value: (r) => r.resource_id ?? "" },
+      { header: "Resource label", value: (r) => r.resource_label ?? "" },
     ]);
     downloadCsv(`audit-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   }
@@ -100,9 +92,7 @@ export default function AuditLog(): JSX.Element {
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-          Audit log
-        </h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Audit log</h1>
         <div className="flex items-center gap-3">
           <Tooltip label="Cryptographic audit chain verification">
             <span>
@@ -134,8 +124,8 @@ export default function AuditLog(): JSX.Element {
             value={actorType}
             onChange={(e) =>
               patchParams((p) => {
-                if (e.target.value === '') p.delete('actor');
-                else p.set('actor', e.target.value);
+                if (e.target.value === "") p.delete("actor");
+                else p.set("actor", e.target.value);
               })
             }
             className="rounded border border-slate-300 bg-white p-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -154,8 +144,8 @@ export default function AuditLog(): JSX.Element {
             value={resourceType}
             onChange={(e) =>
               patchParams((p) => {
-                if (e.target.value === '') p.delete('resource');
-                else p.set('resource', e.target.value);
+                if (e.target.value === "") p.delete("resource");
+                else p.set("resource", e.target.value);
               })
             }
             placeholder="supplier, submission, …"
@@ -183,8 +173,8 @@ export default function AuditLog(): JSX.Element {
           title="No audit events"
           description={
             actorType || resourceType
-              ? 'No events match the selected filters.'
-              : 'Audit events will appear as soon as your tenant performs any tracked action.'
+              ? "No events match the selected filters."
+              : "Audit events will appear as soon as your tenant performs any tracked action."
           }
           icon={FileText}
         />

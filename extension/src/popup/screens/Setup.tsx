@@ -1,5 +1,6 @@
 import { Loader2, ShieldCheck } from "lucide-react";
-import React, { useState } from "react";
+import type { FormEvent } from "react";
+import { useState } from "react";
 
 import { login } from "../../lib/api";
 import { send } from "../../lib/messaging";
@@ -30,7 +31,7 @@ export function Setup({ onDone }: Props): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = async (e: React.FormEvent): Promise<void> => {
+  const onSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setError(null);
 
@@ -60,7 +61,7 @@ export function Setup({ onDone }: Props): JSX.Element {
       if (!already) {
         await vaultInit(passphrase);
       }
-      await send({ type: "vault.unlock", passphrase });
+      await send({ type: "vault.unlock" });
       await onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "setup_failed");
@@ -159,7 +160,7 @@ export function Setup({ onDone }: Props): JSX.Element {
             />
           </div>
           <p className="mt-1 text-[10px] text-slate-500">
-            We never send this to the server. Lose it and you'll need to re-set up.
+            We never send this to the server. Lose it and you will need to re-set up.
           </p>
         </div>
 

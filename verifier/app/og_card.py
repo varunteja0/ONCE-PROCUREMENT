@@ -121,11 +121,7 @@ def render_og_svg(
 
     supplier = payload.get("supplier_id") or payload.get("supplier") or ""
     portal = payload.get("portal") or ""
-    issued = (
-        payload.get("submitted_at")
-        or payload.get("issued_at")
-        or ""
-    )
+    issued = payload.get("submitted_at") or payload.get("issued_at") or ""
 
     e_service = html.escape(service_name)
     e_tagline = html.escape(tagline)
@@ -133,7 +129,6 @@ def render_og_svg(
     e_label = html.escape(palette["label"])
     e_subtitle = html.escape(palette["subtitle"])
     e_icon = html.escape(palette["icon"])
-    e_receipt = html.escape(_short_receipt(receipt_id))
 
     rows: list[str] = []
     if supplier:

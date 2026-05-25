@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom';
-import PricingTable from '@/components/PricingTable';
-import { usePricing, useCreateCheckout } from '@/hooks/useBilling';
-import { tokenStorage, extractErrorMessage } from '@/services/api';
-import toast from '@/lib/toast';
-import { sanitizeRedirect } from '@/lib/security';
+import PricingTable from "@/components/PricingTable";
+import { useCreateCheckout, usePricing } from "@/hooks/useBilling";
+import { sanitizeRedirect } from "@/lib/security";
+import toast from "@/lib/toast";
+import { extractErrorMessage, tokenStorage } from "@/services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Pricing(): JSX.Element {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export default function Pricing(): JSX.Element {
 
   async function onCta(): Promise<void> {
     if (!isAuthed) {
-      const next = sanitizeRedirect('/billing');
+      const next = sanitizeRedirect("/billing");
       navigate(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
@@ -22,7 +22,7 @@ export default function Pricing(): JSX.Element {
       const resp = await checkout.mutateAsync();
       window.location.assign(resp.checkout_url);
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Unable to start checkout'));
+      toast.error(extractErrorMessage(err, "Unable to start checkout"));
     }
   }
 
@@ -30,30 +30,19 @@ export default function Pricing(): JSX.Element {
     <main className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto max-w-3xl">
         <header className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Pricing
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Submit once. Prove it forever. Simple, transparent pricing.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Pricing</h1>
+          <p className="mt-2 text-sm text-slate-600">Submit once. Prove it forever. Simple, transparent pricing.</p>
         </header>
 
         <div className="mt-10">
           {isLoading ? (
-            <p
-              className="text-center text-sm text-slate-500"
-              role="status"
-              aria-live="polite"
-            >
+            <p className="text-center text-sm text-slate-500" role="status" aria-live="polite">
               Loading pricing…
             </p>
           ) : null}
           {isError ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
-            >
-              <p>Failed to load pricing: {error?.message ?? 'unknown error'}</p>
+            <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+              <p>Failed to load pricing: {error?.message ?? "unknown error"}</p>
               <button
                 type="button"
                 onClick={() => void refetch()}
@@ -66,7 +55,7 @@ export default function Pricing(): JSX.Element {
           {data ? (
             <PricingTable
               data={data}
-              ctaLabel={isAuthed ? 'Start checkout' : 'Sign in to subscribe'}
+              ctaLabel={isAuthed ? "Start checkout" : "Sign in to subscribe"}
               ctaLoading={checkout.isPending}
               onCtaClick={() => void onCta()}
             />

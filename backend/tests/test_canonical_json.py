@@ -108,11 +108,11 @@ class TestObjectKeyOrdering:
 
 class TestErrors:
     def test_nan_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="NaN"):
+        with pytest.raises(ValueError, match="representable"):
             canonical_json_str(float("nan"))
 
     def test_infinity_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="NaN|Infinity"):
+        with pytest.raises(ValueError, match="representable"):
             canonical_json_str(float("inf"))
 
     def test_negative_infinity_is_rejected(self) -> None:
@@ -120,11 +120,11 @@ class TestErrors:
             canonical_json_str(float("-inf"))
 
     def test_non_string_key_is_rejected(self) -> None:
-        with pytest.raises(TypeError, match="keys"):
+        with pytest.raises(ValueError, match="keys"):
             canonical_json_str({1: "v"})
 
     def test_unsupported_type_is_rejected(self) -> None:
-        with pytest.raises(TypeError, match="Unsupported"):
+        with pytest.raises(ValueError, match="unsupported"):
             canonical_json_str(object())
 
 

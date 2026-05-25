@@ -95,9 +95,7 @@ async def create_submission(
     tenant_user: Annotated[TenantUser, Depends(_require_writer)],
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> SubmissionRead:
-    submission = await submission_service.create_submission(
-        session, tenant_id=tenant_user.tenant_id, payload=payload
-    )
+    submission = await submission_service.create_submission(session, tenant_id=tenant_user.tenant_id, payload=payload)
     _write_audit(
         session,
         action="submission.created",
@@ -166,9 +164,7 @@ async def get_submission(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> SubmissionRead:
-    submission = await submission_service.get_submission(
-        session, tenant_id=tenant_id, submission_id=submission_id
-    )
+    submission = await submission_service.get_submission(session, tenant_id=tenant_id, submission_id=submission_id)
     return SubmissionRead.model_validate(submission)
 
 

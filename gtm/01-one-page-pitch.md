@@ -17,17 +17,17 @@
 We are a **done-for-you portal submission service** + browser extension:
 
 1. **You give us your master data ONCE** — producer licenses, E&O cert, W-9, COI, surplus-lines authorizations, banking, beneficial-owner KYC, sanctions attestations, all carrier-specific addendums.
-2. **We push it to every carrier portal you're appointed at** — Applied, Vertafore, Sapiens, Duck Creek, Guidewire, and any direct carrier portal. Currently in production: 3 carrier portals (Applied Epic, Vertafore AMS360, AmTrust) with a documented add-a-portal SDK; we ship 1–2 new portals per pilot month as customers request them.
+2. **We push it to the carrier portals covered by your pilot scope** — starting with Applied Epic, Vertafore AMS360, and AmTrust, with a documented add-a-portal SDK for additional direct carrier portals. We ship 1–2 new portals per pilot month as customers request them.
 3. **We keep it current** — license renewals, E&O refreshes, sanctions list re-checks, COI auto-renewals tracked and pushed when they change.
-4. **Every submission gets a cryptographically signed receipt** — Ed25519-signed JSON proving *"MGA X submitted exactly this data to Carrier Y at Time T under Carrier Y's ToS version V."* Use it for state DOI exams, E&O claims defense, carrier audits, and (starting Aug 2, 2026) EU AI Act compliance if you write any cross-border.
+4. **Every submission gets a cryptographically signed receipt** — Ed25519-signed JSON proving _"MGA X submitted exactly this data to Carrier Y at Time T under Carrier Y's ToS version V."_ Use it for state DOI exams, E&O claims defense, carrier audits, and (starting Aug 2, 2026) EU AI Act compliance if you write any cross-border.
 5. **You stay in control** — every submission requires your one-click approval. We never auto-submit without explicit per-submission consent.
 
 ## Pricing
 
-| Tier | Setup | Monthly | Covers |
-|---|---|---|---|
+| Tier                                              | Setup      | Monthly       | Covers                                                                                                      |
+| ------------------------------------------------- | ---------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Pilot (first 5 customers only — May–Jul 2026)** | **$2,500** | **$1,500/mo** | Up to 50 active carrier portals, unlimited submissions, signed receipt for every one, email + Slack support |
-| Standard (Aug 2026+) | $5,000 | $2,500/mo | Same scope; pilot pricing locked for 24 months for early adopters |
+| Standard (Aug 2026+)                              | $5,000     | $2,500/mo     | Same scope; pilot pricing locked for 24 months for early adopters                                           |
 
 Compare to: 1 full-time ops hire ≈ $65K/yr loaded cost. We replace ~70% of that bandwidth for $18K/yr.
 
@@ -59,4 +59,4 @@ Built by the team behind **AutoApplyAI** — 18 months of production browser aut
 
 **Contact:** Varun Teja • varun@onceidentity.com • [LinkedIn]
 
-*Confidential — Once Identity, Inc. (Delaware, formation in progress). May 2026.*
+_Confidential — Once Identity, Inc. (Delaware, formation in progress). May 2026._

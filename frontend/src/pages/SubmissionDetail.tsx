@@ -1,24 +1,12 @@
-import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
-import {
-  useSubmission,
-  useSubmissionReceipt,
-  useRetrySubmission,
-} from '@/hooks/useSubmissions';
-import { useSuppliers } from '@/hooks/useSuppliers';
-import { usePortals } from '@/hooks/usePortals';
-import {
-  Button,
-  Card,
-  CardHeader,
-  DateDisplay,
-  ErrorState,
-  Skeleton,
-  StatusBadge,
-} from '@/components/ui';
-import ReceiptVerifierWidget from '@/components/ReceiptVerifierWidget';
-import { toast } from '@/lib/toast';
+import ReceiptVerifierWidget from "@/components/ReceiptVerifierWidget";
+import { Button, Card, CardHeader, DateDisplay, ErrorState, Skeleton, StatusBadge } from "@/components/ui";
+import { usePortals } from "@/hooks/usePortals";
+import { useRetrySubmission, useSubmission, useSubmissionReceipt } from "@/hooks/useSubmissions";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { toast } from "@/lib/toast";
+import { ArrowLeft, RefreshCw } from "lucide-react";
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function SubmissionDetail(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -27,9 +15,7 @@ export default function SubmissionDetail(): JSX.Element {
 
   const detail = useSubmission(id);
 
-  const receipt = useSubmissionReceipt(
-    detail.data?.status === 'completed' ? id : undefined,
-  );
+  const receipt = useSubmissionReceipt(detail.data?.status === "completed" ? id : undefined);
   const retry = useRetrySubmission();
 
   const suppliersQuery = useSuppliers({ pageSize: 200 });
@@ -37,29 +23,21 @@ export default function SubmissionDetail(): JSX.Element {
 
   const supplierName = useMemo(() => {
     if (!detail.data) return null;
-    return (
-      (suppliersQuery.data ?? []).find(
-        (s) => s.id === detail.data?.supplier_id,
-      )?.legal_name ?? null
-    );
+    return (suppliersQuery.data ?? []).find((s) => s.id === detail.data?.supplier_id)?.legal_name ?? null;
   }, [detail.data, suppliersQuery.data]);
 
   const portalName = useMemo(() => {
     if (!detail.data) return null;
-    return (
-      (portalsQuery.data?.items ?? []).find(
-        (p) => p.id === detail.data?.portal_id,
-      )?.display_name ?? null
-    );
+    return (portalsQuery.data?.items ?? []).find((p) => p.id === detail.data?.portal_id)?.display_name ?? null;
   }, [detail.data, portalsQuery.data]);
 
   async function onRetry(): Promise<void> {
     if (!id) return;
     try {
       await retry.mutateAsync(id);
-      toast.success('Submission requeued.');
+      toast.success("Submission requeued.");
     } catch (err) {
-      toast.error(err, 'Retry failed');
+      toast.error(err, "Retry failed");
     }
   }
 
@@ -68,7 +46,7 @@ export default function SubmissionDetail(): JSX.Element {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate('/submissions')}
+        onClick={() => navigate("/submissions")}
         leadingIcon={<ArrowLeft className="h-3.5 w-3.5" />}
       >
         Back to submissions
@@ -82,7 +60,7 @@ export default function SubmissionDetail(): JSX.Element {
       ) : detail.error || !detail.data ? (
         <ErrorState
           title="Submission not found"
-          error={detail.error ?? new Error('Unknown')}
+          error={detail.error ?? new Error("Unknown")}
           onRetry={() => void detail.refetch()}
         />
       ) : (
@@ -93,11 +71,11 @@ export default function SubmissionDetail(): JSX.Element {
                 Submission {detail.data.id.slice(0, 8)}
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Supplier{' '}
+                Supplier{" "}
                 <span className="text-slate-700 dark:text-slate-200">
                   {supplierName ?? detail.data.supplier_id.slice(0, 8)}
-                </span>{' '}
-                · Portal{' '}
+                </span>{" "}
+                · Portal{" "}
                 <span className="text-slate-700 dark:text-slate-200">
                   {portalName ?? detail.data.portal_id.slice(0, 8)}
                 </span>
@@ -105,8 +83,7 @@ export default function SubmissionDetail(): JSX.Element {
             </div>
             <div className="flex items-center gap-2">
               <StatusBadge status={detail.data.status} />
-              {(detail.data.status === 'failed' ||
-                detail.data.status === 'blocked') && (
+              {(detail.data.status === "failed" || detail.data.status === "blocked") && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -124,33 +101,23 @@ export default function SubmissionDetail(): JSX.Element {
             <CardHeader title="Run details" />
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Attempts
-                </dt>
-                <dd className="text-slate-900 dark:text-slate-100">
-                  {detail.data.attempt_count}
-                </dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Attempts</dt>
+                <dd className="text-slate-900 dark:text-slate-100">{detail.data.attempt_count}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Created
-                </dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Created</dt>
                 <dd>
                   <DateDisplay value={detail.data.created_at} />
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Started
-                </dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Started</dt>
                 <dd>
                   <DateDisplay value={detail.data.started_at} />
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Completed
-                </dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Completed</dt>
                 <dd>
                   <DateDisplay value={detail.data.completed_at} />
                 </dd>
@@ -180,7 +147,7 @@ export default function SubmissionDetail(): JSX.Element {
             </Card>
           ) : null}
 
-          {detail.data.status === 'completed' && receipt.data ? (
+          {detail.data.status === "completed" && receipt.data ? (
             <Card>
               <CardHeader title="Receipt" />
               <ReceiptVerifierWidget receiptId={receipt.data.id} />

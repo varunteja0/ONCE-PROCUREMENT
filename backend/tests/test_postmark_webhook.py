@@ -38,6 +38,8 @@ async def webhook_client(_test_engine, tmp_path, monkeypatch) -> AsyncClient:
 async def seeded_tenant(async_session: AsyncSession) -> Tenant:
     t = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
     async_session.add(t)
+    await async_session.flush()
+    t.inbound_secret_token = None
     await async_session.commit()
     return t
 
@@ -68,16 +70,12 @@ async def test_webhook_rejects_missing_auth(webhook_client, seeded_tenant):
 
 
 async def test_webhook_rejects_bad_secret(webhook_client, seeded_tenant):
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json=_payload(), headers={"Authorization": _basic_header("wrong")}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json=_payload(), headers={"Authorization": _basic_header("wrong")})
     assert r.status_code == 401
 
 
 async def test_webhook_accepts_valid_payload(webhook_client, seeded_tenant):
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json=_payload(), headers={"Authorization": _basic_header()}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json=_payload(), headers={"Authorization": _basic_header()})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["email_id"]
@@ -104,17 +102,13 @@ async def test_webhook_malformed_json_400(webhook_client, seeded_tenant):
 
 
 async def test_webhook_invalid_payload_400(webhook_client, seeded_tenant):
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json={"foo": "bar"}, headers={"Authorization": _basic_header()}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json={"foo": "bar"}, headers={"Authorization": _basic_header()})
     assert r.status_code == 400
 
 
 async def test_webhook_unknown_tenant_returns_200(webhook_client, seeded_tenant):
     p = _payload(To="submissions@unknown.in.getonce.com", message_id="<u1@x.com>")
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()})
     assert r.status_code == 200
     assert r.json()["status"] == "ignored_tenant_unknown"
 
@@ -132,9 +126,7 @@ async def test_webhook_decodes_attachment(webhook_client, seeded_tenant):
             }
         ],
     )
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()})
     assert r.status_code == 200
     assert r.json()["email_id"]
 
@@ -146,9 +138,7 @@ async def test_webhook_attachment_size_413(webhook_client, seeded_tenant, monkey
         message_id="<big-1@x.com>",
         Attachments=[{"Name": "x.pdf", "Content": base64.b64encode(raw).decode()}],
     )
-    r = await webhook_client.post(
-        WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()}
-    )
+    r = await webhook_client.post(WEBHOOK_PATH, json=p, headers={"Authorization": _basic_header()})
     assert r.status_code == 413
 
 

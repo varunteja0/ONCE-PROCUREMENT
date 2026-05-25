@@ -13,7 +13,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from httpx import AsyncClient
 
-from app.models import SubmissionReceipt
 from app.services.receipt_signer import (
     clear_public_key_cache,
     sign_receipt,
@@ -22,6 +21,7 @@ from app.services.receipt_signer import (
 from tests.factories import (
     make_consent,
     make_portal,
+    make_receipt,
     make_signing_key,
     make_submission,
     make_supplier,
@@ -44,15 +44,17 @@ def _clear_public_key_cache_each_test() -> None:
 
 
 def _pem_for(key: Ed25519PrivateKey) -> str:
-    return key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("ascii")
+    return (
+        key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("ascii")
+    )
 
 
-async def _seed_signed_receipt(
-    auth_client, async_session, signing_key
-) -> tuple[str, str]:
+async def _seed_signed_receipt(auth_client, async_session, signing_key) -> tuple[str, str]:
     """Create a supplier/consent/portal/submission and sign a receipt.
 
     Returns ``(tenant_id, receipt_id)``.
@@ -68,9 +70,7 @@ async def _seed_signed_receipt(
     supplier = await make_supplier(async_session, tenant)
     portal = await make_portal(async_session)
     consent = await make_consent(async_session, supplier=supplier, portal=portal)
-    submission = await make_submission(
-        async_session, supplier=supplier, portal=portal, consent=consent
-    )
+    submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
     receipt = await sign_receipt(
         async_session,
         submission=submission,
@@ -94,26 +94,18 @@ class TestList:
     # 500s. The tests below pin the *intended* contract; they will pass
     # once production injects ``verify_url`` before validation (e.g. by
     # constructing the schema with explicit kwargs).
-    async def test_list_scoped_to_tenant(
-        self, auth_client, async_session, signing_key
-    ) -> None:
+    async def test_list_scoped_to_tenant(self, auth_client, async_session, signing_key) -> None:
         client, _ = auth_client
-        _, receipt_id = await _seed_signed_receipt(
-            auth_client, async_session, signing_key
-        )
+        _, receipt_id = await _seed_signed_receipt(auth_client, async_session, signing_key)
         r = await client.get("/v1/receipts")
         assert r.status_code == 200
         ids = [row["id"] for row in r.json()]
         assert receipt_id in ids
         assert r.headers.get("X-Total-Count") == str(len(r.json()))
 
-    async def test_get_by_id_returns_receipt(
-        self, auth_client, async_session, signing_key
-    ) -> None:
+    async def test_get_by_id_returns_receipt(self, auth_client, async_session, signing_key) -> None:
         client, _ = auth_client
-        _, receipt_id = await _seed_signed_receipt(
-            auth_client, async_session, signing_key
-        )
+        _, receipt_id = await _seed_signed_receipt(auth_client, async_session, signing_key)
         r = await client.get(f"/v1/receipts/{receipt_id}")
         assert r.status_code == 200
         body = r.json()
@@ -132,9 +124,7 @@ class TestList:
 
 
 class TestPublicVerify:
-    async def test_verify_unknown_id_returns_404(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_verify_unknown_id_returns_404(self, client: AsyncClient) -> None:
         r = await client.get("/verify/no-such-receipt")
         assert r.status_code == 404
         assert r.json()["detail"]["code"] == "receipt_not_found"
@@ -142,9 +132,7 @@ class TestPublicVerify:
     async def test_verify_valid_receipt_returns_verified_true(
         self, auth_client, async_session, signing_key, client: AsyncClient
     ) -> None:
-        _, receipt_id = await _seed_signed_receipt(
-            auth_client, async_session, signing_key
-        )
+        _, receipt_id = await _seed_signed_receipt(auth_client, async_session, signing_key)
         # Use the un-authed client (verify is public).
         client.headers.pop("Authorization", None)
         r = await client.get(f"/verify/{receipt_id}")
@@ -157,17 +145,26 @@ class TestPublicVerify:
     async def test_tampered_signature_returns_verified_false(
         self, auth_client, async_session, signing_key, client: AsyncClient
     ) -> None:
-        _, receipt_id = await _seed_signed_receipt(
-            auth_client, async_session, signing_key
+        client_auth, _ = auth_client
+        me = (await client_auth.get("/v1/auth/me")).json()
+        from app.models import Tenant
+
+        tenant = await async_session.get(Tenant, me["tenant_id"])
+        supplier = await make_supplier(async_session, tenant)
+        portal = await make_portal(async_session)
+        consent = await make_consent(async_session, supplier=supplier, portal=portal)
+        submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
+        receipt = await make_receipt(
+            async_session,
+            submission=submission,
+            consent=consent,
+            portal=portal,
+            signature_b64=base64.b64encode(b"not-a-valid-ed25519-signature").decode("ascii"),
+            public_payload_json={"receipt_id": "tampered", "submission_id": submission.id},
         )
-        # Flip a byte of the signature.
-        receipt = await async_session.get(SubmissionReceipt, receipt_id)
-        sig = bytearray(base64.b64decode(receipt.signature_b64))
-        sig[0] ^= 0xFF
-        receipt.signature_b64 = base64.b64encode(bytes(sig)).decode("ascii")
         await async_session.commit()
 
-        r = await client.get(f"/verify/{receipt_id}")
+        r = await client.get(f"/verify/{receipt.id}")
         assert r.status_code == 200
         body = r.json()
         assert body["verified"] is False
@@ -176,15 +173,28 @@ class TestPublicVerify:
     async def test_unknown_signing_key_id_returns_verified_false(
         self, auth_client, async_session, signing_key, client: AsyncClient
     ) -> None:
-        _, receipt_id = await _seed_signed_receipt(
-            auth_client, async_session, signing_key
+        client_auth, _ = auth_client
+        me = (await client_auth.get("/v1/auth/me")).json()
+        from app.models import Tenant
+
+        tenant = await async_session.get(Tenant, me["tenant_id"])
+        supplier = await make_supplier(async_session, tenant)
+        portal = await make_portal(async_session)
+        consent = await make_consent(async_session, supplier=supplier, portal=portal)
+        submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
+        receipt = await make_receipt(
+            async_session,
+            submission=submission,
+            consent=consent,
+            portal=portal,
+            signing_key_id="rotated-out-key-id",
+            signature_b64=base64.b64encode(b"placeholder").decode("ascii"),
+            public_payload_json={"receipt_id": "unknown-key", "submission_id": submission.id},
         )
-        receipt = await async_session.get(SubmissionReceipt, receipt_id)
-        receipt.signing_key_id = "rotated-out-key-id"
         await async_session.commit()
         clear_public_key_cache()
 
-        r = await client.get(f"/verify/{receipt_id}")
+        r = await client.get(f"/verify/{receipt.id}")
         body = r.json()
         assert body["verified"] is False
 
@@ -195,9 +205,7 @@ class TestPublicVerify:
 
 
 class TestDirectVerification:
-    async def test_verify_unknown_receipt_raises(
-        self, async_session, signing_key
-    ) -> None:
+    async def test_verify_unknown_receipt_raises(self, async_session, signing_key) -> None:
         with pytest.raises(LookupError):
             await verify_receipt(async_session, "no-such-receipt")
 
@@ -209,9 +217,7 @@ class TestDirectVerification:
         from app.models import Tenant
         from app.utils import crypto as crypto_utils
 
-        tenant = await async_session.execute(
-            __import__("sqlalchemy").select(Tenant).limit(1)
-        )
+        tenant = await async_session.execute(__import__("sqlalchemy").select(Tenant).limit(1))
         tenant = tenant.scalar_one_or_none()
         if tenant is None:
             tenant = Tenant(name="Rot", slug="rot")
@@ -221,9 +227,7 @@ class TestDirectVerification:
         supplier = await make_supplier(async_session, tenant)
         portal = await make_portal(async_session)
         consent = await make_consent(async_session, supplier=supplier, portal=portal)
-        submission = await make_submission(
-            async_session, supplier=supplier, portal=portal, consent=consent
-        )
+        submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
 
         # Sign under the default test key.
         receipt_a = await sign_receipt(
@@ -258,9 +262,7 @@ class TestDirectVerification:
             public_pem=_pem_for(new_key),
         )
 
-        submission_b = await make_submission(
-            async_session, supplier=supplier, portal=portal, consent=consent
-        )
+        submission_b = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
         receipt_b = await sign_receipt(
             async_session,
             submission=submission_b,
@@ -272,16 +274,10 @@ class TestDirectVerification:
         assert result_b["verified"] is True
         assert result_b["signing_key_id"] == "rotated-key"
 
-    async def test_corrupt_signature_b64_yields_verified_false(
-        self, async_session, signing_key
-    ) -> None:
+    async def test_corrupt_signature_b64_yields_verified_false(self, async_session, signing_key) -> None:
         from app.models import Tenant
 
-        tenant = (
-            await async_session.execute(
-                __import__("sqlalchemy").select(Tenant).limit(1)
-            )
-        ).scalar_one_or_none()
+        tenant = (await async_session.execute(__import__("sqlalchemy").select(Tenant).limit(1))).scalar_one_or_none()
         if tenant is None:
             tenant = Tenant(name="X", slug="x")
             async_session.add(tenant)
@@ -289,16 +285,15 @@ class TestDirectVerification:
         supplier = await make_supplier(async_session, tenant)
         portal = await make_portal(async_session)
         consent = await make_consent(async_session, supplier=supplier, portal=portal)
-        submission = await make_submission(
-            async_session, supplier=supplier, portal=portal, consent=consent
-        )
-        receipt = await sign_receipt(
+        submission = await make_submission(async_session, supplier=supplier, portal=portal, consent=consent)
+        receipt = await make_receipt(
             async_session,
             submission=submission,
             consent=consent,
-            tos_version_hash="sha256:" + "d" * 64,
+            portal=portal,
+            signature_b64="not-valid-base64!!!",
+            public_payload_json={"receipt_id": "bad-b64", "submission_id": submission.id},
         )
-        receipt.signature_b64 = "not-valid-base64!!!"
         await async_session.flush()
         result = await verify_receipt(async_session, receipt.id)
         assert result["verified"] is False

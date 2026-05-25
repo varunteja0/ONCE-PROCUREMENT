@@ -81,9 +81,7 @@ def _generate_numeric_code(length: int = CODE_LENGTH) -> str:
     return f"{n:0{length}d}"
 
 
-async def _count_codes_in_last_hour(
-    session: AsyncSession, *, email: str
-) -> int:
+async def _count_codes_in_last_hour(session: AsyncSession, *, email: str) -> int:
     cutoff = _utcnow() - timedelta(hours=1)
     stmt = (
         select(func.count(EmailVerification.id))
@@ -109,9 +107,7 @@ async def issue_code(
     normalized = email.strip().lower()
     recent = await _count_codes_in_last_hour(session, email=normalized)
     if recent >= settings.email_verification_max_codes_per_hour:
-        _logger.warning(
-            "email_verification_rate_limit", email=normalized, recent=recent
-        )
+        _logger.warning("email_verification_rate_limit", email=normalized, recent=recent)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
@@ -125,8 +121,7 @@ async def issue_code(
         tenant_id=tenant_id,
         email=normalized,
         code_hash=hash_code(code),
-        expires_at=_utcnow()
-        + timedelta(minutes=settings.email_verification_code_ttl_minutes),
+        expires_at=_utcnow() + timedelta(minutes=settings.email_verification_code_ttl_minutes),
         attempts=0,
         ip_address=ip_address,
     )
@@ -141,13 +136,9 @@ async def issue_code(
     return IssuedCode(record_id=record.id, code=code, expires_at=record.expires_at)
 
 
-async def _latest_unconsumed(
-    session: AsyncSession, *, email: str, tenant_id: str | None
-) -> EmailVerification | None:
+async def _latest_unconsumed(session: AsyncSession, *, email: str, tenant_id: str | None) -> EmailVerification | None:
     stmt = (
-        select(EmailVerification)
-        .where(EmailVerification.email == email)
-        .where(EmailVerification.consumed_at.is_(None))
+        select(EmailVerification).where(EmailVerification.email == email).where(EmailVerification.consumed_at.is_(None))
     )
     if tenant_id is not None:
         stmt = stmt.where(EmailVerification.tenant_id == tenant_id)
@@ -183,7 +174,8 @@ async def verify_code(
     if record is None:
         raise invalid_exc
 
-    if _aware(record.expires_at) <= _utcnow():
+    expires_at = _aware(record.expires_at)
+    if expires_at is None or expires_at <= _utcnow():
         raise invalid_exc
 
     if record.attempts >= settings.email_verification_max_attempts:

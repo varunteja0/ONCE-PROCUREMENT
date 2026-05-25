@@ -25,6 +25,7 @@ from app.models.billing import (
     PriceKey,
     SubscriptionStatus,
 )
+from app.models.carrier import Carrier, CarrierKind, CarrierStatus
 from app.models.cockpit_audit import CockpitAudit
 from app.models.coi import CertificateOfInsurance
 from app.models.compliance import AuditHashDigest, KeyRotationLog
@@ -49,6 +50,7 @@ from app.models.inbound_attachment import InboundAttachment
 from app.models.inbound_email import InboundEmail, InboundEmailStatus
 from app.models.inbound_routing_rule import InboundRoutingRule, InboundRuleAction
 from app.models.loss_run import LineOfBusiness, LossRun, LossRunStatus
+from app.models.loss_run_claim import LossRunClaim, LossRunClaimStatus
 
 # --- /L3.7 imports ---
 from app.models.onboarding import OnboardingState, OnboardingStep
@@ -60,13 +62,16 @@ from app.models.operator import (
 )
 from app.models.operator_recovery_code import OperatorRecoveryCode
 from app.models.operator_session import OperatorSession
+from app.models.policy import Policy, PolicyStatus
 from app.models.portal import Portal, PortalPlatform
 from app.models.producer_license import (
     LicenseStatus,
     LicenseType,
     ProducerLicense,
 )
+from app.models.quote import Quote, QuoteStatus
 from app.models.receipt import SubmissionReceipt
+from app.models.revoked_refresh_token import RevokedRefreshToken
 from app.models.risk_schedule import RiskSchedule
 from app.models.signing_key import SigningKey
 from app.models.submission import SubmissionStatus, SupplierSubmission
@@ -91,6 +96,7 @@ __all__ = [
     "SupplierSubmission",
     "SubmissionStatus",
     "SubmissionReceipt",
+    "RevokedRefreshToken",
     "SigningKey",
     "ConsentRecord",
     "ConsentScope",
@@ -102,6 +108,15 @@ __all__ = [
     "OnboardingState",
     "OnboardingStep",
     "CertificateOfInsurance",
+    "Carrier",
+    "CarrierKind",
+    "CarrierStatus",
+    "Quote",
+    "QuoteStatus",
+    "Policy",
+    "PolicyStatus",
+    "LossRunClaim",
+    "LossRunClaimStatus",
     "AuditLog",
     "CockpitAudit",
     "Operator",

@@ -29,6 +29,18 @@ async def test_register_returns_201_and_token_pair(client: AsyncClient) -> None:
     assert tokens.access_token != tokens.refresh_token
 
 
+async def test_register_rejects_weak_password(client: AsyncClient) -> None:
+    response = await client.post(
+        "/v1/auth/register",
+        json={**_REGISTER_PAYLOAD, "password": "password123"},
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "password_policy_failed"
+    assert detail["reasons"]
+
+
 async def test_login_with_correct_credentials_returns_tokens(client: AsyncClient) -> None:
     register = await client.post("/v1/auth/register", json=_REGISTER_PAYLOAD)
     assert register.status_code == 201, register.text
@@ -116,6 +128,25 @@ async def test_refresh_issues_a_new_token_pair(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {refreshed.access_token}"},
     )
     assert me.status_code == 200, me.text
+
+
+async def test_logout_revokes_refresh_token(client: AsyncClient) -> None:
+    register = await client.post("/v1/auth/register", json=_REGISTER_PAYLOAD)
+    assert register.status_code == 201, register.text
+    initial = TokenPair(**register.json())
+
+    response = await client.post(
+        "/v1/auth/logout",
+        json={"refresh_token": initial.refresh_token},
+    )
+
+    assert response.status_code == 204, response.text
+
+    refresh = await client.post(
+        "/v1/auth/refresh",
+        json={"refresh_token": initial.refresh_token},
+    )
+    assert refresh.status_code == 401
 
 
 async def test_refresh_rejects_garbage_token(client: AsyncClient) -> None:

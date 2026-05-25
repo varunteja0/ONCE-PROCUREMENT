@@ -37,12 +37,12 @@
       // honours the persisted theme and avoids a light→dark flash.
       (function () {
         try {
-          var stored = localStorage.getItem('once.theme');
-          var theme = stored === 'dark' || stored === 'light' || stored === 'system' ? stored : 'system';
-          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var dark = theme === 'dark' || (theme === 'system' && prefersDark);
-          if (dark) document.documentElement.classList.add('dark');
-          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+          var stored = localStorage.getItem("once.theme");
+          var theme = stored === "dark" || stored === "light" || stored === "system" ? stored : "system";
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var dark = theme === "dark" || (theme === "system" && prefersDark);
+          if (dark) document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
         } catch (_) {}
       })();
     </script>

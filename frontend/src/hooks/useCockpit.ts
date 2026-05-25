@@ -1,9 +1,6 @@
 // React hooks for the cockpit surface: login / logout / current operator /
 // act-as switching. Wraps the cockpit API + Zustand store so pages don't
 // have to thread state by hand.
-import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   cockpitActAs,
   cockpitListAudit,
@@ -15,13 +12,16 @@ import {
   type CockpitTenantListResponse,
   type OperatorLoginInput,
   type OperatorMe,
-} from '@/services/cockpitApi';
-import { useCockpitStore } from '@/store/cockpitStore';
+} from "@/services/cockpitApi";
+import { useCockpitStore } from "@/store/cockpitStore";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const cockpitKeys = {
-  me: ['cockpit', 'me'] as const,
-  tenants: ['cockpit', 'tenants'] as const,
-  audit: (params: object) => ['cockpit', 'audit', params] as const,
+  me: ["cockpit", "me"] as const,
+  tenants: ["cockpit", "tenants"] as const,
+  audit: (params: object) => ["cockpit", "audit", params] as const,
 };
 
 export function useCockpit() {
@@ -64,7 +64,7 @@ export function useCockpit() {
   const logout = useCallback(async () => {
     await cockpitLogout();
     clear();
-    navigate('/cockpit/login', { replace: true });
+    navigate("/cockpit/login", { replace: true });
   }, [clear, navigate]);
 
   const refreshMe = useCallback(async () => {
@@ -105,11 +105,13 @@ export function useCockpitTenants() {
   });
 }
 
-export function useCockpitAudit(params: {
-  limit?: number;
-  operator_id?: string;
-  tenant_id?: string;
-} = {}) {
+export function useCockpitAudit(
+  params: {
+    limit?: number;
+    operator_id?: string;
+    tenant_id?: string;
+  } = {},
+) {
   return useQuery<CockpitAuditListResponse>({
     queryKey: cockpitKeys.audit(params),
     queryFn: () => cockpitListAudit(params),

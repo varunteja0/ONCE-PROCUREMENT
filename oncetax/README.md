@@ -62,8 +62,9 @@ so it works the moment the Worker starts.
 
 ## D1 schema / migrations
 
-The schema lives at `app/schema.sql` and is idempotent (every statement uses
-`IF NOT EXISTS`). Apply it:
+The canonical schema lives at `app/schema.sql`; deployed changes are applied
+through numbered files in `app/migrations/` via Wrangler's D1 migration
+runner:
 
 ```bash
 # Local D1 (miniflare)
@@ -87,6 +88,7 @@ Set production secrets:
 npx wrangler secret put SHOPIFY_API_KEY
 npx wrangler secret put SHOPIFY_API_SECRET
 npx wrangler secret put SESSION_SECRET
+npx wrangler secret put WORKER_DATA_KEY
 npx wrangler secret put RESEND_API_KEY
 # Optional:
 npx wrangler secret put TAXJAR_API_KEY

@@ -33,6 +33,7 @@
 > I'm researching how mid-market MGAs handle the annual E&O + producer license recert push to each appointed carrier. Most of the ops leaders I've spoken with say it's 10–20 hours a week of clerical re-entry, fragmented across Applied, Vertafore, Sapiens, and direct carrier portals.
 >
 > Two questions:
+>
 > 1. Is that roughly your experience at {COMPANY}?
 > 2. Have you tried any tooling for it, or is it all manual?
 >
@@ -104,20 +105,21 @@
 
 ## Reply-triggered objection handling cheat-sheet
 
-| Objection | Reply |
-|---|---|
-| *"We use Applied Epic for this already"* | Applied stores the data but doesn't push it to carrier portals on your behalf — your team still does the submission. We're the layer between your AMS and the 80+ external portals. Happy to show a 5-min demo. |
-| *"How is this different from Vertafore Producer Manager?"* | Vertafore PM handles license tracking + producer onboarding. We handle the outbound submission of that data to every carrier portal you're appointed at, plus the signed audit receipt for DOI defense. Complementary, not competitive. |
-| *"We need to evaluate security/compliance first"* | Absolutely — we're targeting SOC 2 Type I in H2 2026, GLBA-aligned today, never store unencrypted PII, never share data across MGA customers. Happy to send the security questionnaire response we've prepared. |
-| *"Send me more info, I'll review"* | Attached the one-pager. The fastest way to know if it's a fit is a 20-min call — I can show you a live demo against a portal you actually use. Pick any slot: cal.com/varun-once/discovery |
-| *"Pricing seems high / can you discount"* | Pilot pricing IS the discount — $1,500/mo locked for 24 months. Standard pricing in August is $2,500/mo. The economics: one ops FTE costs ~$5K/mo loaded; we replace 70% of that bandwidth. Happy to walk through ROI on the call. |
-| *"Not now / try us in 6 months"* | Understood. Two things: (1) pilot slots are 5 total and 24-month price lock; if you wait you're at standard pricing. (2) Can I send a 60-second check-in in Q4? |
+| Objection                                                  | Reply                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _"We use Applied Epic for this already"_                   | Applied stores the data but doesn't push it to carrier portals on your behalf — your team still does the submission. We're the layer between your AMS and the 80+ external portals. Happy to show a 5-min demo.                         |
+| _"How is this different from Vertafore Producer Manager?"_ | Vertafore PM handles license tracking + producer onboarding. We handle the outbound submission of that data to every carrier portal you're appointed at, plus the signed audit receipt for DOI defense. Complementary, not competitive. |
+| _"We need to evaluate security/compliance first"_          | Absolutely — we're targeting SOC 2 Type I in H2 2026, GLBA-aligned today, never store unencrypted PII, never share data across MGA customers. Happy to send the security questionnaire response we've prepared.                         |
+| _"Send me more info, I'll review"_                         | Attached the one-pager. The fastest way to know if it's a fit is a 20-min call — I can show you a live demo against a portal you actually use. Pick any slot: cal.com/varun-once/discovery                                              |
+| _"Pricing seems high / can you discount"_                  | Pilot pricing IS the discount — $1,500/mo locked for 24 months. Standard pricing in August is $2,500/mo. The economics: one ops FTE costs ~$5K/mo loaded; we replace 70% of that bandwidth. Happy to walk through ROI on the call.      |
+| _"Not now / try us in 6 months"_                           | Understood. Two things: (1) pilot slots are 5 total and 24-month price lock; if you wait you're at standard pricing. (2) Can I send a 60-second check-in in Q4?                                                                         |
 
 ---
 
 ## Tracking — log every send in [03-icp-target-list.csv](03-icp-target-list.csv)
 
 Required columns to fill on every send:
+
 - `email_sent_at` (ISO datetime)
 - `email_variant` (A / B / C / F1 / F2)
 - `linkedin_connected_at`

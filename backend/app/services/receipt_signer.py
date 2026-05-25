@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, TypedDict
@@ -18,7 +19,11 @@ from app.models import (
     SubmissionReceipt,
     SupplierSubmission,
 )
-from app.utils.canonical_json import canonical_json_bytes, payload_sha256
+from app.utils.canonical_json import (
+    canonical_json_bytes,
+    payload_sha256,
+    verify_canonical_match,
+)
 from app.utils.crypto import (
     derive_public_pem,
     get_default_signing_key,
@@ -135,9 +140,7 @@ def get_public_key_pem(key_id: str) -> str | None:
     return _env_derived_public_pem(key_id)
 
 
-async def load_signing_key_into_cache(
-    session: AsyncSession, key_id: str
-) -> str | None:
+async def load_signing_key_into_cache(session: AsyncSession, key_id: str) -> str | None:
     """Look up *key_id* in the ``signing_keys`` table and cache the PEM.
 
     Returns the cached PEM (or ``None`` when the key is unknown / revoked).
@@ -146,9 +149,7 @@ async def load_signing_key_into_cache(
     cached = _PUBLIC_KEY_CACHE.get(key_id)
     if cached:
         return cached
-    result = await session.execute(
-        select(SigningKey).where(SigningKey.id == key_id)
-    )
+    result = await session.execute(select(SigningKey).where(SigningKey.id == key_id))
     row = result.scalar_one_or_none()
     if row is None or row.revoked_at is not None:
         return _env_derived_public_pem(key_id)
@@ -176,9 +177,7 @@ async def bootstrap_signing_key(session: AsyncSession) -> None:
     try:
         public_pem = derive_public_pem(load_signing_key(pem))
     except Exception as exc:  # noqa: BLE001
-        _logger.error(
-            "signing_key_bootstrap_failed", key_id=key_id, error=str(exc)
-        )
+        _logger.error("signing_key_bootstrap_failed", key_id=key_id, error=str(exc))
         return
     session.add(
         SigningKey(
@@ -244,33 +243,14 @@ async def sign_receipt(
 
     portal_value = await _load_portal_platform(session, submission.portal_id)
 
-    submitted_at = (
-        submission.completed_at
-        or submission.started_at
-        or submission.claimed_at
-        or datetime.now(tz=UTC)
-    )
+    submitted_at = submission.completed_at or submission.started_at or submission.claimed_at or datetime.now(tz=UTC)
 
     payload_hash = payload_sha256(submission.payload_json or {})
 
-    receipt = SubmissionReceipt(
-        submission_id=submission.id,
-        tenant_id=submission.tenant_id,
-        supplier_id=submission.supplier_id,
-        portal_platform=portal_value,
-        submitted_at=submitted_at if submitted_at.tzinfo else submitted_at.replace(tzinfo=UTC),
-        payload_hash=payload_hash,
-        tos_version_hash=tos_version_hash,
-        consent_record_id=consent.id,
-        signing_key_id=settings.receipt_signing_key_id,
-        signature_b64="",
-        public_payload_json={},
-    )
-    session.add(receipt)
-    await session.flush()
+    receipt_id = str(uuid.uuid4())
 
     payload = _build_payload(
-        receipt_id=receipt.id,
+        receipt_id=receipt_id,
         submission=submission,
         consent=consent,
         portal_value=portal_value,
@@ -284,8 +264,22 @@ async def sign_receipt(
     signature = sign(signing_key, canonical_bytes)
     signature_b64 = base64.b64encode(signature).decode("ascii")
 
-    receipt.public_payload_json = dict(payload)
-    receipt.signature_b64 = signature_b64
+    receipt = SubmissionReceipt(
+        id=receipt_id,
+        submission_id=submission.id,
+        tenant_id=submission.tenant_id,
+        supplier_id=submission.supplier_id,
+        portal_platform=portal_value,
+        submitted_at=submitted_at if submitted_at.tzinfo else submitted_at.replace(tzinfo=UTC),
+        payload_hash=payload_hash,
+        tos_version_hash=tos_version_hash,
+        consent_record_id=consent.id,
+        signing_key_id=settings.receipt_signing_key_id,
+        signature_b64=signature_b64,
+        public_payload_json=dict(payload),
+    )
+    session.add(receipt)
+    await session.flush()
 
     _logger.info(
         "receipt_signed",
@@ -314,9 +308,7 @@ async def verify_receipt(session: AsyncSession, receipt_id: str) -> VerifyReceip
     Raises only when the receipt itself cannot be located.
     """
 
-    result = await session.execute(
-        select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id)
-    )
+    result = await session.execute(select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id))
     receipt = result.scalar_one_or_none()
     if receipt is None:
         raise LookupError(f"SubmissionReceipt {receipt_id!r} not found")
@@ -350,8 +342,10 @@ async def verify_receipt(session: AsyncSession, receipt_id: str) -> VerifyReceip
         signature = b""
 
     if signature:
-        canonical_bytes = canonical_json_bytes(public_payload)
-        verified = verify(public_key_pem, canonical_bytes, signature)
+        verified = verify_canonical_match(
+            public_payload,
+            lambda canonical_bytes: verify(public_key_pem, canonical_bytes, signature),
+        )
 
     _logger.info(
         "receipt_verified",

@@ -60,8 +60,8 @@ async def get_current_user(
             detail={"code": "user_inactive", "message": "User account is disabled."},
         )
 
-    user._jwt_tenant_id = str(tenant_id)
-    user._jwt_role = payload.get("role")
+    user._jwt_tenant_id = str(tenant_id)  # type: ignore[attr-defined]
+    user._jwt_role = payload.get("role")  # type: ignore[attr-defined]
     return user
 
 
@@ -70,9 +70,7 @@ def get_current_tenant_id(
 ) -> str:
     tenant_id = getattr(user, "_jwt_tenant_id", None)
     if not tenant_id:
-        raise _credentials_exception(
-            "missing_tenant_claim", "Access token missing tenant claim."
-        )
+        raise _credentials_exception("missing_tenant_claim", "Access token missing tenant claim.")
     return str(tenant_id)
 
 

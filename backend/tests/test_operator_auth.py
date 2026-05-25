@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db as app_db
 from app.api.cockpit.router import cockpit_router
+from app.config import settings
 from app.middleware.operator_act_as import OperatorActAsMiddleware
 from app.models import Operator, OperatorRole, OperatorStatus
 from app.services import operator_auth
@@ -32,7 +33,7 @@ WEAK_PWD = "password"
 def _isolated_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Force a known cockpit secret and disable rate-limit shenanigans."""
 
-    monkeypatch.setenv("COCKPIT_JWT_SECRET_KEY", "test-cockpit-secret-" + "y" * 32)
+    monkeypatch.setattr(settings, "cockpit_jwt_secret_key", "test-cockpit-secret-" + "y" * 32)
     monkeypatch.setenv("ACCOUNT_LOCKOUT_MAX_FAILS", "3")
     monkeypatch.setenv("ACCOUNT_LOCKOUT_WINDOW_SEC", "60")
     monkeypatch.setenv("ACCOUNT_LOCKOUT_DURATION_SEC", "60")
@@ -168,9 +169,7 @@ async def test_mfa_required_without_totp(cockpit_client: AsyncClient) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_refresh_rotates_tokens(
-    cockpit_client: AsyncClient, async_session: AsyncSession
-) -> None:
+async def test_refresh_rotates_tokens(cockpit_client: AsyncClient, async_session: AsyncSession) -> None:
     await _seed_operator(email="rot@once.dev")
     login = await cockpit_client.post(
         "/cockpit/auth/login",
@@ -256,7 +255,7 @@ async def test_cockpit_secret_isolated_from_tenant_secret(
     access, _ = operator_auth.create_access_token(op)
 
     # Switch env to a *different* secret; decode must now fail.
-    monkeypatch.setenv("COCKPIT_JWT_SECRET_KEY", "totally-different-secret-" + "z" * 32)
+    monkeypatch.setattr(settings, "cockpit_jwt_secret_key", "totally-different-secret-" + "z" * 32)
     with pytest.raises(operator_auth.OperatorAuthError) as exc:
         operator_auth.decode_token(access)
     assert exc.value.code == "invalid_token"

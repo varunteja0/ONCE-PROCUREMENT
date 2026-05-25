@@ -1,24 +1,21 @@
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound } from 'lucide-react';
-import { useState } from 'react';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { toast } from '@/lib/toast';
-import { api, extractErrorMessage, isApiError } from '@/services/api';
-import {
-  resetPasswordSchema,
-  type ResetPasswordFormValues,
-} from '@/schemas/auth';
-import { scorePassword } from '@/lib/passwordStrength';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { scorePassword } from "@/lib/passwordStrength";
+import { toast } from "@/lib/toast";
+import { resetPasswordSchema, type ResetPasswordFormValues } from "@/schemas/auth";
+import { api, extractErrorMessage, isApiError } from "@/services/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { KeyRound } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 const SEGMENT_COLORS: ReadonlyArray<string> = [
-  'bg-rose-500',
-  'bg-amber-500',
-  'bg-yellow-500',
-  'bg-lime-500',
-  'bg-emerald-500',
+  "bg-rose-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-emerald-500",
 ];
 
 function StrengthMeter({ password }: { password: string }): JSX.Element {
@@ -31,9 +28,7 @@ function StrengthMeter({ password }: { password: string }): JSX.Element {
           <div
             key={i}
             className={`h-1.5 flex-1 rounded ${
-              password.length > 0 && i < filled
-                ? SEGMENT_COLORS[result.score]
-                : 'bg-slate-200 dark:bg-slate-700'
+              password.length > 0 && i < filled ? SEGMENT_COLORS[result.score] : "bg-slate-200 dark:bg-slate-700"
             }`}
           />
         ))}
@@ -41,7 +36,7 @@ function StrengthMeter({ password }: { password: string }): JSX.Element {
       {password.length > 0 ? (
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           Strength: <span className="font-medium">{result.label}</span>
-          {result.reasons.length > 0 ? ` — ${result.reasons[0]}` : ''}
+          {result.reasons.length > 0 ? ` — ${result.reasons[0]}` : ""}
         </p>
       ) : null}
     </div>
@@ -51,51 +46,44 @@ function StrengthMeter({ password }: { password: string }): JSX.Element {
 export default function ResetPassword(): JSX.Element {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const token = params.get('token') ?? '';
+  const token = params.get("token") ?? "";
   const [notImplemented, setNotImplemented] = useState<string | null>(null);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { new_password: '', confirm_password: '' },
-    mode: 'onBlur',
+    defaultValues: { new_password: "", confirm_password: "" },
+    mode: "onBlur",
   });
 
-  const newPw = form.watch('new_password');
+  const newPw = form.watch("new_password");
   const score = scorePassword(newPw).score;
 
   async function onSubmit(values: ResetPasswordFormValues): Promise<void> {
     setNotImplemented(null);
     try {
       // BACKEND-COUPLED: depends on POST /auth/reset-password being implemented.
-      await api.post(
-        '/auth/reset-password',
-        { token, new_password: values.new_password },
-        { _onceSkipAuth: true },
-      );
-      toast.success('Password reset. Please sign in.');
-      navigate('/login', { replace: true });
+      await api.post("/auth/reset-password", { token, new_password: values.new_password }, { _onceSkipAuth: true });
+      toast.success("Password reset. Please sign in.");
+      navigate("/login", { replace: true });
     } catch (err) {
       if (isApiError(err) && err.response?.status === 404) {
         // BACKEND-COUPLED: backend endpoint not yet implemented.
-        setNotImplemented('Coming soon — backend endpoint pending.');
+        setNotImplemented("Coming soon — backend endpoint pending.");
         return;
       }
-      toast.error(extractErrorMessage(err, 'Could not reset password'));
+      toast.error(extractErrorMessage(err, "Could not reset password"));
     }
   }
 
   const submitting = form.formState.isSubmitting;
-  const disableSubmit =
-    submitting || token.length === 0 || (newPw.length > 0 && score < 2);
+  const disableSubmit = submitting || token.length === 0 || (newPw.length > 0 && score < 2);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-6 flex items-center gap-2">
           <KeyRound className="h-6 w-6 text-slate-700 dark:text-slate-200" aria-hidden="true" />
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Reset your password
-          </h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Reset your password</h1>
         </div>
 
         {token.length === 0 ? (
@@ -124,7 +112,7 @@ export default function ResetPassword(): JSX.Element {
               autoComplete="new-password"
               required
               disabled={submitting}
-              {...form.register('new_password')}
+              {...form.register("new_password")}
               error={form.formState.errors.new_password?.message}
             />
             <StrengthMeter password={newPw} />
@@ -135,19 +123,16 @@ export default function ResetPassword(): JSX.Element {
             autoComplete="new-password"
             required
             disabled={submitting}
-            {...form.register('confirm_password')}
+            {...form.register("confirm_password")}
             error={form.formState.errors.confirm_password?.message}
           />
           <Button type="submit" fullWidth loading={submitting} disabled={disableSubmit}>
-            {submitting ? 'Resetting…' : 'Reset password'}
+            {submitting ? "Resetting…" : "Reset password"}
           </Button>
         </form>
 
         <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
-          <Link
-            to="/login"
-            className="font-medium text-slate-900 underline hover:no-underline dark:text-slate-200"
-          >
+          <Link to="/login" className="font-medium text-slate-900 underline hover:no-underline dark:text-slate-200">
             Back to sign in
           </Link>
         </p>

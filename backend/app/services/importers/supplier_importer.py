@@ -131,11 +131,62 @@ _FEIN_DIGITS = re.compile(r"\D+")
 _FEIN_FMT = re.compile(r"^\d{2}-\d{7}$")
 _US_STATES: frozenset[str] = frozenset(
     {
-        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
-        "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
-        "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-        "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-        "WI", "WY", "DC", "PR", "GU", "VI", "AS", "MP",
+        "AL",
+        "AK",
+        "AZ",
+        "AR",
+        "CA",
+        "CO",
+        "CT",
+        "DE",
+        "FL",
+        "GA",
+        "HI",
+        "ID",
+        "IL",
+        "IN",
+        "IA",
+        "KS",
+        "KY",
+        "LA",
+        "ME",
+        "MD",
+        "MA",
+        "MI",
+        "MN",
+        "MS",
+        "MO",
+        "MT",
+        "NE",
+        "NV",
+        "NH",
+        "NJ",
+        "NM",
+        "NY",
+        "NC",
+        "ND",
+        "OH",
+        "OK",
+        "OR",
+        "PA",
+        "RI",
+        "SC",
+        "SD",
+        "TN",
+        "TX",
+        "UT",
+        "VT",
+        "VA",
+        "WA",
+        "WV",
+        "WI",
+        "WY",
+        "DC",
+        "PR",
+        "GU",
+        "VI",
+        "AS",
+        "MP",
     }
 )
 
@@ -243,10 +294,7 @@ class SupplierImporter(BaseImporter):
                         column="fein",
                         value=raw_fein,
                         error_code="fein_format",
-                        error_message=(
-                            "FEIN must be 9 digits, format XX-XXXXXXX "
-                            "(e.g. 12-3456789)."
-                        ),
+                        error_message=("FEIN must be 9 digits, format XX-XXXXXXX " "(e.g. 12-3456789)."),
                     )
                 )
 
@@ -393,9 +441,7 @@ class SupplierImporter(BaseImporter):
             return counts
 
         keys = [r.dedupe_key for r in rows if r.dedupe_key]
-        existing = await self.existing_dedupe_keys(
-            session, tenant_id=tenant_id, keys=keys
-        )
+        existing = await self.existing_dedupe_keys(session, tenant_id=tenant_id, keys=keys)
 
         # Pre-fetch all existing rows in one shot for the update path.
         existing_models: dict[str, Supplier] = {}
@@ -417,8 +463,8 @@ class SupplierImporter(BaseImporter):
             key = row.dedupe_key
             if key and key in existing:
                 if on_duplicate == "update":
-                    sup = existing_models.get(key)
-                    if sup is None:
+                    match_sup: Supplier | None = existing_models.get(key)
+                    if match_sup is None:
                         # Fall back to a one-off fetch (cheap, rare).
                         result = await session.execute(
                             select(Supplier).where(
@@ -426,10 +472,10 @@ class SupplierImporter(BaseImporter):
                                 Supplier.ein == key,
                             )
                         )
-                        sup = result.scalar_one_or_none()
-                    if sup is not None:
+                        match_sup = result.scalar_one_or_none()
+                    if match_sup is not None:
                         for field_, value in data.items():
-                            setattr(sup, field_, value)
+                            setattr(match_sup, field_, value)
                         counts["updated"] += 1
                         continue
                 if on_duplicate == "skip":

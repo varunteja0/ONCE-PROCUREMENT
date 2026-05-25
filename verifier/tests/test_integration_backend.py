@@ -35,10 +35,12 @@ import pytest
 # Skip cleanly when backend-only deps (sqlalchemy, etc.) aren't installed
 # in this environment — happens in the verifier-only CI job. Local dev and
 # the cross-project integration job have backend deps available.
-pytest.importorskip("sqlalchemy", reason="backend deps not installed in verifier-only env")
+pytest.importorskip(
+    "sqlalchemy", reason="backend deps not installed in verifier-only env"
+)
 
 # --- Namespace surgery (must run before any backend-only imports) ---------
-import app as _verifier_app_pkg  # already loaded by verifier/conftest.py
+import app as _verifier_app_pkg  # noqa: E402  # already loaded by verifier/conftest.py
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BACKEND_DIR = _REPO_ROOT / "backend"
@@ -50,7 +52,20 @@ if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
 # --- Backend imports (resolve via the extended namespace path) ------------
+# --- Verifier imports (already loaded by verifier conftest) ---------------
+import app.api_key as verifier_api_key_module  # noqa: E402
+import app.db as backend_db  # noqa: E402
 import httpx  # noqa: E402
+from app.api.v1.router import api_router, public_receipt_router  # noqa: E402
+from app.api_key import reset_rate_limit_storage  # noqa: E402
+from app.config import settings as backend_settings  # noqa: E402
+from app.main import app as verifier_fastapi_app  # noqa: E402
+from app.main import settings as verifier_settings  # noqa: E402
+from app.middleware.tenant_scope import TenantScopeMiddleware  # noqa: E402
+from app.models import Base, Portal, PortalPlatform  # noqa: E402
+from app.models.verifier_api_key_usage import VerifierApiKeyUsage  # noqa: E402
+from app.services import sanctions_service  # noqa: E402
+from app.utils import crypto as crypto_utils  # noqa: E402
 from cryptography.hazmat.primitives import serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (  # noqa: E402
     Ed25519PrivateKey,
@@ -63,21 +78,6 @@ from sqlalchemy.ext.asyncio import (  # noqa: E402
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool  # noqa: E402
-
-import app.db as backend_db  # noqa: E402
-from app.api.v1.router import api_router, public_receipt_router  # noqa: E402
-from app.config import settings as backend_settings  # noqa: E402
-from app.middleware.tenant_scope import TenantScopeMiddleware  # noqa: E402
-from app.models import Base, Portal, PortalPlatform  # noqa: E402
-from app.models.verifier_api_key_usage import VerifierApiKeyUsage  # noqa: E402
-from app.services import sanctions_service  # noqa: E402
-from app.utils import crypto as crypto_utils  # noqa: E402
-
-# --- Verifier imports (already loaded by verifier conftest) ---------------
-import app.api_key as verifier_api_key_module  # noqa: E402
-from app.api_key import reset_rate_limit_storage  # noqa: E402
-from app.main import app as verifier_fastapi_app  # noqa: E402
-from app.main import settings as verifier_settings  # noqa: E402
 
 INTERNAL_TOKEN = "integration-test-internal-token-do-not-log"  # noqa: S105
 RECEIPT_ID = "11111111-1111-1111-1111-111111111111"
@@ -135,7 +135,9 @@ async def _build_backend_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setattr(backend_settings, "receipt_signing_private_key_pem", pem)
     monkeypatch.setattr(backend_settings, "receipt_signing_key_id", "it-key")
     monkeypatch.setattr(backend_settings, "verifier_internal_token", INTERNAL_TOKEN)
-    monkeypatch.setattr(backend_settings, "jwt_secret_key", "test-jwt-secret-do-not-use")
+    monkeypatch.setattr(
+        backend_settings, "jwt_secret_key", "test-jwt-secret-do-not-use"
+    )
     crypto_utils.reset_default_signing_key_cache()
     sanctions_service.reset_cache()
 
@@ -246,9 +248,7 @@ async def test_verifier_backend_live_roundtrip(
             f"/v1/admin/verifier-keys/{api_key_id}", headers=auth
         )
         assert rev.status_code == 204, rev.text
-        r_after = await verifier_client.get(
-            f"/verify/{RECEIPT_ID}", headers=good_hdrs
-        )
+        r_after = await verifier_client.get(f"/verify/{RECEIPT_ID}", headers=good_hdrs)
         assert r_after.status_code == 401, r_after.text
 
         # Unauth burst: default 5/min -> 6th hit is 429.

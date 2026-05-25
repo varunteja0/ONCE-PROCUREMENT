@@ -64,11 +64,7 @@ async def _build_signing_world(
     session.add(consent)
     await session.flush()
 
-    portal = (
-        await session.execute(
-            select(Portal).where(Portal.platform == PortalPlatform.APPLIED_EPIC)
-        )
-    ).scalar_one()
+    portal = (await session.execute(select(Portal).where(Portal.platform == PortalPlatform.APPLIED_EPIC))).scalar_one()
 
     now = datetime.now(UTC)
     submission = SupplierSubmission(
@@ -113,7 +109,7 @@ async def test_sign_then_verify_returns_verified_true(
     assert verification["receipt"]["submission_id"] == submission.id
 
 
-async def test_mutated_public_payload_fails_verification(
+async def test_receipt_rows_are_immutable_after_insert(
     async_session: AsyncSession,
     signing_key,  # noqa: ARG001
 ) -> None:
@@ -127,21 +123,16 @@ async def test_mutated_public_payload_fails_verification(
     )
     await async_session.commit()
 
-    # Tamper with the publicly stored payload and persist the change.
     receipt_id = receipt.id
+    original_hash = receipt.payload_hash
     tampered = dict(receipt.public_payload_json)
     tampered["payload_hash"] = "sha256:0" * 8
     receipt.public_payload_json = tampered
-    await async_session.commit()
+    with pytest.raises(ValueError, match="immutable"):
+        await async_session.commit()
+    await async_session.rollback()
 
-    # Force a fresh load to make sure verify_receipt re-reads the mutation.
-    async_session.expire_all()
     refreshed = (
-        await async_session.execute(
-            select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id)
-        )
+        await async_session.execute(select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id))
     ).scalar_one()
-    assert refreshed.public_payload_json["payload_hash"].startswith("sha256:0")
-
-    verification = await receipt_signer.verify_receipt(async_session, receipt_id)
-    assert verification["verified"] is False
+    assert refreshed.public_payload_json["payload_hash"] == original_hash

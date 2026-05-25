@@ -55,6 +55,8 @@ def test_local_storage_idempotent_same_sha(tmp_path):
 async def test_dedupe_within_email(async_session: AsyncSession):
     t = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
     async_session.add(t)
+    await async_session.flush()
+    t.inbound_secret_token = None
     await async_session.commit()
     content = b"identical"
     parsed = svc.ParsedEmail(
@@ -74,6 +76,8 @@ async def test_dedupe_within_email(async_session: AsyncSession):
 async def test_content_type_sniffed_from_filename(async_session: AsyncSession):
     t = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
     async_session.add(t)
+    await async_session.flush()
+    t.inbound_secret_token = None
     await async_session.commit()
     parsed = svc.ParsedEmail(
         message_id="<m1@x>",

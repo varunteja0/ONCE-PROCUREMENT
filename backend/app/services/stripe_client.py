@@ -62,18 +62,11 @@ class StripeClient(Protocol):
         success_url: str,
         cancel_url: str,
         metadata: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
-    def create_billing_portal_session(
-        self, *, customer_id: str, return_url: str
-    ) -> dict[str, Any]:
-        ...
+    def create_billing_portal_session(self, *, customer_id: str, return_url: str) -> dict[str, Any]: ...
 
-    def construct_event(
-        self, *, payload: bytes, sig_header: str, secret: str
-    ) -> dict[str, Any]:
-        ...
+    def construct_event(self, *, payload: bytes, sig_header: str, secret: str) -> dict[str, Any]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -85,25 +78,19 @@ def _now_ts() -> int:
     return int(time.time())
 
 
-def build_mock_signature_header(
-    *, payload: bytes, secret: str, timestamp: int | None = None
-) -> str:
+def build_mock_signature_header(*, payload: bytes, secret: str, timestamp: int | None = None) -> str:
     """Generate a Stripe-compatible ``t=<ts>,v1=<sig>`` header for tests."""
 
     ts = timestamp if timestamp is not None else _now_ts()
     signed_payload = f"{ts}.".encode() + payload
-    digest = hmac.new(
-        secret.encode("utf-8"), signed_payload, hashlib.sha256
-    ).hexdigest()
+    digest = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
     return f"t={ts},v1={digest}"
 
 
-def _verify_mock_signature(
-    *, payload: bytes, sig_header: str, secret: str, tolerance_sec: int = 300
-) -> None:
+def _verify_mock_signature(*, payload: bytes, sig_header: str, secret: str, tolerance_sec: int = 300) -> None:
     if not sig_header:
         raise StripeSignatureError("missing signature header")
-    parts = {}
+    parts: dict[str, list[str]] = {}
     for chunk in sig_header.split(","):
         if "=" not in chunk:
             continue
@@ -120,9 +107,7 @@ def _verify_mock_signature(
     if abs(_now_ts() - ts) > tolerance_sec:
         raise StripeSignatureError("timestamp outside tolerance")
     signed_payload = f"{ts}.".encode() + payload
-    expected = hmac.new(
-        secret.encode("utf-8"), signed_payload, hashlib.sha256
-    ).hexdigest()
+    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
     if not any(hmac.compare_digest(expected, candidate) for candidate in sigs):
         raise StripeSignatureError("signature mismatch")
 
@@ -149,10 +134,7 @@ class _MockStripeClient:
         session_id = f"cs_test_{secrets.token_hex(12)}"
         session = {
             "id": session_id,
-            "url": (
-                f"https://checkout.stripe.com/c/pay/{session_id}"
-                f"#fid={secrets.token_hex(8)}"
-            ),
+            "url": (f"https://checkout.stripe.com/c/pay/{session_id}" f"#fid={secrets.token_hex(8)}"),
             "customer": customer_id,
             "customer_email": customer_email,
             "client_reference_id": client_reference_id,
@@ -166,23 +148,17 @@ class _MockStripeClient:
         self._sessions.append(session)
         return session
 
-    def create_billing_portal_session(
-        self, *, customer_id: str, return_url: str
-    ) -> dict[str, Any]:
+    def create_billing_portal_session(self, *, customer_id: str, return_url: str) -> dict[str, Any]:
         session = {
             "id": f"bps_test_{secrets.token_hex(10)}",
-            "url": (
-                f"https://billing.stripe.com/p/session/test_{secrets.token_hex(10)}"
-            ),
+            "url": (f"https://billing.stripe.com/p/session/test_{secrets.token_hex(10)}"),
             "customer": customer_id,
             "return_url": return_url,
         }
         self._portal_sessions.append(session)
         return session
 
-    def construct_event(
-        self, *, payload: bytes, sig_header: str, secret: str
-    ) -> dict[str, Any]:
+    def construct_event(self, *, payload: bytes, sig_header: str, secret: str) -> dict[str, Any]:
         _verify_mock_signature(payload=payload, sig_header=sig_header, secret=secret)
         try:
             parsed = json.loads(payload.decode("utf-8"))
@@ -237,18 +213,12 @@ class _LiveStripeClient:
         session = stripe.checkout.Session.create(**kwargs)
         return dict(session)
 
-    def create_billing_portal_session(
-        self, *, customer_id: str, return_url: str
-    ) -> dict[str, Any]:
+    def create_billing_portal_session(self, *, customer_id: str, return_url: str) -> dict[str, Any]:
         stripe = self._stripe()
-        session = stripe.billing_portal.Session.create(
-            customer=customer_id, return_url=return_url
-        )
+        session = stripe.billing_portal.Session.create(customer=customer_id, return_url=return_url)
         return dict(session)
 
-    def construct_event(
-        self, *, payload: bytes, sig_header: str, secret: str
-    ) -> dict[str, Any]:
+    def construct_event(self, *, payload: bytes, sig_header: str, secret: str) -> dict[str, Any]:
         stripe = self._stripe()
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, secret)

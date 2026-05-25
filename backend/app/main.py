@@ -5,10 +5,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -17,10 +15,7 @@ from app.config import settings
 from app.db import engine
 from app.observability import init_sentry, register_exception_handlers
 from app.utils.logging import configure_logging, get_logger
-
-
-def _build_limiter() -> Limiter:
-    return Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+from app.utils.rate_limit import limiter
 
 
 def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
@@ -42,10 +37,18 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         from app.utils.secret_strength import evaluate_secret
 
-        for name, value in (
+        secret_pairs: list[tuple[str, str]] = [
             ("SECRET_KEY", settings.secret_key),
             ("JWT_SECRET_KEY", settings.jwt_secret_key),
-        ):
+        ]
+        if settings.is_production:
+            cockpit_secret = (settings.cockpit_jwt_secret_key or "").strip()
+            if not cockpit_secret:
+                logger.error("cockpit_jwt_secret_missing")
+                raise RuntimeError("COCKPIT_JWT_SECRET_KEY must be set in APP_ENV=production.")
+            secret_pairs.append(("COCKPIT_JWT_SECRET_KEY", cockpit_secret))
+
+        for name, value in secret_pairs:
             score = evaluate_secret(name, value)
             if not score.strong:
                 msg = (
@@ -102,7 +105,6 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
-    limiter = _build_limiter()
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
     app.add_middleware(SlowAPIMiddleware)
@@ -214,9 +216,8 @@ def create_app() -> FastAPI:
     except Exception as exc:  # pragma: no cover - optional at boot
         logger.warning("openapi_customization_unavailable", error=str(exc))
 
-    @app.get("/health", tags=["meta"])
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
+    # NOTE: trivial root /health was removed (audit gap E). External probes
+    # MUST use /v1/health/live (liveness) or /v1/health (readiness: DB+Redis).
 
     try:
         from app.api.v1.metrics import router as metrics_router
@@ -228,6 +229,8 @@ def create_app() -> FastAPI:
 
     try:
         # `api_router` already declares prefix="/v1" — do NOT double-prefix.
+        from app.api.v1.public_keys_list import router as public_keys_list_router
+        from app.api.v1.public_portals import router as public_portals_router
         from app.api.v1.receipts import public_v1_receipt_router
         from app.api.v1.router import api_router, public_receipt_router
 
@@ -238,6 +241,10 @@ def create_app() -> FastAPI:
         # Canonical machine-readable alias under /v1 — the external verifier
         # microservice fetches `GET /v1/public/receipts/{receipt_id}`.
         app.include_router(public_v1_receipt_router, prefix="/v1")
+        # Public trust surface (no auth): full key list for DNS-TXT publication
+        # and carrier-coverage scorecard for the public /coverage page.
+        app.include_router(public_keys_list_router, prefix="/v1")
+        app.include_router(public_portals_router, prefix="/v1")
     except Exception as exc:  # pragma: no cover - router optional at boot
         logger.error("v1_router_unavailable", error=str(exc))
 

@@ -65,10 +65,10 @@ export interface VaultStatusPayload {
 
 export type Message =
   // vault
-  | { type: "vault.unlock"; passphrase: string }
+  | { type: "vault.unlock" }
   | { type: "vault.lock" }
   | { type: "vault.status" }
-  | { type: "vault.init"; passphrase: string }
+  | { type: "vault.init" }
   // portal detection / fill
   | { type: "portal.detect"; detection: PortalDetection }
   | { type: "portal.active"; tabId: number }
@@ -110,7 +110,7 @@ export type Message =
 // ---------------------------------------------------------------------------
 
 export type Ok<T> = { ok: true } & T;
-export type Err = { ok: false; error: string; code?: string };
+export type Err = { ok: false; error: string; code?: string; status?: number; json?: unknown };
 export type Result<T> = Ok<T> | Err;
 
 export interface ApiCallResult {

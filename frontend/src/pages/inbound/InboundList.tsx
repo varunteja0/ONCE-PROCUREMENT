@@ -1,10 +1,10 @@
 // --- L3.9 inbound ---
-import { Link } from 'react-router-dom';
-import { Mail } from 'lucide-react';
-import { Button, EmptyState, ErrorState, Skeleton } from '@/components/ui';
-import { useInboundList } from '@/hooks/useInbound';
-import { RoutingResultBadge } from '@/components/inbound/RoutingResultBadge';
-import { extractErrorMessage } from '@/services/api';
+import { RoutingResultBadge } from "@/components/inbound/RoutingResultBadge";
+import { Button, EmptyState, ErrorState, Skeleton } from "@/components/ui";
+import { useInboundList } from "@/hooks/useInbound";
+import { extractErrorMessage } from "@/services/api";
+import { Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function formatDate(iso: string): string {
   try {
@@ -75,7 +75,7 @@ export default function InboundList(): JSX.Element {
                   </td>
                   <td className="px-3 py-2">
                     <Link to={`/inbound/${item.id}`} className="text-emerald-700 hover:underline dark:text-emerald-300">
-                      {item.subject ?? '(no subject)'}
+                      {item.subject ?? "(no subject)"}
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-center">{item.attachment_count}</td>

@@ -1,11 +1,7 @@
-import axios, { AxiosHeaders } from 'axios';
-import type {
-  AxiosError,
-  AxiosInstance,
-  InternalAxiosRequestConfig,
-} from 'axios';
+import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosHeaders } from "axios";
 
-declare module 'axios' {
+declare module "axios" {
   // Augment the request config so callers can opt out of the auth interceptor
   // (login / register / refresh) and so the response interceptor can mark a
   // request as already-retried.
@@ -21,28 +17,24 @@ declare module 'axios' {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-
 /* ------------------------------------------------------------------------ */
 /*  Types — re-exported from @/types/api for back-compat.                    */
 /*  New code SHOULD import directly from `@/types/api`.                      */
 /* ------------------------------------------------------------------------ */
 
-export type * from '@/types/api';
+export type * from "@/types/api";
 
 // Local-only type aliases needed inside this module for the interceptor
 // and refresh logic below. Kept here (not re-exported from types) to avoid
 // type-only consumers having to import them.
-import type {
-  ApiErrorBody,
-  TokenPair,
-} from '@/types/api';
+import type { ApiErrorBody, TokenPair } from "@/types/api";
 
 /* ------------------------------------------------------------------------ */
 /*  Token storage                                                            */
 /* ------------------------------------------------------------------------ */
 
-export const ACCESS_TOKEN_KEY = 'once.access';
-export const REFRESH_TOKEN_KEY = 'once.refresh';
+export const ACCESS_TOKEN_KEY = "once.access";
+export const REFRESH_TOKEN_KEY = "once.refresh";
 
 export const tokenStorage = {
   getAccess(): string | null {
@@ -83,7 +75,7 @@ export const tokenStorage = {
 
 function resolveBaseUrl(): string {
   const raw: unknown = import.meta.env.VITE_API_BASE;
-  return typeof raw === 'string' && raw.length > 0 ? raw : '/v1';
+  return typeof raw === "string" && raw.length > 0 ? raw : "/v1";
 }
 
 const baseURL: string = resolveBaseUrl();
@@ -95,12 +87,11 @@ export const api: AxiosInstance = axios.create({
   // release. Backend remains the source of truth for which auth path is
   // active; sending cookies costs nothing when the server doesn't set any.
   withCredentials: true,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 /* Custom flag on the request config to mark a request as already-retried. */
 type RetriableRequestConfig = InternalAxiosRequestConfig;
-
 
 api.interceptors.request.use((config) => {
   const cfg = config as RetriableRequestConfig;
@@ -109,11 +100,8 @@ api.interceptors.request.use((config) => {
   }
   const token = tokenStorage.getAccess();
   if (token) {
-    const headers =
-      cfg.headers instanceof AxiosHeaders
-        ? cfg.headers
-        : new AxiosHeaders(cfg.headers);
-    headers.set('Authorization', `Bearer ${token}`);
+    const headers = cfg.headers instanceof AxiosHeaders ? cfg.headers : new AxiosHeaders(cfg.headers);
+    headers.set("Authorization", `Bearer ${token}`);
     cfg.headers = headers;
   }
   return cfg;
@@ -126,9 +114,9 @@ api.interceptors.request.use((config) => {
 let refreshInFlight: Promise<TokenPair | null> | null = null;
 
 function redirectToLogin(): void {
-  if (typeof window === 'undefined') return;
-  if (window.location.pathname === '/login') return;
-  window.location.assign('/login');
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === "/login") return;
+  window.location.assign("/login");
 }
 
 async function performRefresh(): Promise<TokenPair | null> {
@@ -136,9 +124,9 @@ async function performRefresh(): Promise<TokenPair | null> {
   if (!refreshToken) return null;
   try {
     const resp = await axios.post<TokenPair>(
-      `${baseURL.replace(/\/$/, '')}/auth/refresh`,
+      `${baseURL.replace(/\/$/, "")}/auth/refresh`,
       { refresh_token: refreshToken },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { "Content-Type": "application/json" } },
     );
     tokenStorage.setPair(resp.data);
     return resp.data;
@@ -158,9 +146,9 @@ api.interceptors.response.use(
       !original ||
       original._onceRetried ||
       original._onceSkipAuth ||
-      original.url?.includes('/auth/refresh') ||
-      original.url?.includes('/auth/login') ||
-      original.url?.includes('/auth/register')
+      original.url?.includes("/auth/refresh") ||
+      original.url?.includes("/auth/login") ||
+      original.url?.includes("/auth/register")
     ) {
       return Promise.reject(error);
     }
@@ -180,11 +168,8 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const headers =
-      original.headers instanceof AxiosHeaders
-        ? original.headers
-        : new AxiosHeaders(original.headers);
-    headers.set('Authorization', `Bearer ${newPair.access_token}`);
+    const headers = original.headers instanceof AxiosHeaders ? original.headers : new AxiosHeaders(original.headers);
+    headers.set("Authorization", `Bearer ${newPair.access_token}`);
     original.headers = headers;
 
     return api.request(original);
@@ -195,11 +180,11 @@ api.interceptors.response.use(
 /*  Error helpers                                                            */
 /* ------------------------------------------------------------------------ */
 
-export function extractErrorMessage(err: unknown, fallback = 'Request failed'): string {
+export function extractErrorMessage(err: unknown, fallback = "Request failed"): string {
   if (axios.isAxiosError(err)) {
     const body = err.response?.data as ApiErrorBody | undefined;
     if (body?.detail) {
-      if (typeof body.detail === 'string') return body.detail;
+      if (typeof body.detail === "string") return body.detail;
       if (Array.isArray(body.detail) && body.detail.length > 0) {
         const first = body.detail[0];
         if (first?.msg) return first.msg;

@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useIdleTimer } from '@/lib/idle';
-import { useAuthStore } from '@/store/auth';
-import { toast } from '@/lib/toast';
-import { tokenStorage } from '@/services/api';
-import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { useIdleTimer } from "@/lib/idle";
+import { toast } from "@/lib/toast";
+import { tokenStorage } from "@/services/api";
+import { useAuthStore } from "@/store/auth";
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const IDLE_MS = 15 * 60 * 1000;
 const WARNING_MS = 60 * 1000;
@@ -24,8 +24,8 @@ export function IdleGuard(): JSX.Element | null {
     setWarning(false);
     tokenStorage.clear();
     clearSession();
-    toast.info('You were signed out due to inactivity.');
-    navigate('/login', { replace: true });
+    toast.info("You were signed out due to inactivity.");
+    navigate("/login", { replace: true });
   }, [clearSession, navigate]);
 
   const { reset } = useIdleTimer({
@@ -61,9 +61,8 @@ export function IdleGuard(): JSX.Element | null {
       }
     >
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        For your security, Once signs you out after a period of inactivity.
-        Click <span className="font-medium">Stay signed in</span> to continue
-        your session.
+        For your security, Once signs you out after a period of inactivity. Click{" "}
+        <span className="font-medium">Stay signed in</span> to continue your session.
       </p>
     </Modal>
   );

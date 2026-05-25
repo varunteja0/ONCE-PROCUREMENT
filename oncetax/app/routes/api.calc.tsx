@@ -2,20 +2,11 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudfla
 import { json } from "@remix-run/cloudflare";
 import { z } from "zod";
 
-import { getEnv } from "~/lib/shopify";
-import {
-  getShop,
-  insertFiling,
-  upsertOrderCache,
-  type OrderCacheRow,
-} from "~/lib/d1";
-import {
-  calcForOrder,
-  isSupportedState,
-  SUPPORTED_STATES,
-  type SupportedState,
-} from "~/lib/tax_calc";
+import { getShop, insertFiling, upsertOrderCache, type OrderCacheRow } from "~/lib/d1";
 import { buildFilingPrepPdf } from "~/lib/pdf";
+import { assertRequestedShopMatchesSession, requireShopFromSession } from "~/lib/shop_session";
+import { getEnv } from "~/lib/shopify";
+import { calcForOrder, isSupportedState, SUPPORTED_STATES, type SupportedState } from "~/lib/tax_calc";
 
 const OrderLineSchema = z.object({
   id: z.string(),
@@ -27,7 +18,7 @@ const OrderLineSchema = z.object({
 });
 
 const RequestSchema = z.object({
-  shop: z.string().min(1),
+  shop: z.string().min(1).optional(),
   period_start: z.string(),
   period_end: z.string(),
   orders: z.array(OrderLineSchema),
@@ -36,17 +27,15 @@ const RequestSchema = z.object({
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const env = getEnv(context);
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
+  const shop = await requireShopFromSession(request, env);
+  assertRequestedShopMatchesSession(url.searchParams.get("shop"), shop);
   const state = url.searchParams.get("state");
 
-  if (!shop || !state) {
-    return json({ error: "Missing shop or state" }, { status: 400 });
+  if (!state) {
+    return json({ error: "Missing state" }, { status: 400 });
   }
   if (!isSupportedState(state)) {
-    return json(
-      { error: `Unsupported state ${state}. v0 supports: ${SUPPORTED_STATES.join(", ")}` },
-      { status: 400 },
-    );
+    return json({ error: `Unsupported state ${state}. v0 supports: ${SUPPORTED_STATES.join(", ")}` }, { status: 400 });
   }
 
   const record = await getShop(env.DB, shop);
@@ -58,9 +47,14 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 export async function action({ request, context }: ActionFunctionArgs) {
   const env = getEnv(context);
   const url = new URL(request.url);
+  const sessionShop = await requireShopFromSession(request, env);
+  assertRequestedShopMatchesSession(url.searchParams.get("shop"), sessionShop);
+
+  const record = await getShop(env.DB, sessionShop);
+  if (!record) return json({ error: "Shop not installed" }, { status: 404 });
 
   if (url.searchParams.has("state")) {
-    return generatePdfAction({ env, url });
+    return generatePdfAction({ env, url, shop: sessionShop });
   }
 
   const body = await request.json().catch(() => null);
@@ -68,6 +62,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   if (!parsed.success) {
     return json({ error: parsed.error.flatten() }, { status: 422 });
   }
+  assertRequestedShopMatchesSession(parsed.data.shop ?? null, sessionShop);
 
   const totals = new Map<
     SupportedState,
@@ -82,12 +77,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
         taxable_cents: order.taxable_cents,
         exempt_cents: order.exempt_cents,
       },
-      order.state,
+      order.state
     );
 
     await upsertOrderCache(env.DB, {
-      id: `${parsed.data.shop}:${order.id}`,
-      shop: parsed.data.shop,
+      id: `${sessionShop}:${order.id}`,
+      shop: sessionShop,
       order_id: order.id,
       state: order.state,
       taxable_cents: calc.taxable_cents,
@@ -95,13 +90,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
       captured_at: order.captured_at,
     });
 
-    const prior =
-      totals.get(order.state) ?? {
-        order_count: 0,
-        taxable_cents: 0,
-        tax_cents: 0,
-        exempt_cents: 0,
-      };
+    const prior = totals.get(order.state) ?? {
+      order_count: 0,
+      taxable_cents: 0,
+      tax_cents: 0,
+      exempt_cents: 0,
+    };
     totals.set(order.state, {
       order_count: prior.order_count + 1,
       taxable_cents: prior.taxable_cents + calc.taxable_cents,
@@ -115,51 +109,52 @@ export async function action({ request, context }: ActionFunctionArgs) {
     period_start: parsed.data.period_start,
     period_end: parsed.data.period_end,
     totals: Object.fromEntries(totals),
+    disclaimer:
+      "NOT TAX-OF-RECORD. These figures are filing-prep estimates using " +
+      "state base rates only (no local / district / special-purpose rates) " +
+      "and are not tax, legal, or accounting advice. Review every figure and " +
+      "consult a CPA or your state tax authority before filing.",
   });
 }
 
 async function generatePdfAction({
   env,
   url,
+  shop,
 }: {
   env: ReturnType<typeof getEnv>;
   url: URL;
+  shop: string;
 }): Promise<Response> {
   if (env.ENABLE_PDF_GENERATION !== "true") {
     return json(
       {
         error: "PDF generation disabled in this environment",
-        hint: "Set ENABLE_PDF_GENERATION=\"true\" in wrangler.toml [vars] to enable.",
+        hint: 'Set ENABLE_PDF_GENERATION="true" in wrangler.toml [vars] to enable.',
       },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
-  const shop = url.searchParams.get("shop");
   const state = url.searchParams.get("state");
-  if (!shop || !state || !isSupportedState(state)) {
-    return json({ error: "Missing or invalid shop/state" }, { status: 400 });
+  if (!state || !isSupportedState(state)) {
+    return json({ error: "Missing or invalid state" }, { status: 400 });
   }
   const record = await getShop(env.DB, shop);
   if (!record) return json({ error: "Shop not installed" }, { status: 404 });
 
   const periodEnd = new Date();
-  const periodStart = new Date(
-    Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), 1),
-  );
+  const periodStart = new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), 1));
 
-  const rows = (await env.DB.prepare(
-    `SELECT taxable_cents, tax_cents FROM orders_cache
+  const rows = (
+    await env.DB.prepare(
+      `SELECT taxable_cents, tax_cents FROM orders_cache
      WHERE shop = ?1 AND state = ?2
-       AND captured_at >= ?3 AND captured_at < ?4`,
-  )
-    .bind(
-      shop,
-      state,
-      Math.floor(periodStart.getTime() / 1000),
-      Math.floor(periodEnd.getTime() / 1000) + 1,
+       AND captured_at >= ?3 AND captured_at < ?4`
     )
-    .all<OrderCacheRow>()).results;
+      .bind(shop, state, Math.floor(periodStart.getTime() / 1000), Math.floor(periodEnd.getTime() / 1000) + 1)
+      .all<OrderCacheRow>()
+  ).results;
 
   const totals = rows.reduce(
     (acc, r) => {
@@ -167,7 +162,7 @@ async function generatePdfAction({
       acc.tax_cents += r.tax_cents;
       return acc;
     },
-    { taxable_cents: 0, tax_cents: 0 },
+    { taxable_cents: 0, tax_cents: 0 }
   );
 
   const pdfBytes = await buildFilingPrepPdf({
@@ -180,9 +175,7 @@ async function generatePdfAction({
     tax_due_cents: totals.tax_cents,
   });
 
-  const r2Key = `filings/${shop}/${state}/${periodStart
-    .toISOString()
-    .slice(0, 7)}.pdf`;
+  const r2Key = `filings/${shop}/${state}/${periodStart.toISOString().slice(0, 7)}.pdf`;
   await env.PDF_BUCKET.put(r2Key, pdfBytes, {
     httpMetadata: { contentType: "application/pdf" },
   });

@@ -80,7 +80,7 @@ def _serialize_outcome(outcome: Any) -> dict[str, Any]:
     return {}
 
 
-def _get_submitter(platform: PortalPlatform) -> BaseSubmitter:
+def _get_submitter(platform: PortalPlatform) -> type[BaseSubmitter]:
     """Resolve the submitter for ``platform`` via lazy import.
 
     The automation package is imported lazily because it pulls in Playwright
@@ -113,9 +113,7 @@ def _get_submitter(platform: PortalPlatform) -> BaseSubmitter:
     return submitter
 
 
-async def _claim_submission(
-    session: AsyncSession, submission_id: str
-) -> SupplierSubmission:
+async def _claim_submission(session: AsyncSession, submission_id: str) -> SupplierSubmission:
     """Atomically transition QUEUED|RETRYING → RUNNING and return the row.
 
     Implements the contract in CONTRACTS.md §5: a single UPDATE that gates on
@@ -129,9 +127,7 @@ async def _claim_submission(
         update(SupplierSubmission)
         .where(
             SupplierSubmission.id == submission_id,
-            SupplierSubmission.status.in_(
-                [SubmissionStatus.QUEUED, SubmissionStatus.RETRYING]
-            ),
+            SupplierSubmission.status.in_([SubmissionStatus.QUEUED, SubmissionStatus.RETRYING]),
         )
         .values(
             status=SubmissionStatus.RUNNING,
@@ -144,7 +140,7 @@ async def _claim_submission(
     )
     result = await session.execute(stmt)
 
-    if (result.rowcount or 0) != 1:
+    if (result.rowcount or 0) != 1:  # type: ignore[attr-defined]
         raise SubmissionNotClaimable(
             "Submission could not be claimed; not in a claimable status.",
             submission_id=submission_id,
@@ -255,9 +251,7 @@ async def _sign_receipt(
         )
         return None
 
-    sign: Callable[..., Awaitable[Any]] | None = getattr(
-        receipt_signer, "sign_receipt", None
-    )
+    sign: Callable[..., Awaitable[Any]] | None = getattr(receipt_signer, "sign_receipt", None)
     if sign is None:  # pragma: no cover - defensive
         _logger.warning(
             "receipt_signer_missing_sign_receipt",
@@ -274,9 +268,7 @@ async def _sign_receipt(
     return getattr(receipt, "id", None)
 
 
-def _classify_failure(
-    exc: BaseException, attempt_count: int
-) -> tuple[SubmissionStatus, str]:
+def _classify_failure(exc: BaseException, attempt_count: int) -> tuple[SubmissionStatus, str]:
     """Map a raised exception to (next_status, last_error_string)."""
 
     if isinstance(exc, PortalCaptcha):
@@ -284,9 +276,7 @@ def _classify_failure(
     if isinstance(exc, PortalRateLimited | PortalTransientError):
         if attempt_count < MAX_ATTEMPTS:
             return SubmissionStatus.RETRYING, str(exc)
-        return SubmissionStatus.FAILED, (
-            f"max_attempts_exceeded ({attempt_count}/{MAX_ATTEMPTS}): {exc}"
-        )
+        return SubmissionStatus.FAILED, (f"max_attempts_exceeded ({attempt_count}/{MAX_ATTEMPTS}): {exc}")
     if isinstance(exc, PortalUnsupported):
         return SubmissionStatus.PLATFORM_UNSUPPORTED, str(exc)
     if isinstance(exc, PortalPermanentError | ConsentMissing | SubmitterNotFound):
@@ -296,9 +286,7 @@ def _classify_failure(
     return SubmissionStatus.FAILED, f"{type(exc).__name__}: {exc}"
 
 
-async def process_submission(
-    submission_id: str, session: AsyncSession
-) -> SubmissionResult:
+async def process_submission(submission_id: str, session: AsyncSession) -> SubmissionResult:
     """Atomically claim, dispatch, and finalize a supplier submission.
 
     See ``CONTRACTS.md`` §5 for the contract. This function is the *single*
@@ -328,7 +316,7 @@ async def process_submission(
         log = log.bind(platform=platform.value)
         log.info("submission_dispatching")
 
-        outcome = await submitter.submit(
+        outcome = await submitter.submit(  # type: ignore[call-arg]
             supplier=supplier,
             portal=portal,
             payload=dict(submission.payload_json or {}),
@@ -338,9 +326,7 @@ async def process_submission(
         next_status, last_error = _classify_failure(exc, submission.attempt_count)
         submission.status = next_status
         submission.last_error = last_error
-        submission.completed_at = (
-            _utcnow() if next_status != SubmissionStatus.RETRYING else None
-        )
+        submission.completed_at = _utcnow() if next_status != SubmissionStatus.RETRYING else None
         await session.flush()
         await session.commit()
 

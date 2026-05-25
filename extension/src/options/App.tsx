@@ -11,8 +11,8 @@
  * Storage uses the same keys as the popup so settings are visible
  * everywhere immediately. The page never sees plaintext vault data.
  */
-import { useEffect, useState } from "react";
 import { Download, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { send } from "../lib/messaging";
 import {
@@ -21,7 +21,6 @@ import {
   clearTokens,
   getApiBase,
   setApiBase,
-  setTokens,
   storageGet,
   storageRemove,
   storageSet,
@@ -38,7 +37,6 @@ const VAULT_DB = "once_vault";
 export function App(): JSX.Element {
   // ---- state ----
   const [apiBase, setApiBaseState] = useState(DEFAULT_API_BASE);
-  const [accessToken, setAccessToken] = useState("");
   const [autoLock, setAutoLock] = useState(15);
   const [defaults, setDefaults] = useState<PortalDefault[]>([]);
   const [confirmDelete, setConfirmDelete] = useState("");
@@ -54,10 +52,7 @@ export function App(): JSX.Element {
       const [base, lock, map] = await Promise.all([
         getApiBase(),
         storageGet<number>(STORAGE_KEYS.autoLockMinutes, 15),
-        storageGet<Record<string, string>>(
-          STORAGE_KEYS.defaultSupplierPerPortal,
-          {},
-        ),
+        storageGet<Record<string, string>>(STORAGE_KEYS.defaultSupplierPerPortal, {}),
       ]);
       setApiBaseState(base);
       setAutoLock(typeof lock === "number" && lock > 0 ? lock : 15);
@@ -82,22 +77,6 @@ export function App(): JSX.Element {
     try {
       const base = apiBase.trim() || DEFAULT_API_BASE;
       await setApiBase(base);
-      if (accessToken.trim().length > 0) {
-        await setTokens({
-          access: accessToken.trim(),
-          refresh: accessToken.trim(),
-        });
-        const resp = await send({
-          type: "auth.connect",
-          apiBase: base,
-          accessToken: accessToken.trim(),
-        });
-        if (!resp.ok) {
-          setBanner({ kind: "err", text: `Validation failed: ${resp.error}` });
-          return;
-        }
-        setAccessToken("");
-      }
       setBanner({ kind: "ok", text: "Connection saved." });
     } finally {
       setBusy(false);
@@ -132,7 +111,7 @@ export function App(): JSX.Element {
 
   const onClearVault = async (): Promise<void> => {
     if (confirmDelete !== "DELETE") {
-      setBanner({ kind: "err", text: 'Type DELETE to confirm.' });
+      setBanner({ kind: "err", text: "Type DELETE to confirm." });
       return;
     }
     setBusy(true);
@@ -202,8 +181,7 @@ export function App(): JSX.Element {
         <div>
           <h1 className="text-lg font-semibold">Once — Settings</h1>
           <p className="text-xs text-slate-500">
-            All values are stored locally. Nothing on this page is sent anywhere
-            except your configured backend.
+            All values are stored locally. Nothing on this page is sent anywhere except your configured backend.
           </p>
         </div>
       </header>
@@ -236,25 +214,7 @@ export function App(): JSX.Element {
             placeholder={DEFAULT_API_BASE}
           />
         </div>
-        <div>
-          <label className="label" htmlFor="opt-token">
-            New access token (leave blank to keep current)
-          </label>
-          <input
-            id="opt-token"
-            type="password"
-            className="input font-mono"
-            value={accessToken}
-            onChange={(e) => setAccessToken(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => void onSaveConnection()}
-          disabled={busy}
-        >
+        <button type="button" className="btn-primary" onClick={() => void onSaveConnection()} disabled={busy}>
           <Save className="h-3.5 w-3.5" aria-hidden /> Save connection
         </button>
       </section>
@@ -278,11 +238,7 @@ export function App(): JSX.Element {
             <option value={60}>60</option>
           </select>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => void onSaveAutoLock()}
-        >
+        <button type="button" className="btn-primary" onClick={() => void onSaveAutoLock()}>
           <Save className="h-3.5 w-3.5" aria-hidden /> Save auto-lock
         </button>
       </section>
@@ -291,8 +247,8 @@ export function App(): JSX.Element {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">Default supplier per portal</h2>
         <p className="text-xs text-slate-500">
-          When a new tab loads a supported portal, the matching supplier here is
-          pre-selected. Portal must be one of the platform ids (e.g.
+          When a new tab loads a supported portal, the matching supplier here is pre-selected. Portal must be one of the
+          platform ids (e.g.
           <code className="font-mono text-[11px]"> applied_epic</code>).
         </p>
         <ul className="space-y-2">
@@ -322,8 +278,7 @@ export function App(): JSX.Element {
                     setDefaults((arr) => {
                       const next = [...arr];
                       const cur = next[idx];
-                      if (cur)
-                        next[idx] = { ...cur, supplierId: e.target.value };
+                      if (cur) next[idx] = { ...cur, supplierId: e.target.value };
                       return next;
                     })
                   }
@@ -344,11 +299,7 @@ export function App(): JSX.Element {
           <button type="button" className="btn-secondary" onClick={onAddDefault}>
             + Add
           </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => void onSaveDefaults()}
-          >
+          <button type="button" className="btn-primary" onClick={() => void onSaveDefaults()}>
             <Save className="h-3.5 w-3.5" aria-hidden /> Save defaults
           </button>
         </div>
@@ -358,8 +309,8 @@ export function App(): JSX.Element {
       <section className="space-y-1">
         <h2 className="text-sm font-semibold">Telemetry</h2>
         <p className="text-xs text-slate-500">
-          Always off — nothing is sent to GitHub, the Once team, or any third
-          party. All API requests go to the backend URL above and nowhere else.
+          Always off — nothing is sent to GitHub, the Once team, or any third party. All API requests go to the backend
+          URL above and nowhere else.
         </p>
       </section>
 
@@ -367,11 +318,7 @@ export function App(): JSX.Element {
       <section className="space-y-2 border-t border-slate-200 pt-4">
         <h2 className="text-sm font-semibold">Vault</h2>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => void onExportVault()}
-          >
+          <button type="button" className="btn-secondary" onClick={() => void onExportVault()}>
             <Download className="h-3.5 w-3.5" aria-hidden /> Export vault (JSON)
           </button>
           <label className="btn-secondary cursor-pointer">
@@ -388,15 +335,13 @@ export function App(): JSX.Element {
           </label>
         </div>
         <p className="text-xs text-slate-500">
-          The exported file is the encrypted IndexedDB store — opening it
-          without your passphrase reveals nothing.
+          The exported file is the encrypted IndexedDB store — opening it without your passphrase reveals nothing.
         </p>
 
         <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 space-y-2">
           <div className="text-xs font-semibold text-red-800">Danger zone</div>
           <p className="text-[11px] text-red-700">
-            Clearing the vault wipes all encrypted entries, tokens, and the
-            stored API base. Type{" "}
+            Clearing the vault wipes all encrypted entries, tokens, and the stored API base. Type{" "}
             <code className="font-mono">DELETE</code> to confirm.
           </p>
           <input
@@ -440,8 +385,7 @@ function openExisting(name: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(name);
     req.onsuccess = (): void => resolve(req.result);
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("idb open failed"));
+    req.onerror = (): void => reject(req.error ?? new Error("idb open failed"));
   });
 }
 
@@ -499,8 +443,7 @@ async function restoreIDB(name: string, dump: IdbDump): Promise<void> {
         reject(e);
       }
     };
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("idb open failed"));
+    req.onerror = (): void => reject(req.error ?? new Error("idb open failed"));
   });
 }
 
@@ -508,8 +451,7 @@ function deleteIDB(name: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.deleteDatabase(name);
     req.onsuccess = (): void => resolve();
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("idb delete failed"));
+    req.onerror = (): void => reject(req.error ?? new Error("idb delete failed"));
     req.onblocked = (): void => resolve();
   });
 }
@@ -517,7 +459,6 @@ function deleteIDB(name: string): Promise<void> {
 function reqToPromise<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = (): void => resolve(req.result);
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("idb req failed"));
+    req.onerror = (): void => reject(req.error ?? new Error("idb req failed"));
   });
 }

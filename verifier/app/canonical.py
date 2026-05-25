@@ -1,8 +1,11 @@
-"""RFC8785-style canonical JSON encoder for the verifier.
+"""RFC 8785 canonical JSON for the verifier.
 
-Mirrors ``backend/app/utils/canonical_json.py`` exactly. Kept local so the
-verifier service has zero cross-service Python imports and can be deployed
-as a fully independent microservice.
+Delegates to ``rfc8785`` (Trail of Bits, Apache-2.0). Kept as a thin local
+module so the verifier service still has zero cross-service Python imports.
+
+Mirrors ``backend/app/utils/canonical_json.py`` \u2014 both modules MUST use the
+same ``rfc8785`` pin (see requirements.txt) so that backend-signed receipts
+are byte-verifiable here.
 """
 
 from __future__ import annotations
@@ -12,11 +15,35 @@ import math
 import re
 from typing import Any, Final
 
-__all__ = ["canonical_json_bytes", "canonical_json_str", "payload_sha256"]
+import rfc8785
+
+__all__ = [
+    "canonical_json_bytes",
+    "canonical_json_str",
+    "payload_sha256",
+    "legacy_canonical_json_bytes",
+    "verify_canonical_match",
+]
 
 
-_ESCAPE_RE: Final[re.Pattern[str]] = re.compile(r'[\\"\x00-\x1f]')
-_ESCAPE_MAP: Final[dict[str, str]] = {
+def canonical_json_bytes(obj: Any) -> bytes:
+    """RFC 8785 canonical JSON UTF-8 bytes."""
+
+    return rfc8785.dumps(obj)
+
+
+def canonical_json_str(obj: Any) -> str:
+    return canonical_json_bytes(obj).decode("utf-8")
+
+
+def payload_sha256(obj: Any) -> str:
+    return hashlib.sha256(canonical_json_bytes(obj)).hexdigest()
+
+
+# --- Legacy (pre-cutover) encoder, retained ONLY for back-compat verify ---
+
+_LEGACY_ESCAPE_RE: Final[re.Pattern[str]] = re.compile(r'[\\"\x00-\x1f]')
+_LEGACY_ESCAPE_MAP: Final[dict[str, str]] = {
     "\\": "\\\\",
     '"': '\\"',
     "\b": "\\b",
@@ -27,20 +54,20 @@ _ESCAPE_MAP: Final[dict[str, str]] = {
 }
 
 
-def _escape_str(value: str) -> str:
+def _legacy_escape_str(value: str) -> str:
     def replace(match: re.Match[str]) -> str:
         char = match.group(0)
-        mapped = _ESCAPE_MAP.get(char)
+        mapped = _LEGACY_ESCAPE_MAP.get(char)
         if mapped is not None:
             return mapped
         return f"\\u{ord(char):04x}"
 
-    return '"' + _ESCAPE_RE.sub(replace, value) + '"'
+    return '"' + _LEGACY_ESCAPE_RE.sub(replace, value) + '"'
 
 
-def _format_number(value: int | float) -> str:
-    if isinstance(value, bool):  # pragma: no cover - handled separately
-        raise TypeError("bool should not reach _format_number")
+def _legacy_format_number(value: int | float) -> str:
+    if isinstance(value, bool):  # pragma: no cover
+        raise TypeError("bool should not reach _legacy_format_number")
     if isinstance(value, int):
         return str(value)
     if not math.isfinite(value):
@@ -66,17 +93,17 @@ def _format_number(value: int | float) -> str:
     return text
 
 
-def _encode(value: Any) -> str:
+def _legacy_encode(value: Any) -> str:
     if value is None:
         return "null"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, (int, float)):
-        return _format_number(value)
+        return _legacy_format_number(value)
     if isinstance(value, str):
-        return _escape_str(value)
+        return _legacy_escape_str(value)
     if isinstance(value, (list, tuple)):
-        return "[" + ",".join(_encode(item) for item in value) + "]"
+        return "[" + ",".join(_legacy_encode(item) for item in value) + "]"
     if isinstance(value, dict):
         items: list[tuple[str, Any]] = []
         for key, val in value.items():
@@ -86,23 +113,39 @@ def _encode(value: Any) -> str:
                 )
             items.append((key, val))
         items.sort(key=lambda kv: kv[0].encode("utf-16-be"))
-        return "{" + ",".join(_escape_str(k) + ":" + _encode(v) for k, v in items) + "}"
+        return (
+            "{"
+            + ",".join(
+                _legacy_escape_str(k) + ":" + _legacy_encode(v) for k, v in items
+            )
+            + "}"
+        )
     raise TypeError(f"Unsupported type for canonical JSON: {type(value).__name__}")
 
 
-def canonical_json_str(obj: Any) -> str:
-    """Return RFC8785-style canonical JSON string for *obj*."""
+def legacy_canonical_json_bytes(obj: Any) -> bytes:
+    """Pre-cutover encoder. ONLY for verifying receipts signed before the
+    JCS-library cutover. New code MUST call ``canonical_json_bytes``.
+    """
 
-    return _encode(obj)
-
-
-def canonical_json_bytes(obj: Any) -> bytes:
-    """Return RFC8785-style canonical JSON UTF-8 bytes for *obj*."""
-
-    return _encode(obj).encode("utf-8")
+    return _legacy_encode(obj).encode("utf-8")
 
 
-def payload_sha256(obj: Any) -> str:
-    """Return hex SHA-256 digest of the canonical JSON encoding of *obj*."""
+def verify_canonical_match(obj: Any, verifier: Any) -> bool:
+    """Try RFC 8785 bytes first; on failure, fall back to legacy bytes."""
 
-    return hashlib.sha256(canonical_json_bytes(obj)).hexdigest()
+    new_bytes: bytes | None
+    try:
+        new_bytes = canonical_json_bytes(obj)
+    except Exception:  # noqa: BLE001
+        new_bytes = None
+    if new_bytes is not None and verifier(new_bytes):
+        return True
+
+    try:
+        old_bytes = legacy_canonical_json_bytes(obj)
+    except Exception:  # noqa: BLE001
+        return False
+    if new_bytes is not None and old_bytes == new_bytes:
+        return False
+    return verifier(old_bytes)

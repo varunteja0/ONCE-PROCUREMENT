@@ -29,9 +29,6 @@ import type { PortalPlatform } from "../types/portal";
 import { getAutoLockMinutes, registerIdleAutoLock } from "./autoLock";
 import { detectFromUrl, htmlHash, PORTAL_BADGES } from "./portalDetector";
 
-declare const __APP_VERSION__: string;
-const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.0.0-dev";
-
 // ---------------------------------------------------------------------------
 // Alarms
 // ---------------------------------------------------------------------------
@@ -335,6 +332,14 @@ const handlers: HandlerMap = {
   "api.call": async (m) => {
     try {
       const result = await apiCall(m.method, m.path, m.body, m.headers ?? {});
+      if (result.status < 200 || result.status >= 300) {
+        return {
+          ok: false,
+          error: `http_${result.status}`,
+          status: result.status,
+          json: result.json,
+        };
+      }
       return { ok: true, status: result.status, json: result.json };
     } catch (err) {
       return {
@@ -397,9 +402,7 @@ const handlers: HandlerMap = {
 // ---------------------------------------------------------------------------
 
 function bootstrap(): void {
-  chrome.runtime.onInstalled.addListener((details) => {
-    console.info(`[once.bg] installed reason=${details.reason} version=${APP_VERSION}`);
-  });
+  chrome.runtime.onInstalled.addListener(() => undefined);
 
   routeMessages(handlers);
   registerAlarms();
@@ -414,16 +417,7 @@ function bootstrap(): void {
 
   registerIdleAutoLock({
     lock: () => broadcastLock(),
-    unlockedAt: () => {
-      // Coarse: read sync state — but chrome.idle handlers are short,
-      // and storage.get is fine. We deliberately accept a small race
-      // where the user has just unlocked.
-      let cached: number | null = null;
-      void storageGet<number | null>(STORAGE_KEYS.vaultUnlockedAt, null).then((v) => {
-        cached = v;
-      });
-      return cached;
-    },
+    unlockedAt: () => storageGet<number | null>(STORAGE_KEYS.vaultUnlockedAt, null),
   });
 }
 

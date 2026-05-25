@@ -86,7 +86,7 @@ async def csrf_token(response: Response) -> CsrfTokenResponse:
 @router.post(
     "/login",
     response_model=OperatorTokenPair,
-    summary="Operator login (5/min/IP)",
+    summary="Operator login (sliding-window lockout)",
 )
 async def login(
     payload: OperatorLoginRequest,
@@ -100,7 +100,9 @@ async def login(
     status_check = tracker.check(payload.email, ip)
     if status_check.locked:
         _security_logger.warning(
-            "cockpit_login_locked", email=payload.email, ip=ip,
+            "cockpit_login_locked",
+            email=payload.email,
+            ip=ip,
             retry_after=status_check.retry_after_seconds,
         )
         raise HTTPException(
@@ -114,15 +116,13 @@ async def login(
         )
 
     try:
-        operator, access, refresh, expires_in = (
-            await operator_auth.authenticate_operator(
-                session,
-                email=payload.email,
-                password=payload.password,
-                ip=ip,
-                user_agent=ua,
-                totp_code=payload.totp_code,
-            )
+        operator, access, refresh, expires_in = await operator_auth.authenticate_operator(
+            session,
+            email=payload.email,
+            password=payload.password,
+            ip=ip,
+            user_agent=ua,
+            totp_code=payload.totp_code,
         )
     except operator_auth.OperatorAuthError as exc:
         if exc.code in {"invalid_credentials", "invalid_mfa"}:
@@ -142,9 +142,7 @@ async def login(
             user_agent=ua,
             payload={"email": payload.email, "code": exc.code},
         )
-        _security_logger.info(
-            "cockpit_login_denied", email=payload.email, ip=ip, code=exc.code
-        )
+        _security_logger.info("cockpit_login_denied", email=payload.email, ip=ip, code=exc.code)
         raise HTTPException(
             status_code=exc.status_code,
             detail={"code": exc.code, "message": exc.message},
@@ -174,9 +172,7 @@ async def login(
         ip=ip,
         role=operator.role,
     )
-    return OperatorTokenPair(
-        access_token=access, refresh_token=refresh, expires_in=expires_in
-    )
+    return OperatorTokenPair(access_token=access, refresh_token=refresh, expires_in=expires_in)
 
 
 @router.post(
@@ -193,10 +189,11 @@ async def refresh(
     ip = _client_ip(request) or "unknown"
     ua = request.headers.get("user-agent")
     try:
-        operator, access, new_refresh, expires_in = (
-            await operator_auth.refresh_operator_session(
-                session, refresh_token=payload.refresh_token, ip=ip, user_agent=ua,
-            )
+        operator, access, new_refresh, expires_in = await operator_auth.refresh_operator_session(
+            session,
+            refresh_token=payload.refresh_token,
+            ip=ip,
+            user_agent=ua,
         )
     except operator_auth.OperatorAuthError as exc:
         raise HTTPException(
@@ -218,9 +215,7 @@ async def refresh(
         ip=ip,
         user_agent=ua,
     )
-    return OperatorTokenPair(
-        access_token=access, refresh_token=new_refresh, expires_in=expires_in
-    )
+    return OperatorTokenPair(access_token=access, refresh_token=new_refresh, expires_in=expires_in)
 
 
 @router.post(
@@ -268,9 +263,7 @@ async def me(
     accessible: list[str] = []
     if not is_founder:
         grants = await session.execute(
-            select(OperatorTenantGrant.tenant_id).where(
-                OperatorTenantGrant.operator_id == operator.id
-            )
+            select(OperatorTenantGrant.tenant_id).where(OperatorTenantGrant.operator_id == operator.id)
         )
         accessible = [str(t) for t in grants.scalars().all()]
     return OperatorMe(

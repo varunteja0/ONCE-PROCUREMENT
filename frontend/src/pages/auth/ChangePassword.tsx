@@ -1,25 +1,22 @@
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound } from 'lucide-react';
-import { useState } from 'react';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { toast } from '@/lib/toast';
-import { api, extractErrorMessage, isApiError } from '@/services/api';
-import {
-  passwordChangeSchema,
-  type PasswordChangeFormValues,
-} from '@/schemas/auth';
-import { scorePassword } from '@/lib/passwordStrength';
-import { useAuth } from '@/hooks/useAuth';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { useAuth } from "@/hooks/useAuth";
+import { scorePassword } from "@/lib/passwordStrength";
+import { toast } from "@/lib/toast";
+import { passwordChangeSchema, type PasswordChangeFormValues } from "@/schemas/auth";
+import { api, extractErrorMessage, isApiError } from "@/services/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { KeyRound } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 const SEGMENT_COLORS: ReadonlyArray<string> = [
-  'bg-rose-500',
-  'bg-amber-500',
-  'bg-yellow-500',
-  'bg-lime-500',
-  'bg-emerald-500',
+  "bg-rose-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-emerald-500",
 ];
 
 function StrengthMeter({ password, email }: { password: string; email?: string | null }): JSX.Element {
@@ -32,9 +29,7 @@ function StrengthMeter({ password, email }: { password: string; email?: string |
           <div
             key={i}
             className={`h-1.5 flex-1 rounded ${
-              password.length > 0 && i < filled
-                ? SEGMENT_COLORS[result.score]
-                : 'bg-slate-200 dark:bg-slate-700'
+              password.length > 0 && i < filled ? SEGMENT_COLORS[result.score] : "bg-slate-200 dark:bg-slate-700"
             }`}
           />
         ))}
@@ -42,7 +37,7 @@ function StrengthMeter({ password, email }: { password: string; email?: string |
       {password.length > 0 ? (
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           Strength: <span className="font-medium">{result.label}</span>
-          {result.reasons.length > 0 ? ` — ${result.reasons[0]}` : ''}
+          {result.reasons.length > 0 ? ` — ${result.reasons[0]}` : ""}
         </p>
       ) : null}
     </div>
@@ -57,30 +52,30 @@ export default function ChangePassword(): JSX.Element {
   const form = useForm<PasswordChangeFormValues>({
     resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
-      current_password: '',
-      new_password: '',
-      confirm_password: '',
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
     },
-    mode: 'onBlur',
+    mode: "onBlur",
   });
 
-  const newPw = form.watch('new_password');
+  const newPw = form.watch("new_password");
   const score = scorePassword(newPw, { email: user?.email ?? null }).score;
 
   async function onSubmit(values: PasswordChangeFormValues): Promise<void> {
     setNotImplemented(null);
     try {
       // BACKEND-COUPLED: depends on POST /auth/change-password being implemented.
-      await api.post('/auth/change-password', values);
-      toast.success('Password updated.');
-      navigate('/settings', { replace: true });
+      await api.post("/auth/change-password", values);
+      toast.success("Password updated.");
+      navigate("/settings", { replace: true });
     } catch (err) {
       if (isApiError(err) && err.response?.status === 404) {
         // BACKEND-COUPLED: backend endpoint not yet implemented.
-        setNotImplemented('Coming soon — backend endpoint pending.');
+        setNotImplemented("Coming soon — backend endpoint pending.");
         return;
       }
-      toast.error(extractErrorMessage(err, 'Could not update password'));
+      toast.error(extractErrorMessage(err, "Could not update password"));
     }
   }
 
@@ -91,9 +86,7 @@ export default function ChangePassword(): JSX.Element {
     <div className="mx-auto max-w-md space-y-6">
       <header className="flex items-center gap-2">
         <KeyRound className="h-5 w-5 text-slate-700 dark:text-slate-200" aria-hidden="true" />
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Change password
-        </h1>
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Change password</h1>
       </header>
 
       {notImplemented ? (
@@ -112,7 +105,7 @@ export default function ChangePassword(): JSX.Element {
           autoComplete="current-password"
           required
           disabled={submitting}
-          {...form.register('current_password')}
+          {...form.register("current_password")}
           error={form.formState.errors.current_password?.message}
         />
         <div>
@@ -122,7 +115,7 @@ export default function ChangePassword(): JSX.Element {
             autoComplete="new-password"
             required
             disabled={submitting}
-            {...form.register('new_password')}
+            {...form.register("new_password")}
             error={form.formState.errors.new_password?.message}
           />
           <StrengthMeter password={newPw} email={user?.email ?? null} />
@@ -133,20 +126,15 @@ export default function ChangePassword(): JSX.Element {
           autoComplete="new-password"
           required
           disabled={submitting}
-          {...form.register('confirm_password')}
+          {...form.register("confirm_password")}
           error={form.formState.errors.confirm_password?.message}
         />
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/settings')}
-            disabled={submitting}
-          >
+          <Button type="button" variant="ghost" onClick={() => navigate("/settings")} disabled={submitting}>
             Cancel
           </Button>
           <Button type="submit" loading={submitting} disabled={disableSubmit}>
-            {submitting ? 'Saving…' : 'Update password'}
+            {submitting ? "Saving…" : "Update password"}
           </Button>
         </div>
       </form>

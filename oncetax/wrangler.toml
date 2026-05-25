@@ -1,7 +1,10 @@
 name = "oncetax"
 main = "worker.ts"
 compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
+# NOTE: `nodejs_compat` is intentionally NOT enabled. oncetax/AGENTS.md
+# rule #1 forbids Node-only APIs; keep this list empty so accidental
+# `import "node:crypto"` (or similar) fails at deploy time.
+compatibility_flags = []
 
 # Build target — Remix server bundle is produced by `npm run build` (vite).
 # The worker entry (`worker.ts`) lazy-imports `./build/server/index.js` at
@@ -22,6 +25,17 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 # Non-secret config. Secrets live in `.dev.vars` (local) or
 # `wrangler secret put <NAME>` (deployed). See `.dev.vars.example`.
+#
+# Required secrets (set per-environment):
+#   SHOPIFY_API_KEY        — from Shopify Partners dashboard
+#   SHOPIFY_API_SECRET     — used for OAuth + webhook HMAC verification
+#   RESEND_API_KEY         — for transactional email (filing reminders)
+#   WORKER_DATA_KEY        — base64url 32-byte AES-256-GCM key for
+#                            at-rest encryption of Shopify access tokens.
+#                            Generate: openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
+#                            Rotation: re-encrypt all rows under the new
+#                            key in a one-shot worker before flipping the
+#                            secret — there's no in-place re-key today.
 [vars]
 APP_URL = "https://oncetax.example.com"
 SCOPES = "read_orders,read_customers"

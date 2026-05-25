@@ -62,14 +62,14 @@
 
 ## What is intentionally NOT being done before launch (and why)
 
-| Deferred item | Defer until | Why it's safe to defer |
-|---|---|---|
-| JWT → httpOnly cookies migration | Customer #3 | Current header-bearer is audited; no XSS surface in operator-only cockpit |
-| HS256 → RS256 JWT | Customer #5 | Single-issuer + rotated secret is sufficient for one-tenant-per-token model |
-| Speculative-service full quarantine | Customer #2 | Audit confirmed no orphaned services; every service has a worker or API importer |
-| `oncetax/` spin-off into its own org | OnceTax ARR > $50K/mo | Zero runtime code shared with Wedge A; spin out only when there's revenue to justify the split |
-| Performance optimization | First customer complaint | No customer at scale yet; optimizing without a signal is waste |
-| Expanding test surface beyond 1,451 | First prod incident | The first incident teaches you what's actually under-tested |
+| Deferred item                        | Defer until              | Why it's safe to defer                                                                         |
+| ------------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| JWT → httpOnly cookies migration     | Customer #3              | Current header-bearer is audited; no XSS surface in operator-only cockpit                      |
+| HS256 → RS256 JWT                    | Customer #5              | Single-issuer + rotated secret is sufficient for one-tenant-per-token model                    |
+| Speculative-service full quarantine  | Customer #2              | Audit confirmed no orphaned services; every service has a worker or API importer               |
+| `oncetax/` spin-off into its own org | OnceTax ARR > $50K/mo    | Zero runtime code shared with Wedge A; spin out only when there's revenue to justify the split |
+| Performance optimization             | First customer complaint | No customer at scale yet; optimizing without a signal is waste                                 |
+| Expanding test surface beyond 1,451  | First prod incident      | The first incident teaches you what's actually under-tested                                    |
 
 ---
 

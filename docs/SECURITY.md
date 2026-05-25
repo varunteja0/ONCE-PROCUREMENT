@@ -12,14 +12,14 @@ This document is the **threat model**. Operational security procedures
 
 ## 1. Assets we protect
 
-| Asset | Where it lives | Why an attacker wants it |
-|---|---|---|
-| Tenant A's supplier data | Postgres, `tenant_id`-scoped | Pivot into Tenant A's carrier portals; identity fraud. |
-| Operator portal credentials | Browser extension vault, AES-GCM-256 in IndexedDB | Direct access to carrier portals. |
-| Receipt signing private key | Worker process env (`RECEIPT_SIGNING_PRIVATE_KEY_PEM`) | Forge audit receipts; undermine the whole product. |
-| JWT signing secret | Backend env (`JWT_SECRET_KEY`) | Impersonate any user across any tenant. |
-| Append-only audit log | Postgres, `audit_logs` | Cover tracks; tamper with forensic record. |
-| OnceTax customer Shopify tokens | Cloudflare KV / D1 | Read/modify Shopify stores. |
+| Asset                           | Where it lives                                         | Why an attacker wants it                               |
+| ------------------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| Tenant A's supplier data        | Postgres, `tenant_id`-scoped                           | Pivot into Tenant A's carrier portals; identity fraud. |
+| Operator portal credentials     | Browser extension vault, AES-GCM-256 in IndexedDB      | Direct access to carrier portals.                      |
+| Receipt signing private key     | Worker process env (`RECEIPT_SIGNING_PRIVATE_KEY_PEM`) | Forge audit receipts; undermine the whole product.     |
+| JWT signing secret              | Backend env (`JWT_SECRET_KEY`)                         | Impersonate any user across any tenant.                |
+| Append-only audit log           | Postgres, `audit_logs`                                 | Cover tracks; tamper with forensic record.             |
+| OnceTax customer Shopify tokens | Cloudflare KV / D1                                     | Read/modify Shopify stores.                            |
 
 ## 2. Adversary model
 
@@ -69,8 +69,8 @@ Tenant B row, by either explicit ID or by query.
   only the backend issues and verifies tokens.
 - **Access token TTL:** 15 minutes. **Refresh token TTL:** 30 days.
 - **Refresh rotation:** every refresh exchange issues a new refresh
-  token and invalidates the previous one (server-side denylist in
-  Redis).
+  token and invalidates the previous one through the tenant-scoped
+  database denylist.
 - **Storage on the client:** access + refresh in `localStorage` for the
   operator console; axios interceptor handles refresh on 401.
 - **CSRF:** double-submit cookie on every state-changing route for

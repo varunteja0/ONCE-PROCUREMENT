@@ -8,12 +8,19 @@ a configured public key (PEM). Intended to be auditable / runnable by anyone.
 from __future__ import annotations
 
 import base64
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
 import httpx
 import structlog
+from app.api_key import enforce_api_key_or_rate_limit
+from app.canonical import verify_canonical_match
+from app.content_negotiation import negotiate
+from app.observability import init_sentry
+from app.views import _render_html
+from app.views import router as views_router
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -25,12 +32,6 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.api_key import enforce_api_key_or_rate_limit
-from app.canonical import canonical_json_bytes as _rfc8785_bytes
-from app.content_negotiation import negotiate
-from app.observability import init_sentry
-from app.views import _render_html, router as views_router
-
 logger = structlog.get_logger(__name__)
 
 
@@ -41,8 +42,10 @@ class VerifierSettings(BaseSettings):
 
     backend_base_url: str = "http://localhost:8000"
     backend_receipt_path: str = "/v1/public/receipts/"
+    backend_key_path: str = "/v1/keys/"
     signing_key_id: str = "default"
     public_key_pem: str = ""
+    public_key_cache_ttl_sec: int = 3600
     request_timeout_sec: float = 10.0
     app_name: str = "once-verifier"
     sentry_dsn: str = ""
@@ -70,7 +73,9 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "OPTIONS"],
-    allow_headers=["*"],
+    # Narrow allow_headers to the exact set the verifier consumes. Avoids
+    # advertising arbitrary header acceptance from a wildcard origin.
+    allow_headers=["accept", "content-type", "x-verify-api-key"],
 )
 
 _APP_DIR = Path(__file__).resolve().parent
@@ -89,6 +94,16 @@ class VerifyResponse(BaseModel):
     payload: dict[str, Any]
     public_key_pem: str
     signing_key_id: str
+
+
+@dataclass(slots=True)
+class CachedPublicKey:
+    pem: str
+    expires_at: float
+
+
+_PUBLIC_KEY_CACHE: dict[str, CachedPublicKey] = {}
+_PUBLIC_KEY_CACHE_MAX = 64
 
 
 def _load_public_key(pem: str) -> Ed25519PublicKey:
@@ -110,12 +125,109 @@ def _load_public_key(pem: str) -> Ed25519PublicKey:
     return key
 
 
-def _canonical_json_bytes(payload: dict[str, Any]) -> bytes:
-    """RFC8785 canonical JSON. Must byte-match ``backend/app/utils/canonical_json.py``
-    so the verifier can validate any backend-signed receipt.
-    """
+def _extract_signing_key_id(envelope: dict[str, Any], payload: dict[str, Any]) -> str:
+    candidates: list[Any] = [
+        envelope.get("signing_key_id"),
+        envelope.get("key_id"),
+        payload.get("signing_key_id"),
+    ]
+    receipt_obj = envelope.get("receipt")
+    if isinstance(receipt_obj, dict):
+        candidates.append(receipt_obj.get("signing_key_id"))
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+    return settings.signing_key_id
 
-    return _rfc8785_bytes(payload)
+
+def _static_public_key_for(signing_key_id: str) -> str | None:
+    pem = settings.public_key_pem.strip()
+    if pem and signing_key_id == settings.signing_key_id:
+        return pem
+    return None
+
+
+def _cache_get(signing_key_id: str) -> str | None:
+    cached = _PUBLIC_KEY_CACHE.get(signing_key_id)
+    if cached is None:
+        return None
+    if cached.expires_at <= time.monotonic():
+        _PUBLIC_KEY_CACHE.pop(signing_key_id, None)
+        return None
+    return cached.pem
+
+
+def _cache_put(signing_key_id: str, pem: str) -> None:
+    if len(_PUBLIC_KEY_CACHE) >= _PUBLIC_KEY_CACHE_MAX:
+        oldest_key = min(
+            _PUBLIC_KEY_CACHE, key=lambda key_id: _PUBLIC_KEY_CACHE[key_id].expires_at
+        )
+        _PUBLIC_KEY_CACHE.pop(oldest_key, None)
+    _PUBLIC_KEY_CACHE[signing_key_id] = CachedPublicKey(
+        pem=pem,
+        expires_at=time.monotonic() + max(60, settings.public_key_cache_ttl_sec),
+    )
+
+
+def _public_key_url(signing_key_id: str) -> str:
+    base = settings.backend_base_url.rstrip("/")
+    path = settings.backend_key_path.rstrip("/")
+    return f"{base}{path}/{signing_key_id}"
+
+
+async def _resolve_public_key_pem(signing_key_id: str) -> str:
+    static_pem = _static_public_key_for(signing_key_id)
+    if static_pem is not None:
+        return static_pem
+
+    cached = _cache_get(signing_key_id)
+    if cached is not None:
+        return cached
+
+    url = _public_key_url(signing_key_id)
+    try:
+        async with httpx.AsyncClient(timeout=settings.request_timeout_sec) as client:
+            resp = await client.get(url, headers={"Accept": "application/json"})
+    except httpx.HTTPError as exc:
+        logger.warning(
+            "public_key_backend_unreachable",
+            key_id=signing_key_id,
+            url=url,
+            error=str(exc),
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Public key registry is temporarily unavailable",
+        ) from exc
+
+    if resp.status_code == 404:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown signing key id: {signing_key_id}",
+        )
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Backend returned {resp.status_code} fetching public key",
+        )
+    try:
+        body = resp.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Backend returned non-JSON public key response",
+        ) from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=502, detail="Malformed public key response")
+    public_key_pem = body.get("public_key_pem")
+    algorithm = body.get("algorithm")
+    if not isinstance(public_key_pem, str) or not public_key_pem.strip():
+        raise HTTPException(status_code=502, detail="Public key response missing PEM")
+    if isinstance(algorithm, str) and algorithm.lower() != "ed25519":
+        raise HTTPException(status_code=502, detail="Public key is not Ed25519")
+    _load_public_key(public_key_pem)
+    _cache_put(signing_key_id, public_key_pem)
+    return public_key_pem
 
 
 def _decode_signature(sig: str) -> bytes:
@@ -189,6 +301,8 @@ class VerificationResult:
     payload: dict[str, Any] | None = None
     envelope: dict[str, Any] = field(default_factory=dict)
     error_detail: str | None = None
+    public_key_pem: str = ""
+    signing_key_id: str = ""
 
 
 async def perform_verification(receipt_id: str) -> VerificationResult:
@@ -238,8 +352,10 @@ async def perform_verification(receipt_id: str) -> VerificationResult:
             error_detail="Receipt envelope missing 'payload' or 'signature'",
         )
 
+    signing_key_id = _extract_signing_key_id(envelope, payload)
     try:
-        public_key = _load_public_key(settings.public_key_pem)
+        public_key_pem = await _resolve_public_key_pem(signing_key_id)
+        public_key = _load_public_key(public_key_pem)
     except HTTPException as exc:
         return VerificationResult(
             status="error",
@@ -248,9 +364,9 @@ async def perform_verification(receipt_id: str) -> VerificationResult:
             payload=payload,
             envelope=envelope,
             error_detail=str(exc.detail),
+            signing_key_id=signing_key_id,
         )
 
-    signed_bytes = _canonical_json_bytes(payload)
     try:
         signature = _decode_signature(signature_str)
     except HTTPException as exc:
@@ -261,17 +377,46 @@ async def perform_verification(receipt_id: str) -> VerificationResult:
             payload=payload,
             envelope=envelope,
             error_detail=str(exc.detail),
+            signing_key_id=signing_key_id,
+            public_key_pem=public_key_pem,
         )
 
-    verified = False
-    try:
-        public_key.verify(signature, signed_bytes)
-        verified = True
-    except InvalidSignature:
-        verified = False
-    except Exception as exc:  # noqa: BLE001
-        log.warning("verify_error", error=str(exc))
-        verified = False
+    internal_error: BaseException | None = None
+
+    def _verify_bytes(signed_bytes: bytes) -> bool:
+        nonlocal internal_error
+        try:
+            public_key.verify(signature, signed_bytes)
+            return True
+        except InvalidSignature:
+            return False
+        except Exception as exc:  # noqa: BLE001
+            internal_error = exc
+            return False
+
+    verified = verify_canonical_match(payload, _verify_bytes)
+    if internal_error is not None:
+        # Per verifier.instructions.md §7: a 5xx is only allowed when the
+        # verifier itself is broken. A bug in `cryptography` or an
+        # unexpected payload type is exactly that case — surface it as a
+        # 503 "error" result instead of silently degrading to
+        # "invalid", which would be indistinguishable from a real bad
+        # signature for callers.
+        log.error(
+            "verify_internal_error",
+            error=str(internal_error),
+            error_type=type(internal_error).__name__,
+        )
+        return VerificationResult(
+            status="error",
+            verified=False,
+            http_status=503,
+            payload=payload,
+            envelope=envelope,
+            error_detail="Verifier internal error during signature verification",
+            signing_key_id=signing_key_id,
+            public_key_pem=public_key_pem,
+        )
 
     log.info("verify_complete", verified=verified)
     return VerificationResult(
@@ -280,6 +425,8 @@ async def perform_verification(receipt_id: str) -> VerificationResult:
         http_status=200,
         payload=payload,
         envelope=envelope,
+        signing_key_id=signing_key_id,
+        public_key_pem=public_key_pem,
     )
 
 
@@ -307,9 +454,7 @@ async def verify(receipt_id: str, request: Request):  # noqa: ANN201
         return _render_html(request, receipt_id, result, result.http_status)
 
     if fmt == "jose":
-        envelope = result.envelope or {
-            "error": result.error_detail or "unavailable"
-        }
+        envelope = result.envelope or {"error": result.error_detail or "unavailable"}
         return JSONResponse(
             envelope,
             status_code=result.http_status,
@@ -325,7 +470,7 @@ async def verify(receipt_id: str, request: Request):  # noqa: ANN201
     body = VerifyResponse(
         verified=result.verified,
         payload=result.payload or {},
-        public_key_pem=settings.public_key_pem,
-        signing_key_id=settings.signing_key_id,
+        public_key_pem=result.public_key_pem,
+        signing_key_id=result.signing_key_id,
     )
     return JSONResponse(body.model_dump(), status_code=result.http_status)

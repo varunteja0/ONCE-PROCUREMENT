@@ -1,66 +1,40 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Download,
-  FileWarning,
-  Send,
-  Users,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useSubmissions } from '@/hooks/useSubmissions';
-import { useSuppliers } from '@/hooks/useSuppliers';
-import { usePortals } from '@/hooks/usePortals';
-import { coisHooks } from '@/hooks/useArtifacts';
-import { isWithinNextDays, isWithinPastDays } from '@/lib/dates';
-import { downloadCsv, toCsv } from '@/lib/csv';
-import { toast } from '@/lib/toast';
-import { extractErrorMessage } from '@/services/api';
-import type { SubmissionListItem } from '@/services/api';
-import {
-  Button,
-  EmptyState,
-  Skeleton,
-  StatusBadge,
-} from '@/components/ui';
+import { Button, EmptyState, Skeleton, StatusBadge } from "@/components/ui";
+import { coisHooks } from "@/hooks/useArtifacts";
+import { useAuth } from "@/hooks/useAuth";
+import { usePortals } from "@/hooks/usePortals";
+import { useSubmissions } from "@/hooks/useSubmissions";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import { isWithinNextDays, isWithinPastDays } from "@/lib/dates";
+import { toast } from "@/lib/toast";
+import type { SubmissionListItem } from "@/services/api";
+import { extractErrorMessage } from "@/services/api";
+import type { LucideIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, FileWarning, Send, Users } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
 interface StatCardProps {
   label: string;
   value: string;
   icon: LucideIcon;
   loading: boolean;
-  tone?: 'default' | 'warn';
+  tone?: "default" | "warn";
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  loading,
-  tone = 'default',
-}: StatCardProps): JSX.Element {
+function StatCard({ label, value, icon: Icon, loading, tone = "default" }: StatCardProps): JSX.Element {
   const toneClass =
-    tone === 'warn'
-      ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200'
-      : 'border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100';
+    tone === "warn"
+      ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+      : "border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100";
   return (
-    <div
-      className={`rounded-lg border px-5 py-4 shadow-sm flex items-center gap-4 ${toneClass}`}
-    >
+    <div className={`rounded-lg border px-5 py-4 shadow-sm flex items-center gap-4 ${toneClass}`}>
       <div className="rounded-full bg-slate-900/5 p-2 dark:bg-slate-100/10">
         <Icon className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          {label}
-        </p>
-        {loading ? (
-          <Skeleton className="mt-1 h-7 w-16" />
-        ) : (
-          <p className="text-2xl font-semibold">{value}</p>
-        )}
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+        {loading ? <Skeleton className="mt-1 h-7 w-16" /> : <p className="text-2xl font-semibold">{value}</p>}
       </div>
     </div>
   );
@@ -97,21 +71,18 @@ export default function Dashboard(): JSX.Element {
     const suppliers = suppliersQuery.data ?? [];
     const all = submissionsQuery.data?.items ?? [];
     const thisWeek = all.filter((s) => isWithinPastDays(s.created_at, 7));
-    const completed = all.filter((s) => s.status === 'completed').length;
+    const completed = all.filter((s) => s.status === "completed").length;
     const finished = all.filter(
       (s) =>
-        s.status === 'completed' ||
-        s.status === 'failed' ||
-        s.status === 'blocked' ||
-        s.status === 'platform_unsupported',
+        s.status === "completed" ||
+        s.status === "failed" ||
+        s.status === "blocked" ||
+        s.status === "platform_unsupported",
     ).length;
-    const successRate =
-      finished === 0 ? '—' : `${Math.round((completed / finished) * 100)}%`;
+    const successRate = finished === 0 ? "—" : `${Math.round((completed / finished) * 100)}%`;
 
     const cois = coisQuery.data?.items ?? [];
-    const expiringCount = cois.filter((c) =>
-      isWithinNextDays(c.expires_at, 30),
-    ).length;
+    const expiringCount = cois.filter((c) => isWithinNextDays(c.expires_at, 30)).length;
 
     return {
       activeSuppliers: String(suppliers.length),
@@ -122,31 +93,28 @@ export default function Dashboard(): JSX.Element {
   }, [submissionsQuery.data, suppliersQuery.data, coisQuery.data]);
 
   const recent: SubmissionListItem[] = recentQuery.data?.items ?? [];
-  const loading =
-    suppliersQuery.isLoading ||
-    submissionsQuery.isLoading ||
-    recentQuery.isLoading;
+  const loading = suppliersQuery.isLoading || submissionsQuery.isLoading || recentQuery.isLoading;
   const error = suppliersQuery.error ?? submissionsQuery.error ?? recentQuery.error;
 
   function exportRecent(): void {
     if (recent.length === 0) {
-      toast.error('Nothing to export yet.');
+      toast.error("Nothing to export yet.");
       return;
     }
     const csv = toCsv(recent, [
-      { header: 'Submission ID', value: (r) => r.id },
+      { header: "Submission ID", value: (r) => r.id },
       {
-        header: 'Supplier',
+        header: "Supplier",
         value: (r) => supplierNameById.get(r.supplier_id) ?? r.supplier_id,
       },
       {
-        header: 'Portal',
+        header: "Portal",
         value: (r) => portalNameById.get(r.portal_id) ?? r.portal_id,
       },
-      { header: 'Status', value: (r) => r.status },
-      { header: 'Attempts', value: (r) => r.attempt_count },
-      { header: 'Created', value: (r) => r.created_at },
-      { header: 'Updated', value: (r) => r.updated_at },
+      { header: "Status", value: (r) => r.status },
+      { header: "Attempts", value: (r) => r.attempt_count },
+      { header: "Created", value: (r) => r.created_at },
+      { header: "Updated", value: (r) => r.updated_at },
     ]);
     downloadCsv(`recent-submissions-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   }
@@ -155,55 +123,33 @@ export default function Dashboard(): JSX.Element {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-          Welcome{user?.full_name ? `, ${user.full_name}` : ''}
+          Welcome{user?.full_name ? `, ${user.full_name}` : ""}
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Here is your submission activity at a glance.
-        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Here is your submission activity at a glance.</p>
       </header>
 
       {error && (
         <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
-          {extractErrorMessage(error, 'Failed to load dashboard data')}
+          {extractErrorMessage(error, "Failed to load dashboard data")}
         </div>
       )}
 
-      <section
-        aria-label="Key metrics"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <StatCard
-          label="Active suppliers"
-          value={stats.activeSuppliers}
-          icon={Users}
-          loading={loading}
-        />
-        <StatCard
-          label="Submissions this week"
-          value={stats.submissionsThisWeek}
-          icon={Send}
-          loading={loading}
-        />
-        <StatCard
-          label="Success rate"
-          value={stats.successRate}
-          icon={CheckCircle2}
-          loading={loading}
-        />
+      <section aria-label="Key metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Active suppliers" value={stats.activeSuppliers} icon={Users} loading={loading} />
+        <StatCard label="Submissions this week" value={stats.submissionsThisWeek} icon={Send} loading={loading} />
+        <StatCard label="Success rate" value={stats.successRate} icon={CheckCircle2} loading={loading} />
         <StatCard
           label="Expiring COIs (≤30d)"
           value={stats.expiringCois}
           icon={FileWarning}
           loading={loading}
-          tone={Number(stats.expiringCois) > 0 ? 'warn' : 'default'}
+          tone={Number(stats.expiringCois) > 0 ? "warn" : "default"}
         />
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Recent submissions
-          </h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Recent submissions</h2>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -231,7 +177,7 @@ export default function Dashboard(): JSX.Element {
           </div>
         ) : recentQuery.error ? (
           <div className="px-5 py-8 text-sm text-red-700 dark:text-red-300">
-            {extractErrorMessage(recentQuery.error, 'Failed to load submissions')}
+            {extractErrorMessage(recentQuery.error, "Failed to load submissions")}
           </div>
         ) : recent.length === 0 ? (
           <div className="px-5 py-8">
@@ -255,10 +201,7 @@ export default function Dashboard(): JSX.Element {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {recent.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-5 py-2">
                       <Link
                         to={`/submissions/${row.id}`}

@@ -1,24 +1,12 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Download, Pencil, Plus, Users } from 'lucide-react';
-import {
-  useCreateSupplier,
-  useSupplier,
-  useSuppliers,
-  useUpdateSupplier,
-} from '@/hooks/useSuppliers';
-import { extractErrorMessage } from '@/services/api';
-import type { SupplierCreateInput, SupplierListItem } from '@/services/api';
-import {
-  Button,
-  EmptyState,
-  Modal,
-  PaginationControls,
-  SearchInput,
-  Skeleton,
-} from '@/components/ui';
-import { downloadCsv, toCsv } from '@/lib/csv';
-import { toast } from '@/lib/toast';
+import { Button, EmptyState, Modal, PaginationControls, SearchInput, Skeleton } from "@/components/ui";
+import { useCreateSupplier, useSupplier, useSuppliers, useUpdateSupplier } from "@/hooks/useSuppliers";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import { toast } from "@/lib/toast";
+import type { SupplierCreateInput, SupplierListItem } from "@/services/api";
+import { extractErrorMessage } from "@/services/api";
+import { Download, Pencil, Plus, Users } from "lucide-react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 const PAGE_SIZE = 25;
 
@@ -34,18 +22,18 @@ interface FormState {
 
 function emptyForm(): FormState {
   return {
-    legal_name: '',
-    dba_name: '',
-    ein: '',
-    naics_code: '',
-    primary_email: '',
-    primary_phone: '',
-    website: '',
+    legal_name: "",
+    dba_name: "",
+    ein: "",
+    naics_code: "",
+    primary_email: "",
+    primary_phone: "",
+    website: "",
   };
 }
 
 function toPayload(form: FormState): SupplierCreateInput {
-  const trim = (s: string): string | null => (s.trim() === '' ? null : s.trim());
+  const trim = (s: string): string | null => (s.trim() === "" ? null : s.trim());
   return {
     legal_name: form.legal_name.trim(),
     dba_name: trim(form.dba_name),
@@ -75,12 +63,12 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
     const d = detail.data;
     setForm({
       legal_name: d.legal_name,
-      dba_name: d.dba_name ?? '',
-      ein: d.ein ?? '',
-      naics_code: d.naics_code ?? '',
-      primary_email: d.primary_email ?? '',
-      primary_phone: d.primary_phone ?? '',
-      website: d.website ?? '',
+      dba_name: d.dba_name ?? "",
+      ein: d.ein ?? "",
+      naics_code: d.naics_code ?? "",
+      primary_email: d.primary_email ?? "",
+      primary_phone: d.primary_phone ?? "",
+      website: d.website ?? "",
     });
     setHydrated(true);
   }
@@ -94,21 +82,21 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
   async function onSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     if (submitting) return;
-    if (form.legal_name.trim() === '') {
-      toast.error('Legal name is required.');
+    if (form.legal_name.trim() === "") {
+      toast.error("Legal name is required.");
       return;
     }
     try {
       if (editingId) {
         await update.mutateAsync({ id: editingId, patch: toPayload(form) });
-        toast.success('Supplier updated.');
+        toast.success("Supplier updated.");
       } else {
         await create.mutateAsync(toPayload(form));
-        toast.success('Supplier created.');
+        toast.success("Supplier created.");
       }
       onClose();
     } catch (err) {
-      toast.error(err, 'Save failed');
+      toast.error(err, "Save failed");
     }
   }
 
@@ -118,13 +106,13 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
     type?: string;
     required?: boolean;
   }> = [
-    { key: 'legal_name', label: 'Legal name', required: true },
-    { key: 'dba_name', label: 'DBA name' },
-    { key: 'ein', label: 'EIN' },
-    { key: 'naics_code', label: 'NAICS code' },
-    { key: 'primary_email', label: 'Primary email', type: 'email' },
-    { key: 'primary_phone', label: 'Primary phone', type: 'tel' },
-    { key: 'website', label: 'Website', type: 'url' },
+    { key: "legal_name", label: "Legal name", required: true },
+    { key: "dba_name", label: "DBA name" },
+    { key: "ein", label: "EIN" },
+    { key: "naics_code", label: "NAICS code" },
+    { key: "primary_email", label: "Primary email", type: "email" },
+    { key: "primary_phone", label: "Primary phone", type: "tel" },
+    { key: "website", label: "Website", type: "url" },
   ];
 
   if (editingId && detail.isLoading) {
@@ -138,11 +126,7 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
   }
 
   return (
-    <form
-      id="supplier-form"
-      onSubmit={(e) => void onSubmit(e)}
-      className="space-y-3"
-    >
+    <form id="supplier-form" onSubmit={(e) => void onSubmit(e)} className="space-y-3">
       {fields.map((f) => (
         <div key={f.key}>
           <label
@@ -154,7 +138,7 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
           </label>
           <input
             id={`supplier_${f.key}`}
-            type={f.type ?? 'text'}
+            type={f.type ?? "text"}
             value={form[f.key]}
             onChange={field(f.key)}
             required={f.required}
@@ -169,8 +153,8 @@ function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
 
 export default function Suppliers(): JSX.Element {
   const [params, setParams] = useSearchParams();
-  const search = params.get('q') ?? '';
-  const page = Math.max(1, Number(params.get('page') ?? '1'));
+  const search = params.get("q") ?? "";
+  const page = Math.max(1, Number(params.get("page") ?? "1"));
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -189,9 +173,9 @@ export default function Suppliers(): JSX.Element {
   function setSearch(next: string): void {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
-      if (next.trim() === '') out.delete('q');
-      else out.set('q', next);
-      out.set('page', '1');
+      if (next.trim() === "") out.delete("q");
+      else out.set("q", next);
+      out.set("page", "1");
       return out;
     });
   }
@@ -199,7 +183,7 @@ export default function Suppliers(): JSX.Element {
   function setPage(next: number): void {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
-      out.set('page', String(next));
+      out.set("page", String(next));
       return out;
     });
   }
@@ -221,15 +205,15 @@ export default function Suppliers(): JSX.Element {
 
   function exportCsv(): void {
     if (suppliers.length === 0) {
-      toast.error('Nothing to export.');
+      toast.error("Nothing to export.");
       return;
     }
     const csv = toCsv(suppliers, [
-      { header: 'ID', value: (r) => r.id },
-      { header: 'Legal name', value: (r) => r.legal_name },
-      { header: 'DBA name', value: (r) => r.dba_name ?? '' },
-      { header: 'Primary email', value: (r) => r.primary_email ?? '' },
-      { header: 'Created', value: (r) => r.created_at },
+      { header: "ID", value: (r) => r.id },
+      { header: "Legal name", value: (r) => r.legal_name },
+      { header: "DBA name", value: (r) => r.dba_name ?? "" },
+      { header: "Primary email", value: (r) => r.primary_email ?? "" },
+      { header: "Created", value: (r) => r.created_at },
     ]);
     downloadCsv(`suppliers-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   }
@@ -240,9 +224,7 @@ export default function Suppliers(): JSX.Element {
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Suppliers
-          </h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Suppliers</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Producers and MGAs whose submissions you orchestrate.
           </p>
@@ -264,12 +246,7 @@ export default function Suppliers(): JSX.Element {
           >
             Export CSV
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={openCreate}
-            leadingIcon={<Plus className="h-3.5 w-3.5" />}
-          >
+          <Button variant="primary" size="sm" onClick={openCreate} leadingIcon={<Plus className="h-3.5 w-3.5" />}>
             New supplier
           </Button>
         </div>
@@ -285,7 +262,7 @@ export default function Suppliers(): JSX.Element {
           </div>
         ) : query.error ? (
           <div className="px-5 py-8 text-sm text-red-700 dark:text-red-400">
-            {extractErrorMessage(query.error, 'Failed to load suppliers')}
+            {extractErrorMessage(query.error, "Failed to load suppliers")}
           </div>
         ) : suppliers.length === 0 ? (
           <div className="px-5 py-12">
@@ -293,8 +270,8 @@ export default function Suppliers(): JSX.Element {
               title="No suppliers yet"
               description={
                 search.trim()
-                  ? 'No suppliers match your search.'
-                  : 'Create your first supplier to start submitting on their behalf.'
+                  ? "No suppliers match your search."
+                  : "Create your first supplier to start submitting on their behalf."
               }
               icon={Users}
             />
@@ -313,24 +290,14 @@ export default function Suppliers(): JSX.Element {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {suppliers.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-5 py-2 font-medium text-slate-900 dark:text-slate-100">
-                      <Link
-                        to={`/suppliers/${row.id}`}
-                        className="hover:underline"
-                      >
+                      <Link to={`/suppliers/${row.id}`} className="hover:underline">
                         {row.legal_name}
                       </Link>
                     </td>
-                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">
-                      {row.dba_name ?? '—'}
-                    </td>
-                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">
-                      {row.primary_email ?? '—'}
-                    </td>
+                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">{row.dba_name ?? "—"}</td>
+                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">{row.primary_email ?? "—"}</td>
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">
                       {new Date(row.created_at).toLocaleDateString()}
                     </td>
@@ -363,20 +330,15 @@ export default function Suppliers(): JSX.Element {
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={editingId ? 'Edit supplier' : 'New supplier'}
+        title={editingId ? "Edit supplier" : "New supplier"}
         size="md"
         footer={
           <>
             <Button variant="outline" size="sm" onClick={closeModal}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              form="supplier-form"
-              variant="primary"
-              size="sm"
-            >
-              {editingId ? 'Save changes' : 'Create supplier'}
+            <Button type="submit" form="supplier-form" variant="primary" size="sm">
+              {editingId ? "Save changes" : "Create supplier"}
             </Button>
           </>
         }

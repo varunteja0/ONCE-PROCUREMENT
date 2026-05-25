@@ -18,6 +18,11 @@ SESSION_SECRET=replace-with-32-bytes-random-hex
 # Transactional email (Resend)
 RESEND_API_KEY=
 
+# AES-256-GCM key for at-rest encryption of Shopify access tokens.
+# Generate fresh: openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
+# Required for /oauth/callback to persist a Shopify install.
+WORKER_DATA_KEY=
+
 # Optional: external sales-tax rate provider. Unused in v0 (we ship a static
 # state-base-rate table); wire this in when adding district overlays.
 TAXJAR_API_KEY=

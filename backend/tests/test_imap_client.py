@@ -70,6 +70,8 @@ def test_build_parsed_collects_attachments():
 async def test_poll_once_with_raw_messages_ingests(async_session: AsyncSession):
     t = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
     async_session.add(t)
+    await async_session.flush()
+    t.inbound_secret_token = None
     await async_session.commit()
     raws = [_raw_eml(message_id="<i1@x>"), _raw_eml(message_id="<i2@x>")]
     counts = await imap_client.poll_once(raw_messages=raws)
@@ -81,6 +83,8 @@ async def test_poll_once_with_raw_messages_ingests(async_session: AsyncSession):
 async def test_poll_once_with_raw_messages_duplicates(async_session: AsyncSession):
     t = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
     async_session.add(t)
+    await async_session.flush()
+    t.inbound_secret_token = None
     await async_session.commit()
     raw = _raw_eml(message_id="<dup-imap-1@x>")
     counts = await imap_client.poll_once(raw_messages=[raw, raw])

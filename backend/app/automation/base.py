@@ -39,7 +39,7 @@ class BaseSubmitter(ABC):
     ``asyncio.to_thread`` so that the async pipeline never blocks the loop.
     """
 
-    platform: PortalPlatform
+    platform: ClassVar[PortalPlatform]
 
     def __init__(
         self,
@@ -252,9 +252,7 @@ class PlaywrightSubmitter(BaseSubmitter):
                 self._teardown_browser(bundle)
 
     # ------------------------------------------------------------- subclass API
-    def _login(
-        self, page: Page, *, url: str, username: str, password: str
-    ) -> None:
+    def _login(self, page: Page, *, url: str, username: str, password: str) -> None:
         raise NotImplementedError
 
     def _navigate_to_new_submission(self, page: Page, *, base_url: str) -> None:
@@ -274,9 +272,7 @@ class PlaywrightSubmitter(BaseSubmitter):
     # ------------------------------------------------------------- internals
     def _resolve_url(self) -> str:
         cls = type(self)
-        portal_url = getattr(self.portal, "submission_url", None) or getattr(
-            self.portal, "base_url", None
-        )
+        portal_url = getattr(self.portal, "submission_url", None) or getattr(self.portal, "base_url", None)
         env_url = os.environ.get(cls.URL_ENV_VAR)
         url = env_url or portal_url
         if not url:
@@ -297,10 +293,7 @@ class PlaywrightSubmitter(BaseSubmitter):
 
             raise PortalAuthError(
                 "credentials_not_configured",
-                user_message=(
-                    f"Set {cls.USERNAME_ENV_VAR} and {cls.PASSWORD_ENV_VAR} "
-                    "in the environment."
-                ),
+                user_message=(f"Set {cls.USERNAME_ENV_VAR} and {cls.PASSWORD_ENV_VAR} " "in the environment."),
                 username_env=cls.USERNAME_ENV_VAR,
                 password_env=cls.PASSWORD_ENV_VAR,
             )

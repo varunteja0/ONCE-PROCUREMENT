@@ -1,56 +1,45 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Download, Inbox, RefreshCw } from 'lucide-react';
-import {
-  useSubmissions,
-  useRetrySubmission,
-} from '@/hooks/useSubmissions';
-import { useSuppliers } from '@/hooks/useSuppliers';
-import { usePortals } from '@/hooks/usePortals';
-import { extractErrorMessage } from '@/services/api';
-import type { SubmissionListItem, SubmissionStatus } from '@/services/api';
-import {
-  Button,
-  EmptyState,
-  PaginationControls,
-  Skeleton,
-  StatusBadge,
-} from '@/components/ui';
-import { downloadCsv, toCsv } from '@/lib/csv';
-import { toast } from '@/lib/toast';
+import { Button, EmptyState, PaginationControls, Skeleton, StatusBadge } from "@/components/ui";
+import { usePortals } from "@/hooks/usePortals";
+import { useRetrySubmission, useSubmissions } from "@/hooks/useSubmissions";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import { toast } from "@/lib/toast";
+import type { SubmissionListItem, SubmissionStatus } from "@/services/api";
+import { extractErrorMessage } from "@/services/api";
+import { Download, Inbox, RefreshCw } from "lucide-react";
+import { useMemo, useState, type ChangeEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
-const STATUS_OPTIONS: ReadonlyArray<{ value: '' | SubmissionStatus; label: string }> = [
-  { value: '', label: 'All statuses' },
-  { value: 'queued', label: 'Queued' },
-  { value: 'running', label: 'Running' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'retrying', label: 'Retrying' },
-  { value: 'blocked', label: 'Blocked' },
-  { value: 'platform_unsupported', label: 'Platform unsupported' },
+const STATUS_OPTIONS: ReadonlyArray<{ value: "" | SubmissionStatus; label: string }> = [
+  { value: "", label: "All statuses" },
+  { value: "queued", label: "Queued" },
+  { value: "running", label: "Running" },
+  { value: "completed", label: "Completed" },
+  { value: "failed", label: "Failed" },
+  { value: "retrying", label: "Retrying" },
+  { value: "blocked", label: "Blocked" },
+  { value: "platform_unsupported", label: "Platform unsupported" },
 ];
 
 const PAGE_SIZE = 25;
 
 function isRetriable(status: SubmissionStatus): boolean {
-  return status === 'failed' || status === 'blocked';
+  return status === "failed" || status === "blocked";
 }
 
 const ALLOWED_STATUSES: ReadonlyArray<SubmissionStatus> = [
-  'queued',
-  'running',
-  'completed',
-  'failed',
-  'retrying',
-  'blocked',
-  'platform_unsupported',
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "retrying",
+  "blocked",
+  "platform_unsupported",
 ];
 
-function parseStatus(raw: string | null): '' | SubmissionStatus {
-  if (!raw) return '';
-  return (ALLOWED_STATUSES as ReadonlyArray<string>).includes(raw)
-    ? (raw as SubmissionStatus)
-    : '';
+function parseStatus(raw: string | null): "" | SubmissionStatus {
+  if (!raw) return "";
+  return (ALLOWED_STATUSES as ReadonlyArray<string>).includes(raw) ? (raw as SubmissionStatus) : "";
 }
 
 function withinDateRange(iso: string, from: string, to: string): boolean {
@@ -70,17 +59,17 @@ function withinDateRange(iso: string, from: string, to: string): boolean {
 
 export default function Submissions(): JSX.Element {
   const [params, setParams] = useSearchParams();
-  const status = parseStatus(params.get('status'));
-  const supplierId = params.get('supplier') ?? '';
-  const portalId = params.get('portal') ?? '';
-  const dateFrom = params.get('from') ?? '';
-  const dateTo = params.get('to') ?? '';
-  const page = Math.max(1, Number(params.get('page') ?? '1'));
+  const status = parseStatus(params.get("status"));
+  const supplierId = params.get("supplier") ?? "";
+  const portalId = params.get("portal") ?? "";
+  const dateFrom = params.get("from") ?? "";
+  const dateTo = params.get("to") ?? "";
+  const page = Math.max(1, Number(params.get("page") ?? "1"));
 
   const query = useSubmissions(
     useMemo(
       () => ({
-        ...(status === '' ? {} : { status }),
+        ...(status === "" ? {} : { status }),
         ...(supplierId ? { supplierId } : {}),
         ...(portalId ? { portalId } : {}),
         page,
@@ -121,7 +110,7 @@ export default function Submissions(): JSX.Element {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
       mutator(out);
-      out.set('page', '1');
+      out.set("page", "1");
       return out;
     });
   }
@@ -129,47 +118,47 @@ export default function Submissions(): JSX.Element {
   function onStatusChange(e: ChangeEvent<HTMLSelectElement>): void {
     const next = e.target.value;
     patchParams((p) => {
-      if (next === '') p.delete('status');
-      else p.set('status', next);
+      if (next === "") p.delete("status");
+      else p.set("status", next);
     });
   }
 
   function onSupplierChange(e: ChangeEvent<HTMLSelectElement>): void {
     const next = e.target.value;
     patchParams((p) => {
-      if (next === '') p.delete('supplier');
-      else p.set('supplier', next);
+      if (next === "") p.delete("supplier");
+      else p.set("supplier", next);
     });
   }
 
   function onPortalChange(e: ChangeEvent<HTMLSelectElement>): void {
     const next = e.target.value;
     patchParams((p) => {
-      if (next === '') p.delete('portal');
-      else p.set('portal', next);
+      if (next === "") p.delete("portal");
+      else p.set("portal", next);
     });
   }
 
   function onFromChange(e: ChangeEvent<HTMLInputElement>): void {
     const next = e.target.value;
     patchParams((p) => {
-      if (!next) p.delete('from');
-      else p.set('from', next);
+      if (!next) p.delete("from");
+      else p.set("from", next);
     });
   }
 
   function onToChange(e: ChangeEvent<HTMLInputElement>): void {
     const next = e.target.value;
     patchParams((p) => {
-      if (!next) p.delete('to');
-      else p.set('to', next);
+      if (!next) p.delete("to");
+      else p.set("to", next);
     });
   }
 
   function setPage(next: number): void {
     setParams((prev) => {
       const out = new URLSearchParams(prev);
-      out.set('page', String(next));
+      out.set("page", String(next));
       return out;
     });
   }
@@ -178,9 +167,9 @@ export default function Submissions(): JSX.Element {
     setRetryingId(id);
     try {
       await retry.mutateAsync(id);
-      toast.success('Submission requeued.');
+      toast.success("Submission requeued.");
     } catch (err) {
-      toast.error(err, 'Retry failed');
+      toast.error(err, "Retry failed");
     } finally {
       setRetryingId(null);
     }
@@ -188,25 +177,25 @@ export default function Submissions(): JSX.Element {
 
   function exportCsv(): void {
     if (items.length === 0) {
-      toast.error('Nothing to export.');
+      toast.error("Nothing to export.");
       return;
     }
     const csv = toCsv(items, [
-      { header: 'Submission ID', value: (r) => r.id },
+      { header: "Submission ID", value: (r) => r.id },
       {
-        header: 'Supplier',
+        header: "Supplier",
         value: (r) => supplierNameById.get(r.supplier_id) ?? r.supplier_id,
       },
       {
-        header: 'Portal',
+        header: "Portal",
         value: (r) => portalNameById.get(r.portal_id) ?? r.portal_id,
       },
-      { header: 'Status', value: (r) => r.status },
-      { header: 'Attempts', value: (r) => r.attempt_count },
-      { header: 'Last error', value: (r) => r.last_error ?? '' },
-      { header: 'Created', value: (r) => r.created_at },
-      { header: 'Updated', value: (r) => r.updated_at },
-      { header: 'Completed', value: (r) => r.completed_at ?? '' },
+      { header: "Status", value: (r) => r.status },
+      { header: "Attempts", value: (r) => r.attempt_count },
+      { header: "Last error", value: (r) => r.last_error ?? "" },
+      { header: "Created", value: (r) => r.created_at },
+      { header: "Updated", value: (r) => r.updated_at },
+      { header: "Completed", value: (r) => r.completed_at ?? "" },
     ]);
     downloadCsv(`submissions-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   }
@@ -217,9 +206,7 @@ export default function Submissions(): JSX.Element {
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Submissions
-          </h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Submissions</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Every submission attempt across every carrier portal.
           </p>
@@ -245,10 +232,7 @@ export default function Submissions(): JSX.Element {
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <label
-            htmlFor="status_filter"
-            className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-          >
+          <label htmlFor="status_filter" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
             Status
           </label>
           <select
@@ -286,10 +270,7 @@ export default function Submissions(): JSX.Element {
           </select>
         </div>
         <div>
-          <label
-            htmlFor="portal_filter"
-            className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-          >
+          <label htmlFor="portal_filter" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
             Portal
           </label>
           <select
@@ -307,10 +288,7 @@ export default function Submissions(): JSX.Element {
           </select>
         </div>
         <div>
-          <label
-            htmlFor="from_filter"
-            className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-          >
+          <label htmlFor="from_filter" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
             From
           </label>
           <input
@@ -322,10 +300,7 @@ export default function Submissions(): JSX.Element {
           />
         </div>
         <div>
-          <label
-            htmlFor="to_filter"
-            className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-          >
+          <label htmlFor="to_filter" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
             To
           </label>
           <input
@@ -348,16 +323,16 @@ export default function Submissions(): JSX.Element {
           </div>
         ) : query.error ? (
           <div className="px-5 py-8 text-sm text-red-700 dark:text-red-400">
-            {extractErrorMessage(query.error, 'Failed to load submissions')}
+            {extractErrorMessage(query.error, "Failed to load submissions")}
           </div>
         ) : items.length === 0 ? (
           <div className="px-5 py-12">
             <EmptyState
               title="No submissions found"
               description={
-                status === '' && !supplierId && !portalId && !dateFrom && !dateTo
-                  ? 'You have not submitted anything yet.'
-                  : 'No submissions match the selected filters.'
+                status === "" && !supplierId && !portalId && !dateFrom && !dateTo
+                  ? "You have not submitted anything yet."
+                  : "No submissions match the selected filters."
               }
               icon={Inbox}
             />
@@ -378,10 +353,7 @@ export default function Submissions(): JSX.Element {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {items.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-5 py-2">
                       <Link
                         to={`/submissions/${row.id}`}
@@ -407,9 +379,7 @@ export default function Submissions(): JSX.Element {
                     <td className="px-5 py-2">
                       <StatusBadge status={row.status} />
                     </td>
-                    <td className="px-5 py-2 text-slate-700 dark:text-slate-200">
-                      {row.attempt_count}
-                    </td>
+                    <td className="px-5 py-2 text-slate-700 dark:text-slate-200">{row.attempt_count}</td>
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">
                       {new Date(row.updated_at).toLocaleString()}
                     </td>

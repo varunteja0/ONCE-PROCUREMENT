@@ -1,41 +1,28 @@
 // --- L3.7 imports ---
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, ErrorState, Select, Skeleton } from '@/components/ui';
-import { extractErrorMessage } from '@/services/api';
-import {
-  importsApi,
-  type ImportEntityType,
-  type ImportJob,
-  type OnDuplicateMode,
-} from '@/services/importsApi';
-import {
-  useImportColumns,
-  useUploadImport,
-  useImport,
-  useCommitImport,
-} from '@/hooks/useImports';
-import { FileDropzone } from '@/components/imports/FileDropzone';
-import {
-  ColumnMapper,
-  suggestMapping,
-} from '@/components/imports/ColumnMapper';
-import { ImportProgress } from '@/components/imports/ImportProgress';
-import { PreviewTable } from '@/components/imports/PreviewTable';
+import { ColumnMapper, suggestMapping } from "@/components/imports/ColumnMapper";
+import { FileDropzone } from "@/components/imports/FileDropzone";
+import { ImportProgress } from "@/components/imports/ImportProgress";
+import { PreviewTable } from "@/components/imports/PreviewTable";
+import { Button, ErrorState, Select, Skeleton } from "@/components/ui";
+import { useCommitImport, useImport, useImportColumns, useUploadImport } from "@/hooks/useImports";
+import { extractErrorMessage } from "@/services/api";
+import { importsApi, type ImportEntityType, type ImportJob, type OnDuplicateMode } from "@/services/importsApi";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-type Step = 'pick' | 'mapping' | 'review';
+type Step = "pick" | "mapping" | "review";
 
 const ENTITY_OPTIONS = [
-  { value: 'supplier', label: 'Suppliers' },
-  { value: 'coi', label: 'COIs' },
-  { value: 'loss_run', label: 'Loss Runs' },
-  { value: 'producer_license', label: 'Producer Licenses' },
+  { value: "supplier", label: "Suppliers" },
+  { value: "coi", label: "COIs" },
+  { value: "loss_run", label: "Loss Runs" },
+  { value: "producer_license", label: "Producer Licenses" },
 ] as const;
 
 const DUP_OPTIONS = [
-  { value: 'error', label: 'Error on duplicate' },
-  { value: 'update', label: 'Update on duplicate' },
-  { value: 'skip', label: 'Skip on duplicate' },
+  { value: "error", label: "Error on duplicate" },
+  { value: "update", label: "Update on duplicate" },
+  { value: "skip", label: "Skip on duplicate" },
 ] as const;
 
 /** Read header row from a CSV file (first line, naive split). */
@@ -43,10 +30,10 @@ async function readCsvHeaders(file: File): Promise<string[]> {
   // Read up to 64KB to keep memory bounded
   const blob = file.slice(0, 64 * 1024);
   const text = await blob.text();
-  const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
   // Tiny CSV parser for header line (handles double-quoted commas).
   const out: string[] = [];
-  let cur = '';
+  let cur = "";
   let inQuote = false;
   for (let i = 0; i < firstLine.length; i++) {
     const c = firstLine[i];
@@ -61,27 +48,27 @@ async function readCsvHeaders(file: File): Promise<string[]> {
       }
     } else if (c === '"') {
       inQuote = true;
-    } else if (c === ',') {
+    } else if (c === ",") {
       out.push(cur.trim());
-      cur = '';
+      cur = "";
     } else {
       cur += c;
     }
   }
   out.push(cur.trim());
   // Strip BOM from first header
-  if (out.length > 0) out[0] = out[0].replace(/^\uFEFF/, '');
+  if (out.length > 0) out[0] = out[0].replace(/^\uFEFF/, "");
   return out.filter((h) => h.length > 0);
 }
 
 export default function ImportNew(): JSX.Element {
   const navigate = useNavigate();
-  const [entity, setEntity] = useState<ImportEntityType>('supplier');
-  const [onDup, setOnDup] = useState<OnDuplicateMode>('error');
+  const [entity, setEntity] = useState<ImportEntityType>("supplier");
+  const [onDup, setOnDup] = useState<OnDuplicateMode>("error");
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [step, setStep] = useState<Step>('pick');
+  const [step, setStep] = useState<Step>("pick");
   const [uploadedJob, setUploadedJob] = useState<ImportJob | null>(null);
 
   const columnsQ = useImportColumns(entity);
@@ -89,22 +76,14 @@ export default function ImportNew(): JSX.Element {
   const commit = useCommitImport();
   const jobDetailQ = useImport(uploadedJob?.id, {
     refetchInterval:
-      uploadedJob && (uploadedJob.status === 'validating' || uploadedJob.status === 'importing')
-        ? 1500
-        : false,
+      uploadedJob && (uploadedJob.status === "validating" || uploadedJob.status === "importing") ? 1500 : false,
   });
   const detail = jobDetailQ.data ?? null;
 
-  const schemaColumns = useMemo(
-    () => columnsQ.data?.columns ?? [],
-    [columnsQ.data],
-  );
+  const schemaColumns = useMemo(() => columnsQ.data?.columns ?? [], [columnsQ.data]);
 
   const missingRequired = useMemo(
-    () =>
-      schemaColumns
-        .filter((c) => c.required && !mapping[c.field])
-        .map((c) => c.field),
+    () => schemaColumns.filter((c) => c.required && !mapping[c.field]).map((c) => c.field),
     [schemaColumns, mapping],
   );
 
@@ -118,7 +97,7 @@ export default function ImportNew(): JSX.Element {
       setHeaders([]);
       setMapping({});
     }
-    setStep('mapping');
+    setStep("mapping");
   }
 
   async function handleUpload(): Promise<void> {
@@ -130,7 +109,7 @@ export default function ImportNew(): JSX.Element {
       on_duplicate: onDup,
     });
     setUploadedJob(job);
-    setStep('review');
+    setStep("review");
   }
 
   async function handleCommit(): Promise<void> {
@@ -159,7 +138,7 @@ export default function ImportNew(): JSX.Element {
             onChange={(e) => {
               const next = e.target.value as ImportEntityType;
               setEntity(next);
-              setStep('pick');
+              setStep("pick");
               setFile(null);
               setHeaders([]);
               setMapping({});
@@ -189,14 +168,13 @@ export default function ImportNew(): JSX.Element {
         />
         {file ? (
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Selected: <span className="font-mono">{file.name}</span> (
-            {(file.size / 1024).toFixed(1)} KB)
+            Selected: <span className="font-mono">{file.name}</span> ({(file.size / 1024).toFixed(1)} KB)
           </p>
         ) : null}
       </section>
 
       {/* Step 2 — column mapping */}
-      {step !== 'pick' ? (
+      {step !== "pick" ? (
         <section className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
           <h2 className="text-lg font-medium">2 · Map columns</h2>
           {columnsQ.isLoading ? (
@@ -209,23 +187,17 @@ export default function ImportNew(): JSX.Element {
             />
           ) : headers.length === 0 ? (
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              We couldn&apos;t read headers from the file. XLSX header preview is
-              not available in the browser — proceed and the server will
-              auto-detect.
+              We couldn&apos;t read headers from the file. XLSX header preview is not available in the browser — proceed
+              and the server will auto-detect.
             </p>
           ) : (
-            <ColumnMapper
-              fileHeaders={headers}
-              schemaColumns={schemaColumns}
-              value={mapping}
-              onChange={setMapping}
-            />
+            <ColumnMapper fileHeaders={headers} schemaColumns={schemaColumns} value={mapping} onChange={setMapping} />
           )}
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => {
-                setStep('pick');
+                setStep("pick");
               }}
             >
               Back
@@ -247,34 +219,25 @@ export default function ImportNew(): JSX.Element {
       ) : null}
 
       {/* Step 3 — review */}
-      {step === 'review' && uploadedJob ? (
+      {step === "review" && uploadedJob ? (
         <section className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
           <h2 className="text-lg font-medium">3 · Review &amp; commit</h2>
-          {jobDetailQ.isLoading && !detail ? (
-            <Skeleton className="h-32 w-full" />
-          ) : null}
+          {jobDetailQ.isLoading && !detail ? <Skeleton className="h-32 w-full" /> : null}
           {detail ? (
             <>
               <ImportProgress job={detail} />
               <PreviewTable
                 errors={detail.errors_preview}
                 totalErrors={detail.error_count}
-                errorsCsvUrl={
-                  detail.error_count > 0 ? importsApi.errorsUrl(detail.id) : undefined
-                }
+                errorsCsvUrl={detail.error_count > 0 ? importsApi.errorsUrl(detail.id) : undefined}
               />
               <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/imports/${detail.id}`)}
-                >
+                <Button variant="outline" onClick={() => navigate(`/imports/${detail.id}`)}>
                   Open job
                 </Button>
                 <Button
                   loading={commit.isPending}
-                  disabled={
-                    detail.status !== 'dry_run_ready' || detail.valid_rows === 0
-                  }
+                  disabled={detail.status !== "dry_run_ready" || detail.valid_rows === 0}
                   onClick={() => void handleCommit()}
                 >
                   Commit {detail.valid_rows.toLocaleString()} rows

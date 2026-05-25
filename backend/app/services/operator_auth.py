@@ -13,16 +13,17 @@ Account lockout (B8 shared tracker) and strong-secret password policy
 from __future__ import annotations
 
 import hashlib
-import os
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Final
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import (
     Operator,
     OperatorRecoveryCode,
@@ -77,11 +78,19 @@ def get_cockpit_jwt_secret() -> str:
 
     In production this MUST be a strong secret (B8 strength policy);
     development falls back to a deterministic but loud placeholder.
+
+    Runtime secret loading is centralized in ``app.config.settings`` so
+    validation and audit behavior stay in one place.
     """
 
-    raw = os.environ.get("COCKPIT_JWT_SECRET_KEY", "").strip()
+    raw = (settings.cockpit_jwt_secret_key or "").strip()
     if raw:
         return raw
+    if settings.is_production:
+        raise RuntimeError(
+            "COCKPIT_JWT_SECRET_KEY is not set. Refusing to issue or verify "
+            "cockpit tokens in APP_ENV=production without an explicit secret."
+        )
     # Dev/test fallback — never matches the tenant secret so the two
     # token surfaces remain isolated.
     return "cockpit-dev-secret-do-not-use-in-prod-" + ("x" * 32)
@@ -109,10 +118,7 @@ def evaluate_operator_password(password: str) -> None:
     if not result.strong:
         raise OperatorAuthError(
             code="weak_password",
-            message=(
-                "Operator password is too weak: "
-                + ", ".join(result.reasons)
-            ),
+            message=("Operator password is too weak: " + ", ".join(result.reasons)),
             status_code=400,
         )
 
@@ -163,10 +169,8 @@ def decode_token(token: str, *, expected_type: str | None = None) -> dict[str, A
     if not token or not isinstance(token, str):
         raise OperatorAuthError("invalid_token", "Token must be a non-empty string.")
     try:
-        payload: dict[str, Any] = jwt.decode(
-            token, get_cockpit_jwt_secret(), algorithms=[_ALGORITHM]
-        )
-    except JWTError as exc:
+        payload: dict[str, Any] = jwt.decode(token, get_cockpit_jwt_secret(), algorithms=[_ALGORITHM])
+    except PyJWTError as exc:
         raise OperatorAuthError("invalid_token", str(exc)) from exc
 
     if expected_type and payload.get("type") != expected_type:
@@ -212,14 +216,10 @@ async def authenticate_operator(
 ) -> tuple[Operator, str, str, int]:
     normalized = (email or "").strip().lower()
 
-    result = await session.execute(
-        select(Operator).where(Operator.email == normalized)
-    )
+    result = await session.execute(select(Operator).where(Operator.email == normalized))
     operator = result.scalar_one_or_none()
 
-    invalid = OperatorAuthError(
-        "invalid_credentials", "Invalid operator credentials.", status_code=401
-    )
+    invalid = OperatorAuthError("invalid_credentials", "Invalid operator credentials.", status_code=401)
 
     if operator is None or not operator_password_verify(password, operator.hashed_password):
         _logger.info("cockpit_login_failed", email=normalized, ip=ip)
@@ -268,9 +268,7 @@ async def authenticate_operator(
                     operator_id=operator.id,
                     ip=ip,
                 )
-                raise OperatorAuthError(
-                    "invalid_mfa", "Invalid MFA code.", status_code=403
-                )
+                raise OperatorAuthError("invalid_mfa", "Invalid MFA code.", status_code=403)
             recovery.used_at = _now()
             await session.flush()
             _logger.warning(
@@ -280,9 +278,7 @@ async def authenticate_operator(
             )
 
     operator.last_login_at = _now()
-    access, refresh, expires_in = await issue_token_pair(
-        session, operator, ip=ip, user_agent=user_agent
-    )
+    access, refresh, expires_in = await issue_token_pair(session, operator, ip=ip, user_agent=user_agent)
     return operator, access, refresh, expires_in
 
 
@@ -297,29 +293,19 @@ async def refresh_operator_session(
     operator_id = str(payload["sub"])
 
     token_hash = _hash_refresh(refresh_token)
-    sess_result = await session.execute(
-        select(OperatorSession).where(
-            OperatorSession.refresh_token_hash == token_hash
-        )
-    )
+    sess_result = await session.execute(select(OperatorSession).where(OperatorSession.refresh_token_hash == token_hash))
     sess = sess_result.scalar_one_or_none()
     if sess is None or sess.revoked_at is not None:
-        raise OperatorAuthError(
-            "invalid_refresh", "Refresh token unknown or revoked.", status_code=401
-        )
+        raise OperatorAuthError("invalid_refresh", "Refresh token unknown or revoked.", status_code=401)
     # SQLite returns naive datetimes even for ``DateTime(timezone=True)`` —
     # normalize so the comparison stays tz-aware.
     expires_at = sess.expires_at
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=UTC)
     if expires_at <= _now():
-        raise OperatorAuthError(
-            "refresh_expired", "Refresh token has expired.", status_code=401
-        )
+        raise OperatorAuthError("refresh_expired", "Refresh token has expired.", status_code=401)
 
-    op_result = await session.execute(
-        select(Operator).where(Operator.id == operator_id)
-    )
+    op_result = await session.execute(select(Operator).where(Operator.id == operator_id))
     operator = op_result.scalar_one_or_none()
     if operator is None or operator.status != OperatorStatus.ACTIVE.value:
         raise OperatorAuthError(
@@ -330,31 +316,19 @@ async def refresh_operator_session(
 
     # Rotate: revoke old, issue new pair.
     sess.revoked_at = _now()
-    access, new_refresh, expires_in = await issue_token_pair(
-        session, operator, ip=ip, user_agent=user_agent
-    )
+    access, new_refresh, expires_in = await issue_token_pair(session, operator, ip=ip, user_agent=user_agent)
     return operator, access, new_refresh, expires_in
 
 
 async def revoke_session(session: AsyncSession, *, refresh_token: str) -> None:
     token_hash = _hash_refresh(refresh_token)
-    sess_result = await session.execute(
-        select(OperatorSession).where(
-            OperatorSession.refresh_token_hash == token_hash
-        )
-    )
+    sess_result = await session.execute(select(OperatorSession).where(OperatorSession.refresh_token_hash == token_hash))
     sess = sess_result.scalar_one_or_none()
     if sess and sess.revoked_at is None:
         sess.revoked_at = _now()
         await session.flush()
 
 
-async def list_operator_grants(
-    session: AsyncSession, operator: Operator
-) -> list[OperatorTenantGrant]:
-    result = await session.execute(
-        select(OperatorTenantGrant).where(
-            OperatorTenantGrant.operator_id == operator.id
-        )
-    )
+async def list_operator_grants(session: AsyncSession, operator: Operator) -> list[OperatorTenantGrant]:
+    result = await session.execute(select(OperatorTenantGrant).where(OperatorTenantGrant.operator_id == operator.id))
     return list(result.scalars().all())

@@ -38,16 +38,10 @@ class PublicKeyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     key_id: str = Field(..., description="Stable signing-key identifier.")
-    algorithm: Literal["Ed25519"] = Field(
-        "Ed25519", description="Signature algorithm — always Ed25519."
-    )
-    public_key_pem: str = Field(
-        ..., description="SubjectPublicKeyInfo PEM of the Ed25519 public key."
-    )
+    algorithm: Literal["Ed25519"] = Field("Ed25519", description="Signature algorithm — always Ed25519.")
+    public_key_pem: str = Field(..., description="SubjectPublicKeyInfo PEM of the Ed25519 public key.")
     created_at: datetime = Field(..., description="When the key was registered.")
-    status: Literal["active", "revoked"] = Field(
-        ..., description="`revoked` once the key has been rotated out."
-    )
+    status: Literal["active", "revoked"] = Field(..., description="`revoked` once the key has been rotated out.")
 
 
 def _serialize(row: SigningKey) -> PublicKeyRead:

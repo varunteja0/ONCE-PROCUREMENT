@@ -17,18 +17,12 @@ const STATUS_CLASS: Record<SubmissionStatus, string> = {
   platform_unsupported: "pill-failed",
 };
 
-export function Submissions({
-  submissions,
-  appUrlBase = "http://localhost:5173",
-}: Props): JSX.Element {
+export function Submissions({ submissions, appUrlBase = "http://localhost:5173" }: Props): JSX.Element {
   const top = submissions.slice(0, 10);
 
   return (
     <section className="p-3 space-y-3" aria-labelledby="subs-title">
-      <h2
-        id="subs-title"
-        className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-      >
+      <h2 id="subs-title" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Recent submissions
       </h2>
 
@@ -38,7 +32,7 @@ export function Submissions({
             <ReceiptIcon className="h-4 w-4 text-slate-500" aria-hidden />
           </div>
           <div className="font-medium text-slate-700">No submissions yet</div>
-          <div className="mt-0.5">They'll appear here after your first run.</div>
+          <div className="mt-0.5">They will appear here after your first run.</div>
         </div>
       ) : (
         <ul className="space-y-2" role="list">
@@ -51,13 +45,7 @@ export function Submissions({
   );
 }
 
-function Row({
-  submission,
-  appUrlBase,
-}: {
-  submission: SubmissionListItem;
-  appUrlBase: string;
-}): JSX.Element {
+function Row({ submission, appUrlBase }: { submission: SubmissionListItem; appUrlBase: string }): JSX.Element {
   const url = `${appUrlBase.replace(/\/+$/, "")}/submissions/${submission.id}`;
   const onOpen = (): void => {
     try {
@@ -76,22 +64,13 @@ function Row({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className={STATUS_CLASS[submission.status]}>
-              {submission.status}
-            </span>
-            <span className="text-[10px] text-slate-500">
-              {formatRelative(submission.updated_at)}
-            </span>
+            <span className={STATUS_CLASS[submission.status]}>{submission.status}</span>
+            <span className="text-[10px] text-slate-500">{formatRelative(submission.updated_at)}</span>
           </div>
-          <div
-            className="mt-1 text-xs font-mono text-slate-700 truncate"
-            title={submission.id}
-          >
+          <div className="mt-1 text-xs font-mono text-slate-700 truncate" title={submission.id}>
             #{submission.id.slice(0, 8)}
           </div>
-          <div className="text-[10px] text-slate-500 truncate">
-            supplier {submission.supplier_id.slice(0, 8)}
-          </div>
+          <div className="text-[10px] text-slate-500 truncate">supplier {submission.supplier_id.slice(0, 8)}</div>
         </div>
         <button
           type="button"

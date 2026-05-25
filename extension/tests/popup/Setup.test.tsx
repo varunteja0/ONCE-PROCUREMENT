@@ -13,9 +13,9 @@ vi.mock("../../src/lib/storage", async () => {
   };
 });
 
-const send = vi.fn<(msg: { type: string; passphrase?: string }) => Promise<{ ok: true; unlocked: boolean }>>();
+const send = vi.fn<(msg: { type: string }) => Promise<{ ok: true; unlocked: boolean }>>();
 vi.mock("../../src/lib/messaging", () => ({
-  send: (msg: { type: string; passphrase?: string }) => send(msg),
+  send: (msg: { type: string }) => send(msg),
 }));
 
 const login =
@@ -80,7 +80,6 @@ describe("Setup screen", () => {
     expect(vaultInit).toHaveBeenCalledWith("correct horse");
     expect(send).toHaveBeenCalledWith({
       type: "vault.unlock",
-      passphrase: "correct horse",
     });
   });
 

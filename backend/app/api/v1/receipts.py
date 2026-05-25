@@ -20,9 +20,7 @@ router = APIRouter(prefix="/receipts", tags=["receipts"])
 public_receipt_router = APIRouter(tags=["receipts-public"])
 # Public verifier alias mounted under /v1 — the canonical path expected by the
 # ``verifier`` microservice. Same handler as ``/verify/{id}`` below.
-public_v1_receipt_router = APIRouter(
-    prefix="/public/receipts", tags=["receipts-public"]
-)
+public_v1_receipt_router = APIRouter(prefix="/public/receipts", tags=["receipts-public"])
 _logger = get_logger(__name__)
 
 __all__ = ["router", "public_receipt_router", "public_v1_receipt_router"]
@@ -97,9 +95,7 @@ def _receipt_to_read(request: Request, r: SubmissionReceipt) -> ReceiptRead:
     )
 
 
-async def _load_receipt_for_tenant(
-    session: AsyncSession, *, tenant_id: str, receipt_id: str
-) -> SubmissionReceipt:
+async def _load_receipt_for_tenant(session: AsyncSession, *, tenant_id: str, receipt_id: str) -> SubmissionReceipt:
     stmt = select(SubmissionReceipt).where(
         SubmissionReceipt.id == receipt_id,
         SubmissionReceipt.tenant_id == tenant_id,
@@ -129,15 +125,11 @@ async def list_receipts(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ReceiptRead]:
     stmt = select(SubmissionReceipt).where(SubmissionReceipt.tenant_id == tenant_id)
-    count_stmt = select(func.count(SubmissionReceipt.id)).where(
-        SubmissionReceipt.tenant_id == tenant_id
-    )
+    count_stmt = select(func.count(SubmissionReceipt.id)).where(SubmissionReceipt.tenant_id == tenant_id)
     if supplier_id is not None:
         stmt = stmt.where(SubmissionReceipt.supplier_id == supplier_id)
         count_stmt = count_stmt.where(SubmissionReceipt.supplier_id == supplier_id)
-    stmt = stmt.order_by(
-        SubmissionReceipt.submitted_at.desc(), SubmissionReceipt.id.desc()
-    )
+    stmt = stmt.order_by(SubmissionReceipt.submitted_at.desc(), SubmissionReceipt.id.desc())
     stmt = stmt.limit(min(max(limit, 1), _MAX_LIMIT)).offset(max(offset, 0))
 
     result = await session.execute(stmt)
@@ -160,9 +152,7 @@ async def get_receipt(
     tenant_user: CurrentTenantUser,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> ReceiptRead:
-    receipt = await _load_receipt_for_tenant(
-        session, tenant_id=tenant_user.tenant_id, receipt_id=receipt_id
-    )
+    receipt = await _load_receipt_for_tenant(session, tenant_id=tenant_user.tenant_id, receipt_id=receipt_id)
     _write_audit(
         session,
         action="receipt.viewed",
@@ -187,9 +177,7 @@ async def _verify_receipt_public(
 ) -> PublicReceiptVerifyResponse:
     """Shared implementation for the public verifier routes."""
 
-    result = await session.execute(
-        select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id)
-    )
+    result = await session.execute(select(SubmissionReceipt).where(SubmissionReceipt.id == receipt_id))
     receipt = result.scalar_one_or_none()
     if receipt is None:
         raise HTTPException(
@@ -220,9 +208,7 @@ async def _verify_receipt_public(
                 reason = "signature_invalid_or_unknown_key"
         except Exception as exc:
             reason = f"verification_error: {exc}"
-            _logger.exception(
-                "receipt_verification_failed", receipt_id=receipt_id
-            )
+            _logger.exception("receipt_verification_failed", receipt_id=receipt_id)
 
     _write_audit(
         session,

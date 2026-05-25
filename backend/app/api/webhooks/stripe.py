@@ -41,9 +41,7 @@ _logger = get_logger(__name__)
 async def receive_stripe_webhook(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
-    stripe_signature: Annotated[
-        str | None, Header(alias="Stripe-Signature")
-    ] = None,
+    stripe_signature: Annotated[str | None, Header(alias="Stripe-Signature")] = None,
 ) -> WebhookAck:
     body = await request.body()
     if not stripe_signature:
@@ -52,13 +50,11 @@ async def receive_stripe_webhook(
             detail="missing_signature",
         )
     try:
-        result = await process_webhook(
-            session, payload=body, sig_header=stripe_signature
-        )
+        result = await process_webhook(session, payload=body, sig_header=stripe_signature)
     except StripeSignatureError as exc:
         _logger.warning("billing.webhook.bad_signature", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="invalid_signature",
         ) from exc
-    return WebhookAck(status=result.status, event_id=result.event_id)
+    return WebhookAck(status=result.status, event_id=result.event_id)  # type: ignore[arg-type]

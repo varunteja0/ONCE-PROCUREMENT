@@ -1,14 +1,10 @@
 // --- L3.9 inbound ---
-import { Link, useParams } from 'react-router-dom';
-import { Button, ErrorState, Skeleton } from '@/components/ui';
-import {
-  useInboundEmail,
-  useQuarantineInbound,
-  useRetryInbound,
-} from '@/hooks/useInbound';
-import { AttachmentList } from '@/components/inbound/AttachmentList';
-import { RoutingResultBadge } from '@/components/inbound/RoutingResultBadge';
-import { extractErrorMessage } from '@/services/api';
+import { AttachmentList } from "@/components/inbound/AttachmentList";
+import { RoutingResultBadge } from "@/components/inbound/RoutingResultBadge";
+import { Button, ErrorState, Skeleton } from "@/components/ui";
+import { useInboundEmail, useQuarantineInbound, useRetryInbound } from "@/hooks/useInbound";
+import { extractErrorMessage } from "@/services/api";
+import { Link, useParams } from "react-router-dom";
 
 export default function InboundDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +26,7 @@ export default function InboundDetail(): JSX.Element {
       <div className="p-6">
         <ErrorState
           title="Couldn't load email"
-          description={error ? extractErrorMessage(error) : 'Not found.'}
+          description={error ? extractErrorMessage(error) : "Not found."}
           onRetry={() => refetch()}
         />
       </div>
@@ -44,28 +40,18 @@ export default function InboundDetail(): JSX.Element {
           <Link to="/inbound" className="text-xs text-emerald-700 hover:underline dark:text-emerald-300">
             ← Back to inbound
           </Link>
-          <h1 className="mt-1 truncate text-2xl font-semibold">
-            {data.subject ?? '(no subject)'}
-          </h1>
+          <h1 className="mt-1 truncate text-2xl font-semibold">{data.subject ?? "(no subject)"}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            From <span className="font-medium">{data.from_address}</span> ·{' '}
+            From <span className="font-medium">{data.from_address}</span> ·{" "}
             {new Date(data.received_at).toLocaleString()}
           </p>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
           <RoutingResultBadge status={data.status} />
-          <Button
-            variant="secondary"
-            disabled={retry.isPending}
-            onClick={() => retry.mutate(data.id)}
-          >
+          <Button variant="secondary" disabled={retry.isPending} onClick={() => retry.mutate(data.id)}>
             Retry routing
           </Button>
-          <Button
-            variant="secondary"
-            disabled={quarantine.isPending}
-            onClick={() => quarantine.mutate(data.id)}
-          >
+          <Button variant="secondary" disabled={quarantine.isPending} onClick={() => quarantine.mutate(data.id)}>
             Quarantine
           </Button>
         </div>
@@ -85,7 +71,7 @@ export default function InboundDetail(): JSX.Element {
             </div>
             <div className="flex gap-2">
               <dt className="w-32 text-slate-500">Spam score</dt>
-              <dd>{data.spam_score?.toFixed(2) ?? '—'}</dd>
+              <dd>{data.spam_score?.toFixed(2) ?? "—"}</dd>
             </div>
             {data.draft_submission_id ? (
               <div className="flex gap-2">
@@ -117,7 +103,7 @@ export default function InboundDetail(): JSX.Element {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase text-slate-500">Body</h2>
         <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900">
-          {data.raw_body_text ?? '(no plain-text body)'}
+          {data.raw_body_text ?? "(no plain-text body)"}
         </pre>
       </section>
     </div>

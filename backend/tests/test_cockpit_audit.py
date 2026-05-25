@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 import app.db as app_db
 from app.api.cockpit.router import cockpit_router
+from app.config import settings
 from app.middleware.operator_act_as import OperatorActAsMiddleware
 from app.models import CockpitAudit, Operator, OperatorRole
 from app.services import operator_auth
@@ -26,7 +27,7 @@ STRONG_PWD = "C0ckpit-Audit-T3st!2026"
 
 @pytest_asyncio.fixture
 async def cockpit_app(_test_engine, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
-    monkeypatch.setenv("COCKPIT_JWT_SECRET_KEY", "test-cockpit-secret-" + "a" * 32)
+    monkeypatch.setattr(settings, "cockpit_jwt_secret_key", "test-cockpit-secret-" + "a" * 32)
     monkeypatch.setenv("ACCOUNT_LOCKOUT_MAX_FAILS", "50")
     reset_default_tracker()
     app = FastAPI(title="cockpit-audit-test")
@@ -60,9 +61,7 @@ async def _seed_founder(email: str = "founder@once.dev") -> str:
 
 
 def test_redact_payload_flat() -> None:
-    out = redact_payload(
-        {"email": "x@y.com", "password": "hunter2", "Authorization": "Bearer xyz"}
-    )
+    out = redact_payload({"email": "x@y.com", "password": "hunter2", "Authorization": "Bearer xyz"})
     assert out is not None
     assert out["email"] == "x@y.com"
     assert out["password"] == REDACTED
@@ -134,11 +133,7 @@ async def test_cockpit_request_creates_audit_row(cockpit_client: AsyncClient) ->
 
     # Allow the fire-and-forget audit writer to settle.
     async with app_db.AsyncSessionLocal() as session:
-        rows = (
-            (await session.execute(select(CockpitAudit).order_by(CockpitAudit.occurred_at)))
-            .scalars()
-            .all()
-        )
+        rows = (await session.execute(select(CockpitAudit).order_by(CockpitAudit.occurred_at))).scalars().all()
     paths = [r.path for r in rows]
     assert any(p and p.endswith("/cockpit/auth/login") for p in paths)
     assert any(p and p.endswith("/cockpit/auth/me") for p in paths)
@@ -193,9 +188,7 @@ async def test_audit_list_filters_by_operator(cockpit_client: AsyncClient) -> No
     )
     access = login.json()["access_token"]
     # generate some rows
-    await cockpit_client.get(
-        "/cockpit/auth/me", headers={"Authorization": f"Bearer {access}"}
-    )
+    await cockpit_client.get("/cockpit/auth/me", headers={"Authorization": f"Bearer {access}"})
     resp = await cockpit_client.get(
         "/cockpit/audit",
         params={"operator_id": op_id},

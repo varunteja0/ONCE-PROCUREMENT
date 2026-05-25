@@ -20,10 +20,16 @@ const fakeCtx = {
   passThroughOnException: () => undefined,
 } as unknown as ExecutionContext;
 
+// Workers' fetch signature requires IncomingRequest (with cf properties
+// that only the runtime can mint). For unit tests we use a plain Request,
+// so alias the handler to a Request-accepting signature.
+type FetchHandler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
+const handle = worker.fetch as unknown as FetchHandler;
+
 describe("oncetax worker /health", () => {
   it("returns 200 with service identity", async () => {
     const req = new Request("https://oncetax.test/health", { method: "GET" });
-    const res = await worker.fetch!(req, makeEnv(), fakeCtx);
+    const res = await handle(req, makeEnv(), fakeCtx);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       ok: boolean;
@@ -39,13 +45,13 @@ describe("oncetax worker /health", () => {
 
   it("falls through to 404 for unknown routes (no Remix build present)", async () => {
     const req = new Request("https://oncetax.test/does-not-exist");
-    const res = await worker.fetch!(req, makeEnv(), fakeCtx);
+    const res = await handle(req, makeEnv(), fakeCtx);
     expect(res.status).toBe(404);
   });
 
   it("does not treat non-GET /health as health", async () => {
     const req = new Request("https://oncetax.test/health", { method: "POST" });
-    const res = await worker.fetch!(req, makeEnv(), fakeCtx);
+    const res = await handle(req, makeEnv(), fakeCtx);
     expect(res.status).toBe(404);
   });
 });

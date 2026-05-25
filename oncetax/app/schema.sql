@@ -1,12 +1,14 @@
 -- OnceTax D1 schema (v0)
--- Apply with: wrangler d1 execute oncetax --file=app/schema.sql
+-- Canonical schema mirror; deployments apply numbered files in app/migrations/.
 
 CREATE TABLE IF NOT EXISTS shops (
-  id            TEXT PRIMARY KEY,
-  shop          TEXT NOT NULL UNIQUE,
-  access_token  TEXT NOT NULL,
-  plan          TEXT,
-  installed_at  INTEGER NOT NULL
+  id                      TEXT PRIMARY KEY,
+  shop                    TEXT NOT NULL UNIQUE,
+  access_token            TEXT NOT NULL,        -- legacy / placeholder ''
+  access_token_ciphertext TEXT,                 -- AES-256-GCM base64
+  access_token_iv         TEXT,                 -- 12-byte IV base64
+  plan                    TEXT,
+  installed_at            INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_shops_shop ON shops(shop);

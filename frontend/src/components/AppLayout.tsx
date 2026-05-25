@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, KeyRound, LogOut, Menu, Repeat, Settings as SettingsIcon, X } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
-import { TenantChip } from '@/components/TenantChip';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { IdleGuard } from '@/components/IdleGuard';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/cn';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { IdleGuard } from "@/components/IdleGuard";
+import Sidebar from "@/components/Sidebar";
+import { TenantChip } from "@/components/TenantChip";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/cn";
+import { ChevronDown, KeyRound, LogOut, Menu, Repeat, Settings as SettingsIcon, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 export default function AppLayout(): JSX.Element {
   const { user, tenantId, logout } = useAuth();
@@ -18,8 +18,7 @@ export default function AppLayout(): JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const tenantSwitcherEnabled =
-    import.meta.env.VITE_TENANT_SWITCHER === 'true' ||
-    import.meta.env.VITE_TENANT_SWITCHER === '1';
+    import.meta.env.VITE_TENANT_SWITCHER === "true" || import.meta.env.VITE_TENANT_SWITCHER === "1";
 
   useEffect(() => {
     setMobileOpen(false);
@@ -35,18 +34,18 @@ export default function AppLayout(): JSX.Element {
       }
     }
     function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === "Escape") setMenuOpen(false);
     }
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
 
-  const initial = user?.email?.[0]?.toUpperCase() ?? '?';
-  const displayName = user?.full_name || user?.email || 'Account';
+  const initial = user?.email?.[0]?.toUpperCase() ?? "?";
+  const displayName = user?.full_name || user?.email || "Account";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -69,7 +68,7 @@ export default function AppLayout(): JSX.Element {
             <Button
               variant="ghost"
               size="sm"
-              aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+              aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
               aria-expanded={mobileOpen}
               className="md:hidden"
               onClick={() => setMobileOpen((o) => !o)}
@@ -102,9 +101,9 @@ export default function AppLayout(): JSX.Element {
                 aria-expanded={menuOpen}
                 aria-label="Open account menu"
                 className={cn(
-                  'inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 transition hover:bg-slate-50',
-                  'dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900',
+                  "inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 transition hover:bg-slate-50",
+                  "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
                 )}
               >
                 <span
@@ -121,8 +120,8 @@ export default function AppLayout(): JSX.Element {
                   role="menu"
                   aria-label="Account"
                   className={cn(
-                    'absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg',
-                    'dark:border-slate-700 dark:bg-slate-900',
+                    "absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg",
+                    "dark:border-slate-700 dark:bg-slate-900",
                   )}
                 >
                   {user ? (
@@ -130,9 +129,7 @@ export default function AppLayout(): JSX.Element {
                       <p className="truncate font-medium text-slate-900 dark:text-slate-100">
                         {user.full_name || user.email}
                       </p>
-                      {user.full_name ? (
-                        <p className="truncate">{user.email}</p>
-                      ) : null}
+                      {user.full_name ? <p className="truncate">{user.email}</p> : null}
                     </div>
                   ) : null}
                   <ul className="py-1 text-sm">
@@ -180,7 +177,7 @@ export default function AppLayout(): JSX.Element {
                         onClick={() => {
                           setMenuOpen(false);
                           logout();
-                          navigate('/login');
+                          navigate("/login");
                         }}
                         className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                       >

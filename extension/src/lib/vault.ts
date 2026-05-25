@@ -18,28 +18,12 @@
  *
  *   The vault salt lives in `chrome.storage.local` under
  *   `STORAGE_KEYS.vaultSalt` (base64); the derived AES key never leaves
- *   memory and is held in this module behind `lock()` / 15-min auto-lock.
+ *   memory and is held in this module behind `lock()` / configured auto-lock.
  */
 
-import {
-  base64ToBytes,
-  bytesToBase64,
-  decrypt,
-  deriveKey,
-  encrypt,
-  randomBytes,
-  SALT_BYTES,
-} from "./crypto";
-import {
-  storageGetOptional,
-  storageRemove,
-  storageSet,
-  STORAGE_KEYS,
-} from "./storage";
-import {
-  isSupplierProfile,
-  type SupplierProfile,
-} from "../types/profile";
+import { isSupplierProfile, type SupplierProfile } from "../types/profile";
+import { base64ToBytes, bytesToBase64, decrypt, deriveKey, encrypt, randomBytes, SALT_BYTES } from "./crypto";
+import { STORAGE_KEYS, storageGet, storageGetOptional, storageRemove, storageSet } from "./storage";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -50,7 +34,7 @@ const DB_VERSION = 1;
 const STORE_NAME = "entries";
 const VERIFIER_ID = "__verifier__";
 const VERIFIER_PLAINTEXT = "once.vault.v1";
-const AUTO_LOCK_MS = 15 * 60 * 1000; // 15 minutes
+const DEFAULT_AUTO_LOCK_MIN = 15;
 
 // ---------------------------------------------------------------------------
 // SessionKey — opaque handle returned by unlock()
@@ -97,13 +81,23 @@ interface VaultRecord {
 let sessionKey: SessionKeyImpl | null = null;
 let autoLockTimer: ReturnType<typeof setTimeout> | null = null;
 
-function armAutoLock(): void {
+async function autoLockDelayMs(): Promise<number> {
+  const configured = await storageGet<number>(STORAGE_KEYS.autoLockMinutes, DEFAULT_AUTO_LOCK_MIN);
+  const minutes =
+    typeof configured === "number" && Number.isFinite(configured) && configured > 0
+      ? Math.min(240, Math.max(1, Math.floor(configured)))
+      : DEFAULT_AUTO_LOCK_MIN;
+  return minutes * 60 * 1000;
+}
+
+async function armAutoLock(): Promise<void> {
   if (autoLockTimer !== null) {
     clearTimeout(autoLockTimer);
   }
+  const delayMs = await autoLockDelayMs();
   autoLockTimer = setTimeout(() => {
     lock();
-  }, AUTO_LOCK_MS);
+  }, delayMs);
 }
 
 function requireSession(): SessionKeyImpl {
@@ -150,10 +144,7 @@ export class VaultPassphraseError extends Error {
 // ---------------------------------------------------------------------------
 
 function getIndexedDB(): IDBFactory {
-  const f =
-    typeof globalThis !== "undefined"
-      ? (globalThis as { indexedDB?: IDBFactory }).indexedDB
-      : undefined;
+  const f = typeof globalThis !== "undefined" ? (globalThis as { indexedDB?: IDBFactory }).indexedDB : undefined;
   if (!f) {
     throw new Error("indexedDB is unavailable in this environment");
   }
@@ -170,18 +161,15 @@ function openDb(): Promise<IDBDatabase> {
       }
     };
     req.onsuccess = (): void => resolve(req.result);
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("indexedDB open failed"));
-    req.onblocked = (): void =>
-      reject(new Error("indexedDB open blocked by another connection"));
+    req.onerror = (): void => reject(req.error ?? new Error("indexedDB open failed"));
+    req.onblocked = (): void => reject(new Error("indexedDB open blocked by another connection"));
   });
 }
 
 function reqToPromise<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = (): void => resolve(req.result);
-    req.onerror = (): void =>
-      reject(req.error ?? new Error("indexedDB request failed"));
+    req.onerror = (): void => reject(req.error ?? new Error("indexedDB request failed"));
   });
 }
 
@@ -193,10 +181,8 @@ async function dbPut(record: VaultRecord): Promise<void> {
     await reqToPromise(store.put(record));
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = (): void => resolve();
-      tx.onerror = (): void =>
-        reject(tx.error ?? new Error("indexedDB tx failed"));
-      tx.onabort = (): void =>
-        reject(tx.error ?? new Error("indexedDB tx aborted"));
+      tx.onerror = (): void => reject(tx.error ?? new Error("indexedDB tx failed"));
+      tx.onabort = (): void => reject(tx.error ?? new Error("indexedDB tx aborted"));
     });
   } finally {
     db.close();
@@ -268,13 +254,13 @@ export async function init(passphrase: string): Promise<SessionKey> {
   await storageSet(STORAGE_KEYS.vaultInitialized, true);
 
   sessionKey = makeSessionKey(key);
-  armAutoLock();
+  await armAutoLock();
   return sessionKey;
 }
 
 /**
  * Unlock the vault and return a `SessionKey` handle. The derived AES key
- * is held in module state and auto-locked 15 minutes after the most
+ * is held in module state and auto-locked after the configured timeout from the most
  * recent `unlock` / `putProfile` / `getProfile` call.
  *
  * @throws `VaultNotInitializedError` if `init` has not been called.
@@ -303,7 +289,7 @@ export async function unlock(passphrase: string): Promise<SessionKey> {
   }
 
   sessionKey = makeSessionKey(key);
-  armAutoLock();
+  await armAutoLock();
   return sessionKey;
 }
 
@@ -322,10 +308,7 @@ export function lock(): void {
 /**
  * Encrypt and persist `profile` under `key`. Requires an unlocked vault.
  */
-export async function putProfile(
-  key: string,
-  profile: SupplierProfile,
-): Promise<void> {
+export async function putProfile(key: string, profile: SupplierProfile): Promise<void> {
   if (typeof key !== "string" || key.length === 0) {
     throw new Error("putProfile: key must be a non-empty string");
   }
@@ -347,16 +330,14 @@ export async function putProfile(
     ct,
     meta: { kind: "profile", updated_at: new Date().toISOString() },
   });
-  armAutoLock();
+  await armAutoLock();
 }
 
 /**
  * Load and decrypt a profile by `key`. Returns `null` if no entry exists.
  * Requires an unlocked vault.
  */
-export async function getProfile(
-  key: string,
-): Promise<SupplierProfile | null> {
+export async function getProfile(key: string): Promise<SupplierProfile | null> {
   if (typeof key !== "string" || key.length === 0) {
     throw new Error("getProfile: key must be a non-empty string");
   }
@@ -370,7 +351,7 @@ export async function getProfile(
   const plaintext = await decrypt(session.key, record.iv, record.ct);
   const dec = new TextDecoder();
   const parsed: unknown = JSON.parse(dec.decode(plaintext));
-  armAutoLock();
+  await armAutoLock();
   if (!isSupplierProfile(parsed)) return null;
   return parsed;
 }
@@ -402,8 +383,7 @@ export const __test__ = {
     await new Promise<void>((resolve, reject) => {
       const req = getIndexedDB().deleteDatabase(DB_NAME);
       req.onsuccess = (): void => resolve();
-      req.onerror = (): void =>
-        reject(req.error ?? new Error("indexedDB delete failed"));
+      req.onerror = (): void => reject(req.error ?? new Error("indexedDB delete failed"));
       req.onblocked = (): void => resolve();
     });
   },

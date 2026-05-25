@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { api, isApiCancel, isApiError } from '@/services/api';
+import { api, isApiCancel, isApiError } from "@/services/api";
+import { Check, Copy, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface VerifyResponse {
   payload: Record<string, unknown>;
@@ -20,16 +20,16 @@ export interface ReceiptVerifierWidgetProps {
 }
 
 function resolveVerifierBase(explicit?: string): string {
-  if (explicit && explicit.length > 0) return explicit.replace(/\/$/, '');
+  if (explicit && explicit.length > 0) return explicit.replace(/\/$/, "");
   const raw: unknown = import.meta.env.VITE_VERIFIER_BASE;
-  if (typeof raw === 'string' && raw.length > 0) return raw.replace(/\/$/, '');
-  return '/verify';
+  if (typeof raw === "string" && raw.length > 0) return raw.replace(/\/$/, "");
+  return "/verify";
 }
 
 function renderValue(value: unknown): string {
-  if (value === null) return 'null';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') {
+  if (value === null) return "null";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
   try {
@@ -60,25 +60,22 @@ export default function ReceiptVerifierWidget({
       setError(null);
       setData(null);
       try {
-        const resp = await api.get<VerifyResponse>(
-          `${base}/${encodeURIComponent(receiptId)}`,
-          {
-            signal: controller.signal,
-            headers: { Accept: 'application/json' },
-            _onceSkipAuth: true,
-          },
-        );
+        const resp = await api.get<VerifyResponse>(`${base}/${encodeURIComponent(receiptId)}`, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+          _onceSkipAuth: true,
+        });
         if (!cancelled) setData(resp.data);
       } catch (e) {
         if (cancelled) return;
         if (isApiCancel(e)) return;
-        if (e instanceof DOMException && e.name === 'AbortError') return;
+        if (e instanceof DOMException && e.name === "AbortError") return;
         const msg =
           isApiError(e) && e.response
             ? `Verifier returned HTTP ${e.response.status}`
             : e instanceof Error
               ? e.message
-              : 'Verification request failed';
+              : "Verification request failed";
         setError(msg);
       } finally {
         if (!cancelled) setLoading(false);
@@ -100,16 +97,13 @@ export default function ReceiptVerifierWidget({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      setError('Copy to clipboard failed');
+      setError("Copy to clipboard failed");
     }
   }, [data]);
 
-  const containerClass = [
-    'rounded-lg border bg-white p-4 shadow-sm dark:bg-slate-900',
-    className ?? '',
-  ]
+  const containerClass = ["rounded-lg border bg-white p-4 shadow-sm dark:bg-slate-900", className ?? ""]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   if (loading) {
     return (
@@ -129,18 +123,12 @@ export default function ReceiptVerifierWidget({
 
   if (error || !data) {
     return (
-      <div
-        className={`${containerClass} border-rose-200 dark:border-rose-900`}
-        role="alert"
-        aria-live="assertive"
-      >
+      <div className={`${containerClass} border-rose-200 dark:border-rose-900`} role="alert" aria-live="assertive">
         <div className="flex items-center gap-2 text-sm font-semibold text-rose-800 dark:text-rose-200">
           <ShieldAlert aria-hidden="true" className="h-5 w-5" />
           Verification failed
         </div>
-        <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
-          {error ?? 'No verification payload returned.'}
-        </p>
+        <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">{error ?? "No verification payload returned."}</p>
       </div>
     );
   }
@@ -151,18 +139,14 @@ export default function ReceiptVerifierWidget({
   return (
     <div
       className={`${containerClass} ${
-        verified
-          ? 'border-emerald-200 dark:border-emerald-900'
-          : 'border-rose-200 dark:border-rose-900'
+        verified ? "border-emerald-200 dark:border-emerald-900" : "border-rose-200 dark:border-rose-900"
       }`}
       aria-live="polite"
     >
       <div className="flex items-start justify-between gap-3">
         <div
           className={`flex items-center gap-2 text-sm font-semibold ${
-            verified
-              ? 'text-emerald-800 dark:text-emerald-200'
-              : 'text-rose-800 dark:text-rose-200'
+            verified ? "text-emerald-800 dark:text-emerald-200" : "text-rose-800 dark:text-rose-200"
           }`}
           role="status"
         >
@@ -171,9 +155,7 @@ export default function ReceiptVerifierWidget({
           ) : (
             <ShieldAlert aria-hidden="true" className="h-5 w-5" />
           )}
-          {verified
-            ? 'Signature verified · Ed25519'
-            : 'Signature did not verify'}
+          {verified ? "Signature verified · Ed25519" : "Signature did not verify"}
         </div>
         <button
           type="button"
@@ -186,19 +168,15 @@ export default function ReceiptVerifierWidget({
           ) : (
             <Copy aria-hidden="true" className="h-3.5 w-3.5" />
           )}
-          {copied ? 'Copied' : 'Copy JSON'}
+          {copied ? "Copied" : "Copy JSON"}
         </button>
       </div>
 
       <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-[max-content_1fr]">
         <dt className="font-medium text-slate-600 dark:text-slate-400">Signing key ID</dt>
-        <dd className="break-all font-mono text-slate-900 dark:text-slate-100">
-          {data.signing_key_id}
-        </dd>
+        <dd className="break-all font-mono text-slate-900 dark:text-slate-100">{data.signing_key_id}</dd>
         <dt className="font-medium text-slate-600 dark:text-slate-400">Public key fingerprint</dt>
-        <dd className="break-all font-mono text-slate-900 dark:text-slate-100">
-          {data.public_key_fingerprint}
-        </dd>
+        <dd className="break-all font-mono text-slate-900 dark:text-slate-100">{data.public_key_fingerprint}</dd>
       </dl>
 
       <div className="mt-4">
@@ -221,10 +199,7 @@ export default function ReceiptVerifierWidget({
             <tbody className="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
               {payloadEntries.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={2}
-                    className="px-3 py-3 text-center text-slate-500 dark:text-slate-400"
-                  >
+                  <td colSpan={2} className="px-3 py-3 text-center text-slate-500 dark:text-slate-400">
                     Empty payload
                   </td>
                 </tr>

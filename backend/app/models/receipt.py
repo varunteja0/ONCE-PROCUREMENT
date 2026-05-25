@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, _uuid
@@ -45,3 +45,11 @@ class SubmissionReceipt(Base, TimestampMixin):
     signing_key_id: Mapped[str] = mapped_column(String(128), nullable=False)
     signature_b64: Mapped[str] = mapped_column(Text, nullable=False)
     public_payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+def _block_receipt_mutation(*_args: Any, **_kwargs: Any) -> None:
+    raise ValueError("SubmissionReceipt rows are immutable once inserted")
+
+
+event.listen(SubmissionReceipt, "before_update", _block_receipt_mutation)
+event.listen(SubmissionReceipt, "before_delete", _block_receipt_mutation)

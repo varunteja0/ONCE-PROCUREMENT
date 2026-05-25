@@ -58,7 +58,7 @@ async def self_check(
     hsts_env = os.environ.get("SECURITY_HSTS_ENABLED")
     hsts_enabled = (
         hsts_env.strip().lower() in {"1", "true", "yes", "on"}
-        if hsts_env not in (None, "")
+        if hsts_env is not None and hsts_env != ""
         else _hsts_default_enabled()
     )
 

@@ -10,12 +10,8 @@ import {
   logout as logoutService,
   me as meService,
   refresh as refreshService,
-} from '@/services/auth';
-import type {
-  LoginInput,
-  TokenPair,
-  UserMe,
-} from '@/types/api';
+} from "@/services/auth";
+import type { LoginInput, TokenPair, UserMe } from "@/types/api";
 
 export const apiAuth = {
   me(): Promise<UserMe> {

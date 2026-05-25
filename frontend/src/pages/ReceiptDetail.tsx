@@ -1,16 +1,9 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Download, Mail, Send } from 'lucide-react';
-import { useReceipt } from '@/hooks/useReceipts';
-import {
-  Button,
-  Card,
-  CardHeader,
-  DateDisplay,
-  ErrorState,
-  Skeleton,
-} from '@/components/ui';
-import ReceiptVerifierWidget from '@/components/ReceiptVerifierWidget';
-import { toast } from '@/lib/toast';
+import ReceiptVerifierWidget from "@/components/ReceiptVerifierWidget";
+import { Button, Card, CardHeader, DateDisplay, ErrorState, Skeleton } from "@/components/ui";
+import { useReceipt } from "@/hooks/useReceipts";
+import { toast } from "@/lib/toast";
+import { ArrowLeft, Copy, Download, Mail, Send } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function ReceiptDetail(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -22,18 +15,18 @@ export default function ReceiptDetail(): JSX.Element {
   function copyVerifyUrl(): void {
     if (!query.data) return;
     void navigator.clipboard.writeText(query.data.verify_url).then(
-      () => toast.success('Verify URL copied.'),
-      (err) => toast.error(err, 'Failed to copy'),
+      () => toast.success("Verify URL copied."),
+      (err) => toast.error(err, "Failed to copy"),
     );
   }
 
   function downloadJson(): void {
     if (!query.data) return;
     const blob = new Blob([JSON.stringify(query.data, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `receipt-${query.data.id}.json`;
     document.body.appendChild(a);
@@ -44,9 +37,7 @@ export default function ReceiptDetail(): JSX.Element {
 
   function emailVerifyUrl(): void {
     if (!query.data) return;
-    const subject = encodeURIComponent(
-      `Verify submission receipt ${query.data.id.slice(0, 8)}`,
-    );
+    const subject = encodeURIComponent(`Verify submission receipt ${query.data.id.slice(0, 8)}`);
     const body = encodeURIComponent(
       `Hi,\n\nPlease verify the attached submission receipt at:\n${query.data.verify_url}\n\nReceipt ID: ${query.data.id}\nSubmitted: ${query.data.submitted_at}\nPortal: ${query.data.portal_platform}\n`,
     );
@@ -69,7 +60,7 @@ export default function ReceiptDetail(): JSX.Element {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate('/receipts')}
+        onClick={() => navigate("/receipts")}
         leadingIcon={<ArrowLeft className="h-3.5 w-3.5" />}
       >
         Back to receipts
@@ -83,7 +74,7 @@ export default function ReceiptDetail(): JSX.Element {
       ) : query.error || !query.data ? (
         <ErrorState
           title="Receipt not found"
-          error={query.error ?? new Error('Unknown')}
+          error={query.error ?? new Error("Unknown")}
           onRetry={() => void query.refetch()}
         />
       ) : (
@@ -93,9 +84,7 @@ export default function ReceiptDetail(): JSX.Element {
               <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
                 Receipt {query.data.id.slice(0, 8)}
               </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Platform {query.data.portal_platform}
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Platform {query.data.portal_platform}</p>
             </div>
             <Button
               variant="primary"
@@ -111,51 +100,32 @@ export default function ReceiptDetail(): JSX.Element {
             <CardHeader title="Envelope" />
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Submitted
-                </dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Submitted</dt>
                 <dd>
                   <DateDisplay value={query.data.submitted_at} />
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Signing key
-                </dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Signing key</dt>
                 <dd className="font-mono text-xs">{query.data.signing_key_id}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Payload hash
-                </dt>
-                <dd className="break-all font-mono text-xs">
-                  {query.data.payload_hash}
-                </dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Payload hash</dt>
+                <dd className="break-all font-mono text-xs">{query.data.payload_hash}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  ToS hash
-                </dt>
-                <dd className="break-all font-mono text-xs">
-                  {query.data.tos_version_hash}
-                </dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">ToS hash</dt>
+                <dd className="break-all font-mono text-xs">{query.data.tos_version_hash}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">
-                  Consent record
-                </dt>
-                <dd className="font-mono text-xs">
-                  {query.data.consent_record_id}
-                </dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Consent record</dt>
+                <dd className="font-mono text-xs">{query.data.consent_record_id}</dd>
               </div>
             </dl>
           </Card>
 
           <Card>
-            <CardHeader
-              title="Share"
-              description="Distribute the verifier link or download the signed envelope."
-            />
+            <CardHeader title="Share" description="Distribute the verifier link or download the signed envelope." />
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"

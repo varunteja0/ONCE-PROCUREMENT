@@ -1,12 +1,12 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { FileCheck2 } from 'lucide-react';
-import { ResourcePage } from '@/components/ResourcePage';
-import { SupplierPicker } from '@/components/SupplierPicker';
-import { Button, Input, Textarea, DateDisplay, MoneyDisplay } from '@/components/ui';
-import { coisHooks } from '@/hooks/useArtifacts';
-import { coiSchema, type CoiFormValues } from '@/schemas/artifacts';
-import type { Coi, CoiCreateInput } from '@/types/api';
+import { ResourcePage } from "@/components/ResourcePage";
+import { SupplierPicker } from "@/components/SupplierPicker";
+import { Button, DateDisplay, Input, MoneyDisplay, Textarea } from "@/components/ui";
+import { coisHooks } from "@/hooks/useArtifacts";
+import { coiSchema, type CoiFormValues } from "@/schemas/artifacts";
+import type { Coi, CoiCreateInput } from "@/types/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FileCheck2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 function toCreateInput(v: CoiFormValues): CoiCreateInput {
   return {
@@ -34,64 +34,44 @@ function CoiForm({
   const form = useForm<CoiFormValues>({
     resolver: zodResolver(coiSchema),
     defaultValues: {
-      supplier_id: '',
-      carrier: '',
-      policy_number: '',
-      effective_date: '',
-      expires_at: '',
-      coverage_type: '',
-      limit_amount: '',
-      file_url: '',
-      notes: '',
+      supplier_id: "",
+      carrier: "",
+      policy_number: "",
+      effective_date: "",
+      expires_at: "",
+      coverage_type: "",
+      limit_amount: "",
+      file_url: "",
+      notes: "",
     },
   });
 
   return (
-    <form
-      onSubmit={form.handleSubmit((v) => onSubmit(toCreateInput(v)))}
-      className="space-y-3"
-      noValidate
-    >
+    <form onSubmit={form.handleSubmit((v) => onSubmit(toCreateInput(v)))} className="space-y-3" noValidate>
       <SupplierPicker
         label="Supplier"
         required
-        {...form.register('supplier_id')}
+        {...form.register("supplier_id")}
         error={form.formState.errors.supplier_id?.message}
       />
-      <Input
-        label="Carrier"
-        required
-        {...form.register('carrier')}
-        error={form.formState.errors.carrier?.message}
-      />
+      <Input label="Carrier" required {...form.register("carrier")} error={form.formState.errors.carrier?.message} />
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Policy number" {...form.register('policy_number')} />
-        <Input
-          label="Coverage type"
-          {...form.register('coverage_type')}
-        />
+        <Input label="Policy number" {...form.register("policy_number")} />
+        <Input label="Coverage type" {...form.register("coverage_type")} />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Effective date"
-          type="date"
-          {...form.register('effective_date')}
-        />
+        <Input label="Effective date" type="date" {...form.register("effective_date")} />
         <Input
           label="Expires at"
           type="date"
           required
-          {...form.register('expires_at')}
+          {...form.register("expires_at")}
           error={form.formState.errors.expires_at?.message}
         />
       </div>
-      <Input
-        label="Limit amount (USD)"
-        inputMode="decimal"
-        {...form.register('limit_amount')}
-      />
-      <Input label="File URL" type="url" {...form.register('file_url')} />
-      <Textarea label="Notes" rows={2} {...form.register('notes')} />
+      <Input label="Limit amount (USD)" inputMode="decimal" {...form.register("limit_amount")} />
+      <Input label="File URL" type="url" {...form.register("file_url")} />
+      <Textarea label="Notes" rows={2} {...form.register("notes")} />
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
@@ -115,27 +95,25 @@ export default function Cois(): JSX.Element {
       rowKey={(r) => r.id}
       columns={[
         {
-          key: 'supplier',
-          header: 'Supplier',
-          cell: (r) => (
-            <span className="font-mono text-xs">{r.supplier_id.slice(0, 8)}</span>
-          ),
+          key: "supplier",
+          header: "Supplier",
+          cell: (r) => <span className="font-mono text-xs">{r.supplier_id.slice(0, 8)}</span>,
         },
-        { key: 'carrier', header: 'Carrier', cell: (r) => r.carrier },
+        { key: "carrier", header: "Carrier", cell: (r) => r.carrier },
         {
-          key: 'policy',
-          header: 'Policy #',
-          cell: (r) => r.policy_number ?? '—',
+          key: "policy",
+          header: "Policy #",
+          cell: (r) => r.policy_number ?? "—",
         },
         {
-          key: 'limit',
-          header: 'Limit',
-          align: 'right',
+          key: "limit",
+          header: "Limit",
+          align: "right",
           cell: (r) => <MoneyDisplay value={r.limit_amount} />,
         },
         {
-          key: 'expires',
-          header: 'Expires',
+          key: "expires",
+          header: "Expires",
           cell: (r) => <DateDisplay value={r.expires_at} />,
         },
       ]}

@@ -42,9 +42,7 @@ def _list_files(root: Path) -> list[Path]:
 
 def test_clean_payload_writes_to_disk(tmp_path: Path):
     storage = LocalInboundStorage(base_path=str(tmp_path), scanner=EicarScanner())
-    out = storage.put(
-        email_id="email-clean", filename="quote.pdf", content=b"hello-pdf"
-    )
+    out = storage.put(email_id="email-clean", filename="quote.pdf", content=b"hello-pdf")
     assert out.size_bytes == len(b"hello-pdf")
     files = _list_files(tmp_path)
     assert len(files) == 1
@@ -113,9 +111,7 @@ def test_scanner_unreachable_fail_closed_raises(tmp_path: Path, monkeypatch):
     from app.config import settings as app_settings
 
     monkeypatch.setattr(app_settings, "av_fail_closed_on_scanner_error", True)
-    storage = LocalInboundStorage(
-        base_path=str(tmp_path), scanner=_AlwaysErrorScanner()
-    )
+    storage = LocalInboundStorage(base_path=str(tmp_path), scanner=_AlwaysErrorScanner())
     with pytest.raises(ScannerError) as exc_info:
         storage.put(email_id="e", filename="a.pdf", content=b"hello")
     assert exc_info.value.scanner == "fake_broken"
@@ -126,9 +122,7 @@ def test_scanner_unreachable_fail_open_writes(tmp_path: Path, monkeypatch):
     from app.config import settings as app_settings
 
     monkeypatch.setattr(app_settings, "av_fail_closed_on_scanner_error", False)
-    storage = LocalInboundStorage(
-        base_path=str(tmp_path), scanner=_AlwaysErrorScanner()
-    )
+    storage = LocalInboundStorage(base_path=str(tmp_path), scanner=_AlwaysErrorScanner())
     out = storage.put(email_id="e", filename="a.pdf", content=b"hello")
     assert out.size_bytes == 5
     assert len(_list_files(tmp_path)) == 1
@@ -150,6 +144,8 @@ async def test_inbound_ingest_skips_infected_attachments(async_session, tmp_path
     try:
         tenant = Tenant(name="Acme", slug="acme", plan="pilot", is_active=True)
         async_session.add(tenant)
+        await async_session.flush()
+        tenant.inbound_secret_token = None
         await async_session.commit()
         parsed = svc.ParsedEmail(
             message_id="<av-skip-1@x>",

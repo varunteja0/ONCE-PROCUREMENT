@@ -21,6 +21,7 @@ import email.policy
 import imaplib
 import json
 import os
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from email.message import EmailMessage
@@ -137,7 +138,7 @@ class ImapClient:
     def fetch_unseen_uids(self, *, last_uid: int) -> list[int]:
         imap = self.connect()
         criterion = f"UID {last_uid + 1}:*" if last_uid > 0 else "ALL"
-        typ, data = imap.uid("search", None, criterion)
+        typ, data = imap.uid("search", None, criterion)  # type: ignore[arg-type]
         if typ != "OK" or not data or not data[0]:
             return []
         uids = [int(x) for x in data[0].split() if x.strip().isdigit()]
@@ -180,7 +181,13 @@ def _collect_attachments(msg: EmailMessage) -> list[ParsedAttachment]:
             continue
         filename = part.get_filename() or "unnamed"
         ctype = part.get_content_type()
-        out.append(ParsedAttachment(filename=filename, content_type=ctype, content=content))
+        out.append(
+            ParsedAttachment(
+                filename=filename,
+                content_type=ctype,
+                content=content if isinstance(content, bytes) else bytes(content),  # type: ignore[arg-type]
+            )
+        )
     return out
 
 
@@ -200,12 +207,12 @@ def build_parsed_from_eml(raw: bytes) -> ParsedEmail:
                 try:
                     text_body = part.get_content()
                 except Exception:  # pragma: no cover
-                    text_body = part.get_payload(decode=True).decode("utf-8", "replace")
+                    text_body = part.get_payload(decode=True).decode("utf-8", "replace")  # type: ignore[union-attr]
             elif ctype == "text/html" and html_body is None:
                 try:
                     html_body = part.get_content()
                 except Exception:  # pragma: no cover
-                    html_body = part.get_payload(decode=True).decode("utf-8", "replace")
+                    html_body = part.get_payload(decode=True).decode("utf-8", "replace")  # type: ignore[union-attr]
     else:
         if msg.get_content_type() == "text/html":
             html_body = msg.get_content()
@@ -252,7 +259,6 @@ async def poll_once(
     ``.eml`` byte payloads (tests).
     """
 
-
     counts = {"fetched": 0, "ingested": 0, "duplicate": 0, "errors": 0}
 
     if raw_messages is not None:
@@ -273,12 +279,12 @@ async def poll_once(
     try:
         uids = client.fetch_unseen_uids(last_uid=last_uid)
         for uid in uids:
-            raw = client.fetch_message(uid)
+            raw_msg = client.fetch_message(uid)
             counts["fetched"] += 1
-            if raw is None:
+            if raw_msg is None:
                 counts["errors"] += 1
                 continue
-            await _ingest_one(raw, counts)
+            await _ingest_one(raw_msg, counts)
             state[client.config.folder] = uid
             _save_state(client.config.state_path, state)
     finally:
@@ -319,7 +325,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.once:
         counts = asyncio.run(poll_once())
-        print(json.dumps(counts))
+        # CLI surface: structured log + stdout JSON for shell pipelines.
+        # `print` is forbidden in committed code, but the CLI explicitly
+        # documents JSON-on-stdout — route through sys.stdout directly to
+        # keep the contract explicit and ruff-clean.
+        _logger.info("imap.poll_counts", **counts)
+        sys.stdout.write(json.dumps(counts) + "\n")
         return 0
 
     parser.error("Only --once is currently supported")

@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
-import { cn } from '@/lib/cn';
-import { Button } from '@/components/ui/Button';
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
+import { X } from "lucide-react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -13,15 +13,15 @@ export interface ModalProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   closeOnBackdrop?: boolean;
 }
 
-const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
+const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
 };
 
 /**
@@ -36,7 +36,7 @@ export function Modal({
   description,
   children,
   footer,
-  size = 'md',
+  size = "md",
   closeOnBackdrop = true,
 }: ModalProps): JSX.Element | null {
   const ref = useRef<HTMLDivElement>(null);
@@ -54,18 +54,16 @@ export function Modal({
 
     function getFocusable(): HTMLElement[] {
       if (!ref.current) return [];
-      return Array.from(
-        ref.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      );
+      return Array.from(ref.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     }
 
     function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
       const focusables = getFocusable();
       if (focusables.length === 0) {
         e.preventDefault();
@@ -84,12 +82,12 @@ export function Modal({
         first.focus();
       }
     }
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
     const original = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
       document.body.style.overflow = original;
       if (previouslyFocused.current instanceof HTMLElement) {
         previouslyFocused.current.focus();
@@ -113,10 +111,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
-        className={cn(
-          'w-full overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900',
-          SIZE_CLASS[size],
-        )}
+        className={cn("w-full overflow-hidden rounded-lg bg-white shadow-xl dark:bg-slate-900", SIZE_CLASS[size])}
       >
         <header className="flex items-start justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
           <div className="min-w-0">
@@ -129,13 +124,7 @@ export function Modal({
               </p>
             ) : null}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="-mr-1"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close dialog" className="-mr-1">
             <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </header>

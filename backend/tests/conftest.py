@@ -41,12 +41,14 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 
 import app.db as app_db
+from app.api.v1.public_keys_list import router as public_keys_list_router
+from app.api.v1.public_portals import router as public_portals_router
 from app.api.v1.router import api_router, public_receipt_router
 from app.config import settings
 from app.middleware.tenant_scope import TenantScopeMiddleware
 from app.models import Base, Portal, PortalPlatform
 from app.schemas.auth import TokenPair
-from app.services import sanctions_service
+from app.services import receipt_signer, sanctions_service
 from app.utils import crypto as crypto_utils
 
 # ---------------------------------------------------------------------------
@@ -161,10 +163,12 @@ def signing_key(monkeypatch: pytest.MonkeyPatch) -> Iterator[Ed25519PrivateKey]:
     monkeypatch.setattr(settings, "receipt_signing_private_key_pem", pem)
     monkeypatch.setattr(settings, "receipt_signing_key_id", "test-key")
     crypto_utils.reset_default_signing_key_cache()
+    receipt_signer.clear_public_key_cache()
     try:
         yield key
     finally:
         crypto_utils.reset_default_signing_key_cache()
+        receipt_signer.clear_public_key_cache()
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +205,10 @@ async def test_app(_test_engine: AsyncEngine, signing_key: Ed25519PrivateKey) ->
     app.add_middleware(TenantScopeMiddleware)
     app.include_router(api_router)
     app.include_router(public_receipt_router)
+    # Canonical public trust surface — keys list (for DNS-TXT publication)
+    # and carrier-coverage scorecard. Mounted under /v1 to mirror main.py.
+    app.include_router(public_keys_list_router, prefix="/v1")
+    app.include_router(public_portals_router, prefix="/v1")
     return app
 
 

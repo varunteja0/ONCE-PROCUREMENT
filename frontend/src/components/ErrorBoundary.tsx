@@ -1,6 +1,6 @@
-import { ErrorState } from '@/components/ui/ErrorState';
-import { logger } from '@/lib/logger';
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { ErrorState } from "@/components/ui/ErrorState";
+import { logger } from "@/lib/logger";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    logger.error('react-error-boundary', {
+    logger.error("react-error-boundary", {
       error: error.message,
       stack: error.stack,
       componentStack: info.componentStack,
@@ -45,11 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
       }
       return (
         <div className="p-6">
-          <ErrorState
-            title="This view crashed"
-            error={this.state.error}
-            onRetry={this.reset}
-          />
+          <ErrorState title="This view crashed" error={this.state.error} onRetry={this.reset} />
         </div>
       );
     }

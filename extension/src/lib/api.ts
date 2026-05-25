@@ -1,20 +1,22 @@
 /**
  * Typed Once API client — proxies every HTTP request through the
  * background service worker via `chrome.runtime.sendMessage({type:
- * "API_CALL", ...})` so that all network egress is centralised, the JWT
+ * "api.call", ...})` so that all network egress is centralised, the JWT
  * is attached in one place, and the popup / content scripts never touch
  * `fetch` directly.
  *
- * Background contract (see `extension/src/background/index.ts`):
- *   request:  { type: "API_CALL", method, path, body?, headers? }
+ * Background contract (see `extension/src/background/index.ts` and
+ * `extension/src/lib/messaging.ts` for the canonical discriminated union):
+ *   request:  { type: "api.call", method, path, body?, headers? }
  *   response: { ok: boolean, status: number, json: unknown, error?: string }
  *
- * Save-tokens contract:
- *   request:  { type: "SAVE_TOKENS", access, refresh }
- *   response: { ok: true } | { ok: false, error }
+ * Token-save flow uses `auth.connect` (validates via /v1/auth/me and
+ * rolls back on failure). The popup's apiBase is read from storage so
+ * we don't accidentally overwrite a previously-configured base.
  */
 
 import type { PortalPlatform } from "../types/portal";
+import { STORAGE_KEYS, storageGet } from "./storage";
 
 // ---------------------------------------------------------------------------
 // Wire types — mirror backend pydantic schemas.
@@ -149,7 +151,7 @@ export class ApiTransportError extends Error {
 // ---------------------------------------------------------------------------
 
 interface ApiCallMessage {
-  type: "API_CALL";
+  type: "api.call";
   method: HttpMethod;
   path: string;
   body?: unknown;
@@ -158,19 +160,21 @@ interface ApiCallMessage {
 
 interface ApiCallResponse {
   ok: boolean;
-  status: number;
-  json: unknown;
+  status?: number;
+  json?: unknown;
   error?: string;
 }
 
-interface SaveTokensMessage {
-  type: "SAVE_TOKENS";
-  access: string;
-  refresh: string;
+interface AuthConnectMessage {
+  type: "auth.connect";
+  apiBase: string;
+  accessToken: string;
+  refreshToken?: string;
 }
 
-interface SaveTokensResponse {
+interface AuthConnectResponse {
   ok: boolean;
+  user?: unknown;
   error?: string;
 }
 
@@ -209,7 +213,7 @@ function extractErrorCode(body: unknown, fallback: string): string {
 }
 
 async function call<T>(method: HttpMethod, path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
-  const msg: ApiCallMessage = { type: "API_CALL", method, path };
+  const msg: ApiCallMessage = { type: "api.call", method, path };
   if (body !== undefined) msg.body = body;
   if (headers !== undefined) msg.headers = headers;
 
@@ -220,7 +224,7 @@ async function call<T>(method: HttpMethod, path: string, body?: unknown, headers
   }
   if (!resp.ok) {
     const code = extractErrorCode(resp.json, resp.error ?? "http_error");
-    throw new ApiError(`${method} ${path} failed: ${code}`, resp.status, resp.json, code);
+    throw new ApiError(`${method} ${path} failed: ${code}`, resp.status ?? 0, resp.json, code);
   }
   return resp.json as T;
 }
@@ -234,10 +238,18 @@ export async function login(email: string, password: string): Promise<TokenPair>
     email,
     password,
   });
-  const save = await sendMessage<SaveTokensMessage, SaveTokensResponse>({
-    type: "SAVE_TOKENS",
-    access: tokens.access_token,
-    refresh: tokens.refresh_token,
+  // Persist via the canonical `auth.connect` handler. It re-validates the
+  // freshly-issued access token against /v1/auth/me and rolls back on
+  // failure, so we never leave a half-saved auth state in chrome.storage.
+  const apiBase = await storageGet<string>(STORAGE_KEYS.apiBase, "");
+  if (!apiBase) {
+    throw new ApiTransportError("apiBase is not configured");
+  }
+  const save = await sendMessage<AuthConnectMessage, AuthConnectResponse>({
+    type: "auth.connect",
+    apiBase,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
   });
   if (!save || !save.ok) {
     throw new ApiTransportError(save && save.error ? save.error : "failed to persist tokens");

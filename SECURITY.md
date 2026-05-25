@@ -1,13 +1,13 @@
 # Security Policy
 
-> **Last reviewed:** Phase 1.  See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+> **Last reviewed:** Phase 1. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 > for the full STRIDE matrix and [`docs/SECRET_ROTATION.md`](docs/SECRET_ROTATION.md)
 > for runbooks.
 
 ## Threat-model summary
 
 Once is a multi-tenant SaaS that submits insurance forms on behalf of MGAs
-and issues cryptographically signed receipts third parties can verify.  We
+and issues cryptographically signed receipts third parties can verify. We
 maintain a STRIDE matrix covering eight components:
 
 1. API Gateway
@@ -22,7 +22,7 @@ maintain a STRIDE matrix covering eight components:
 The top three risks we actively monitor:
 
 - **Cross-tenant data leak** — mitigated by `TenantScopeMixin` + middleware
-  + integration tests (`backend/tests/test_tenant_isolation.py`).
+  - integration tests (`backend/tests/test_tenant_isolation.py`).
 - **Receipt forgery** — mitigated by Ed25519 signatures with a public-key
   registry; rotation procedure documented.
 - **Credential stuffing on `/v1/auth/login`** — mitigated by sliding-window
@@ -30,14 +30,14 @@ The top three risks we actively monitor:
 
 ## Cryptography choices
 
-| Use | Algorithm | Notes |
-| --- | --- | --- |
-| Receipt signatures | **Ed25519** | Detached signatures over canonical JSON; deterministic; rotatable via registry. |
-| Vault credential encryption (extension) | **AES-GCM-256** | Random 96-bit nonce per record; tag length 128 bits. |
-| Vault passphrase derivation | **PBKDF2-HMAC-SHA256, 310 000 iterations** | OWASP 2024 minimum. |
-| Password hashing (server) | **bcrypt** (`passlib[bcrypt]`, cost 12) | Migration path to argon2id deferred; tracked in roadmap. |
-| JWT signing | **HS256** with ≥32-char high-entropy secret | Validated at startup (hard-fail in production). |
-| TLS | **TLS 1.2+** terminated at Fly edge | HSTS preload-eligible (2 years, `includeSubDomains`). |
+| Use                                     | Algorithm                                   | Notes                                                                           |
+| --------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
+| Receipt signatures                      | **Ed25519**                                 | Detached signatures over canonical JSON; deterministic; rotatable via registry. |
+| Vault credential encryption (extension) | **AES-GCM-256**                             | Random 96-bit nonce per record; tag length 128 bits.                            |
+| Vault passphrase derivation             | **PBKDF2-HMAC-SHA256, 310 000 iterations**  | OWASP 2024 minimum.                                                             |
+| Password hashing (server)               | **bcrypt** (`passlib[bcrypt]`, cost 12)     | Migration path to argon2id deferred; tracked in roadmap.                        |
+| JWT signing                             | **HS256** with ≥32-char high-entropy secret | Validated at startup (hard-fail in production).                                 |
+| TLS                                     | **TLS 1.2+** terminated at Fly edge         | HSTS preload-eligible (2 years, `includeSubDomains`).                           |
 
 ## Hardening posture
 
@@ -72,7 +72,7 @@ And the following request-time controls:
 
 - Existing user passwords were stored before the password policy landed.
   We do **not** retroactively rotate them; the policy enforces on
-  `register` and `change-password` only.  We may add a force-rotate flag
+  `register` and `change-password` only. We may add a force-rotate flag
   in Phase 2.
 - JWT plural-secret rotation (`JWT_SECRET_KEYS`) is on the roadmap; until
   shipped, a JWT rotation forces users to re-login.
@@ -80,20 +80,20 @@ And the following request-time controls:
 
 ## Compliance posture
 
-| Framework | Status | Phase |
-| --- | --- | --- |
-| SOC 2 Type I | Planned | Phase 5 |
-| SOC 2 Type II | Aspirational (≥ 12 months post Type I) | Phase 6 |
-| CCPA / GDPR data-subject requests | Manual via support | Phase 1 |
-| HIPAA | Not in scope (no PHI) | n/a |
-| PCI | Not in scope (Stripe-only payments) | n/a |
+| Framework                         | Status                                                      | Phase   |
+| --------------------------------- | ----------------------------------------------------------- | ------- |
+| SOC 2 Type I                      | Planned                                                     | Phase 5 |
+| SOC 2 Type II                     | Aspirational (≥ 12 months post Type I)                      | Phase 6 |
+| CCPA / GDPR data-subject requests | Manual via support                                          | Phase 1 |
+| HIPAA                             | Not in scope (no PHI)                                       | n/a     |
+| PCI                               | Not in scope (payments handled by hosted PSP billing flows) | n/a     |
 
 Sub-processor list lives in [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md).
 
 ## Bug-bounty program
 
-We do **not** run a paid bounty in Phase 1.  We do issue **public credit**
-and Once swag for valid medium-or-above reports.  A paid program will
+We do **not** run a paid bounty in Phase 1. We do issue **public credit**
+and Once swag for valid medium-or-above reports. A paid program will
 launch alongside SOC 2 Type II or once the company reaches $25 K MRR,
 whichever comes first.
 
@@ -105,12 +105,12 @@ If you believe you have found a security vulnerability in Once,
 > **security@getonce.com**
 
 > ⚠️ The shared inbox is configured but unmonitored outside business
-> hours in Phase 1.  For Sev-1 issues with active exploitation, mention
+> hours in Phase 1. For Sev-1 issues with active exploitation, mention
 > "ACTIVE EXPLOIT" in the subject for an out-of-band page.
 
 PGP key fingerprint and `.asc` will be published at
 `https://getonce.com/.well-known/security.txt` once the apex domain is
-live; in the meantime, plain email is fine.  If you require an encrypted
+live; in the meantime, plain email is fine. If you require an encrypted
 channel before then, mention "PGP requested" in your email subject and we
 will exchange keys out of band within one business day.
 
@@ -127,7 +127,7 @@ Please include:
 - We aim to provide an initial assessment (severity, intended fix
   window) within **5 business days**.
 - We follow a **90-day coordinated disclosure window** from the day a
-  fix is available.  We will work with you on a public disclosure date
+  fix is available. We will work with you on a public disclosure date
   before the window expires; if no fix exists at day 90, we will still
   work with you on a coordinated disclosure note describing the issue
   and any available mitigations.
@@ -164,7 +164,7 @@ Out of scope:
   If you incidentally access another tenant's data, stop, do not save
   copies, and tell us.
 - Do not run automated scans that generate sustained load against
-  production.  Local testing against `docker compose up` is preferred.
+  production. Local testing against `docker compose up` is preferred.
 - Do not disclose the issue publicly until we have agreed on a
   disclosure date.
 - Honor the 90-day window.
@@ -177,4 +177,3 @@ and we will coordinate disclosure with that vendor while still
 honoring the timelines above.
 
 Thank you for keeping Once and its customers safe.
-

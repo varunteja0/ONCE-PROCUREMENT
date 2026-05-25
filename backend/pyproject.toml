@@ -15,22 +15,31 @@ extend-exclude = ["alembic/versions", ".venv", "build", "dist"]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
-    "S",   # flake8-bandit
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+    "S",  # flake8-bandit
 ]
 ignore = [
     "E501",  # line length handled by formatter
     "B008",  # FastAPI Depends() in defaults
     "S104",  # 0.0.0.0 bind is intentional in containers
-    "UP042",  # CONTRACTS.md requires str + enum.Enum for canonical status enums
+    "UP042", # CONTRACTS.md requires str + enum.Enum for canonical status enums
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["B017", "S101", "S105", "S106", "S107", "S108", "S310", "S311"]
+"tests/**/*.py" = [
+    "B017",
+    "S101",
+    "S105",
+    "S106",
+    "S107",
+    "S108",
+    "S310",
+    "S311",
+]
 "alembic/**/*.py" = ["S101"]
 
 [tool.ruff.lint.isort]
@@ -51,6 +60,27 @@ filterwarnings = [
     "ignore::DeprecationWarning:passlib.*",
     "ignore::DeprecationWarning:jose.*",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = false
+warn_return_any = false
+disallow_untyped_defs = false
+check_untyped_defs = false
+exclude = [
+    "alembic/",
+    "app/automation/_playwright_helpers.py",
+    "app/automation/errors.py",
+    "app/automation/screenshot_store.py",
+]
+
+# FastAPI / Starlette add_exception_handler has a known mypy signature
+# variance issue. Silenced project-wide rather than per-handler.
+[[tool.mypy.overrides]]
+module = ["app.utils.errors", "app.observability", "app.main"]
+disable_error_code = ["arg-type"]
 
 [tool.coverage.run]
 source = ["app"]

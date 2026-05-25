@@ -59,7 +59,7 @@ class _PortalErrorMixin:
     ) -> None:
         # Cooperative super().__init__() — the concrete subclass MRO resolves
         # to one of the OnceError ancestors which sets ``message``/``context``.
-        super().__init__(message, **details)  # type: ignore[misc]
+        super().__init__(message, **details)  # type: ignore[misc,call-arg]
         if code is not None:
             self.code = code
         self.user_message: str = user_message or message

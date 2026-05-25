@@ -1,17 +1,13 @@
-import { useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiAuth } from '@/api/auth';
-import { register as registerService } from '@/services/auth';
-import { useAuthStore } from '@/store/auth';
-import { logger } from '@/lib/logger';
-import type {
-  LoginInput,
-  RegisterInput,
-  UserMe,
-} from '@/types/api';
+import { apiAuth } from "@/api/auth";
+import { logger } from "@/lib/logger";
+import { register as registerService } from "@/services/auth";
+import { useAuthStore } from "@/store/auth";
+import type { LoginInput, RegisterInput, UserMe } from "@/types/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 export const authKeys = {
-  me: ['auth', 'me'] as const,
+  me: ["auth", "me"] as const,
 };
 
 export interface UseAuthResult {
@@ -54,15 +50,12 @@ export function useAuth(): UseAuthResult {
   const user: UserMe | null = meQuery.data ?? storeUser;
   const tenantId: string | null = user?.tenant_id ?? storeTenantId;
 
-  const completeLogin = useCallback(
-    async (): Promise<UserMe> => {
-      const profile = await apiAuth.me();
-      setSession(profile);
-      await queryClient.invalidateQueries({ queryKey: authKeys.me });
-      return profile;
-    },
-    [setSession, queryClient],
-  );
+  const completeLogin = useCallback(async (): Promise<UserMe> => {
+    const profile = await apiAuth.me();
+    setSession(profile);
+    await queryClient.invalidateQueries({ queryKey: authKeys.me });
+    return profile;
+  }, [setSession, queryClient]);
 
   const login = useCallback(
     async (input: LoginInput): Promise<UserMe> => {
@@ -85,7 +78,7 @@ export function useAuth(): UseAuthResult {
     try {
       apiAuth.logout();
     } catch (err) {
-      logger.captureException(err, { where: 'useAuth.logout' });
+      logger.captureException(err, { where: "useAuth.logout" });
     }
     clearSession();
     queryClient.clear();

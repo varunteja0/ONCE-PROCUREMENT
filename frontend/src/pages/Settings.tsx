@@ -1,11 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import toast from '@/lib/toast';
-import { Download, Key, Loader2, LogOut, User } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { api, extractErrorMessage, tokenStorage } from '@/services/api';
+import { useAuth } from "@/hooks/useAuth";
+import toast from "@/lib/toast";
+import { api, extractErrorMessage, tokenStorage } from "@/services/api";
+import { Download, Key, Loader2, LogOut, User } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-type TabId = 'profile' | 'account' | 'tokens';
+type TabId = "profile" | "account" | "tokens";
 
 interface ProfileTabProps {
   initialName: string;
@@ -25,11 +25,11 @@ function ProfileTab({ initialName }: ProfileTabProps): JSX.Element {
     if (saving) return;
     setSaving(true);
     try {
-      await api.patch('/auth/me', { full_name: fullName.trim() });
+      await api.patch("/auth/me", { full_name: fullName.trim() });
       await refreshMe();
-      toast.success('Profile updated.');
+      toast.success("Profile updated.");
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Update failed'));
+      toast.error(extractErrorMessage(err, "Update failed"));
     } finally {
       setSaving(false);
     }
@@ -38,10 +38,7 @@ function ProfileTab({ initialName }: ProfileTabProps): JSX.Element {
   return (
     <form onSubmit={onSubmit} className="max-w-md space-y-4">
       <div>
-        <label
-          htmlFor="full_name"
-          className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
-        >
+        <label htmlFor="full_name" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
           Full name
         </label>
         <input
@@ -79,24 +76,20 @@ function AccountTab(): JSX.Element {
     // "sign out everywhere" needs POST /auth/sessions/revoke-all on the
     // backend to invalidate every issued refresh token for this user.
     logout();
-    toast.success('Signed out on this device.');
-    navigate('/login', { replace: true });
+    toast.success("Signed out on this device.");
+    navigate("/login", { replace: true });
   }
 
   return (
     <div className="max-w-md space-y-6">
       <dl className="grid grid-cols-[7rem,1fr] gap-y-2 text-sm">
         <dt className="text-slate-500 dark:text-slate-400">Email</dt>
-        <dd className="font-medium text-slate-900 dark:text-slate-100">
-          {user?.email ?? '—'}
-        </dd>
+        <dd className="font-medium text-slate-900 dark:text-slate-100">{user?.email ?? "—"}</dd>
         <dt className="text-slate-500 dark:text-slate-400">Role</dt>
-        <dd className="font-medium text-slate-900 dark:text-slate-100">
-          {user?.role ?? '—'}
-        </dd>
+        <dd className="font-medium text-slate-900 dark:text-slate-100">{user?.role ?? "—"}</dd>
         <dt className="text-slate-500 dark:text-slate-400">Tenant ID</dt>
         <dd className="font-mono text-xs text-slate-700 dark:text-slate-300">
-          {user?.tenant_id ? truncateMiddle(user.tenant_id) : '—'}
+          {user?.tenant_id ? truncateMiddle(user.tenant_id) : "—"}
         </dd>
       </dl>
 
@@ -128,7 +121,7 @@ function TokensTab(): JSX.Element {
   const refresh = tokenStorage.getRefresh();
 
   function mask(token: string | null): string {
-    if (!token) return '— none —';
+    if (!token) return "— none —";
     if (token.length <= 12) return token;
     return `${token.slice(0, 6)}…${token.slice(-4)}`;
   }
@@ -137,14 +130,12 @@ function TokensTab(): JSX.Element {
     if (downloading) return;
     setDownloading(true);
     try {
-      const resp = await api.get<{ public_key_pem: string; key_id: string }>(
-        '/keys/me',
-      );
+      const resp = await api.get<{ public_key_pem: string; key_id: string }>("/keys/me");
       const blob = new Blob([resp.data.public_key_pem], {
-        type: 'application/x-pem-file',
+        type: "application/x-pem-file",
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `once-signing-key-${resp.data.key_id}.pem`;
       document.body.appendChild(a);
@@ -152,7 +143,7 @@ function TokensTab(): JSX.Element {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Failed to download key'));
+      toast.error(extractErrorMessage(err, "Failed to download key"));
     } finally {
       setDownloading(false);
     }
@@ -161,9 +152,7 @@ function TokensTab(): JSX.Element {
   return (
     <div className="max-w-md space-y-6">
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          Active tokens
-        </h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Active tokens</h3>
         <dl className="grid grid-cols-[6rem,1fr] gap-y-1 text-xs text-slate-600 dark:text-slate-400">
           <dt className="text-slate-400">Access</dt>
           <dd className="font-mono">{mask(access)}</dd>
@@ -173,12 +162,10 @@ function TokensTab(): JSX.Element {
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          Receipt signing key
-        </h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Receipt signing key</h3>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Download the public key Once uses to sign your submission receipts.
-          Distribute this PEM to anyone who needs to verify a receipt offline.
+          Download the public key Once uses to sign your submission receipts. Distribute this PEM to anyone who needs to
+          verify a receipt offline.
         </p>
         <button
           type="button"
@@ -199,24 +186,20 @@ function TokensTab(): JSX.Element {
 }
 
 const TABS: ReadonlyArray<{ id: TabId; label: string; icon: typeof User }> = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'account', label: 'Account', icon: Key },
-  { id: 'tokens', label: 'Tokens & keys', icon: Key },
+  { id: "profile", label: "Profile", icon: User },
+  { id: "account", label: "Account", icon: Key },
+  { id: "tokens", label: "Tokens & keys", icon: Key },
 ];
 
 export default function Settings(): JSX.Element {
   const { user } = useAuth();
-  const [tab, setTab] = useState<TabId>('profile');
+  const [tab, setTab] = useState<TabId>("profile");
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-          Settings
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Manage your profile, account, and credentials.
-        </p>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Settings</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Manage your profile, account, and credentials.</p>
       </header>
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -237,8 +220,8 @@ export default function Settings(): JSX.Element {
                 onClick={() => setTab(t.id)}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium ${
                   active
-                    ? 'border-slate-900 text-slate-900 dark:border-slate-100 dark:text-slate-100'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    ? "border-slate-900 text-slate-900 dark:border-slate-100 dark:text-slate-100"
+                    : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 }`}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -249,11 +232,9 @@ export default function Settings(): JSX.Element {
         </div>
 
         <div className="p-5">
-          {tab === 'profile' && (
-            <ProfileTab initialName={user?.full_name ?? ''} />
-          )}
-          {tab === 'account' && <AccountTab />}
-          {tab === 'tokens' && <TokensTab />}
+          {tab === "profile" && <ProfileTab initialName={user?.full_name ?? ""} />}
+          {tab === "account" && <AccountTab />}
+          {tab === "tokens" && <TokensTab />}
         </div>
       </div>
     </div>

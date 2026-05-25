@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 
 from app.config import settings
@@ -119,13 +120,11 @@ def decode_token(
             settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm],
         )
-    except JWTError as exc:
+    except PyJWTError as exc:
         raise TokenDecodeError(str(exc)) from exc
 
     if expected_type is not None and payload.get("type") != expected_type:
-        raise TokenDecodeError(
-            f"unexpected token type: got {payload.get('type')!r}, expected {expected_type!r}"
-        )
+        raise TokenDecodeError(f"unexpected token type: got {payload.get('type')!r}, expected {expected_type!r}")
     if "sub" not in payload or not payload["sub"]:
         raise TokenDecodeError("token missing 'sub' claim")
     return payload

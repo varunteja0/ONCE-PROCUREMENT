@@ -117,10 +117,7 @@ class InfectedUploadError(ImportServiceError):
     def __init__(self, signature: str, scanner: str, message: str | None = None) -> None:
         self.signature = signature
         self.scanner = scanner
-        super().__init__(
-            message
-            or f"File appears to be infected with {signature}; upload rejected."
-        )
+        super().__init__(message or f"File appears to be infected with {signature}; upload rejected.")
 
 
 class ScannerUnavailableError(ImportServiceError):
@@ -200,15 +197,11 @@ async def create_import_job(
     safe_name = sanitize_filename(original_filename)
     ext = Path(safe_name).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise UnsupportedFormatError(
-            f"Extension {ext!r} not allowed (csv, xlsx, xls only)."
-        )
+        raise UnsupportedFormatError(f"Extension {ext!r} not allowed (csv, xlsx, xls only).")
 
     size = len(file_bytes)
     if size > settings.import_max_file_size_bytes:
-        raise FileTooLargeError(
-            f"File size {size} exceeds limit {settings.import_max_file_size_bytes}."
-        )
+        raise FileTooLargeError(f"File size {size} exceeds limit {settings.import_max_file_size_bytes}.")
 
     # Validate format dispatch up-front so we fail fast on truly bogus
     # uploads (e.g. a ``.pdf`` renamed to ``.csv`` we can't catch, but a
@@ -252,15 +245,11 @@ async def create_import_job(
         # owns the transaction, so we just delete-and-flush.
         await session.delete(job)
         await session.flush()
-        raise InfectedUploadError(
-            signature=exc.signature, scanner=exc.scanner
-        ) from exc
+        raise InfectedUploadError(signature=exc.signature, scanner=exc.scanner) from exc
     except ScannerError as exc:
         await session.delete(job)
         await session.flush()
-        raise ScannerUnavailableError(
-            scanner=exc.scanner, detail=exc.detail
-        ) from exc
+        raise ScannerUnavailableError(scanner=exc.scanner, detail=exc.detail) from exc
 
     target_path.write_bytes(file_bytes)
     job.file_url = str(target_path)
@@ -298,18 +287,12 @@ async def list_jobs(
     )
     result = await session.execute(stmt)
     items = list(result.scalars().all())
-    total = await session.scalar(
-        select(func.count(ImportJob.id)).where(ImportJob.tenant_id == tenant_id)
-    )
+    total = await session.scalar(select(func.count(ImportJob.id)).where(ImportJob.tenant_id == tenant_id))
     return items, int(total or 0)
 
 
-async def get_job(
-    session: AsyncSession, *, tenant_id: str, job_id: str
-) -> ImportJob:
-    stmt = select(ImportJob).where(
-        ImportJob.id == job_id, ImportJob.tenant_id == tenant_id
-    )
+async def get_job(session: AsyncSession, *, tenant_id: str, job_id: str) -> ImportJob:
+    stmt = select(ImportJob).where(ImportJob.id == job_id, ImportJob.tenant_id == tenant_id)
     result = await session.execute(stmt)
     job = result.scalar_one_or_none()
     if job is None:
@@ -343,9 +326,7 @@ async def get_job_errors(
     return list(result.scalars().all())
 
 
-async def count_job_errors(
-    session: AsyncSession, *, tenant_id: str, job_id: str
-) -> int:
+async def count_job_errors(session: AsyncSession, *, tenant_id: str, job_id: str) -> int:
     if not tenant_id:
         raise JobNotFoundError("tenant_id is required")
     total = await session.scalar(
@@ -365,9 +346,7 @@ async def count_job_errors(
 
 
 _ALLOWED_TRANSITIONS: dict[ImportStatus, frozenset[ImportStatus]] = {
-    ImportStatus.PENDING: frozenset(
-        {ImportStatus.VALIDATING, ImportStatus.CANCELED, ImportStatus.FAILED}
-    ),
+    ImportStatus.PENDING: frozenset({ImportStatus.VALIDATING, ImportStatus.CANCELED, ImportStatus.FAILED}),
     ImportStatus.VALIDATING: frozenset(
         {
             ImportStatus.DRY_RUN_READY,
@@ -375,12 +354,8 @@ _ALLOWED_TRANSITIONS: dict[ImportStatus, frozenset[ImportStatus]] = {
             ImportStatus.CANCELED,
         }
     ),
-    ImportStatus.DRY_RUN_READY: frozenset(
-        {ImportStatus.IMPORTING, ImportStatus.CANCELED, ImportStatus.FAILED}
-    ),
-    ImportStatus.IMPORTING: frozenset(
-        {ImportStatus.COMPLETED, ImportStatus.FAILED, ImportStatus.CANCELED}
-    ),
+    ImportStatus.DRY_RUN_READY: frozenset({ImportStatus.IMPORTING, ImportStatus.CANCELED, ImportStatus.FAILED}),
+    ImportStatus.IMPORTING: frozenset({ImportStatus.COMPLETED, ImportStatus.FAILED, ImportStatus.CANCELED}),
 }
 
 
@@ -390,8 +365,7 @@ def _assert_can_transition(job: ImportJob, target: ImportStatus) -> None:
     allowed = _ALLOWED_TRANSITIONS.get(job.status, frozenset())
     if target not in allowed:
         raise InvalidTransitionError(
-            f"Cannot transition import {job.id} from {job.status.value} "
-            f"to {target.value}."
+            f"Cannot transition import {job.id} from {job.status.value} " f"to {target.value}."
         )
 
 
@@ -434,16 +408,12 @@ async def run_validation(
 
     if not tenant_id:
         raise JobNotFoundError("tenant_id is required")
-    stmt = select(ImportJob).where(
-        ImportJob.id == job_id, ImportJob.tenant_id == tenant_id
-    )
+    stmt = select(ImportJob).where(ImportJob.id == job_id, ImportJob.tenant_id == tenant_id)
     job = (await session.execute(stmt)).scalar_one_or_none()
     if job is None:
         raise JobNotFoundError(f"Import job {job_id!r} not found.")
     if job.status != ImportStatus.PENDING:
-        raise InvalidTransitionError(
-            f"Job {job.id} cannot validate from status {job.status.value}."
-        )
+        raise InvalidTransitionError(f"Job {job.id} cannot validate from status {job.status.value}.")
 
     await _set_status(session, job, ImportStatus.VALIDATING)
 
@@ -473,9 +443,7 @@ async def run_validation(
         )
         return job
     except TooManyRowsError as exc:
-        await _record_job_level_error(
-            session, job=job, code="too_many_rows", message=str(exc)
-        )
+        await _record_job_level_error(session, job=job, code="too_many_rows", message=str(exc))
         await _set_status(session, job, ImportStatus.FAILED, last_error=str(exc))
         return job
     except Exception as exc:  # parser blew up, file truncated, etc.
@@ -534,25 +502,19 @@ async def run_commit(*, tenant_id: str, job_id: str) -> ImportJob:
     if not tenant_id:
         raise JobNotFoundError("tenant_id is required")
     async with _db.AsyncSessionLocal() as session:
-        stmt = select(ImportJob).where(
-            ImportJob.id == job_id, ImportJob.tenant_id == tenant_id
-        )
+        stmt = select(ImportJob).where(ImportJob.id == job_id, ImportJob.tenant_id == tenant_id)
         job = (await session.execute(stmt)).scalar_one_or_none()
         if job is None:
             raise JobNotFoundError(f"Import job {job_id!r} not found.")
         if job.status != ImportStatus.DRY_RUN_READY:
-            raise InvalidTransitionError(
-                f"Job {job.id} cannot commit from status {job.status.value}."
-            )
+            raise InvalidTransitionError(f"Job {job.id} cannot commit from status {job.status.value}.")
         await _set_status(session, job, ImportStatus.IMPORTING)
         # Drop any prior import-time errors so a re-run is idempotent.
         # Validation errors that flagged invalid rows are retained.
         await session.execute(
             delete(ImportRowError).where(
                 ImportRowError.import_job_id == job.id,
-                ImportRowError.error_code.in_(
-                    ["chunk_failed", "duplicate_fein_existing"]
-                ),
+                ImportRowError.error_code.in_(["chunk_failed", "duplicate_fein_existing"]),
             )
         )
         await session.commit()
@@ -692,17 +654,11 @@ async def _commit_chunk(
             # Resolve cross-DB duplicates inside the same transaction so
             # an outright conflict doesn't crash the chunk.
             keys = [r.dedupe_key for r in chunk if r.dedupe_key]
-            existing = await importer.existing_dedupe_keys(
-                session, tenant_id=tenant_id, keys=keys
-            )
+            existing = await importer.existing_dedupe_keys(session, tenant_id=tenant_id, keys=keys)
             duplicate_rows: list[ValidatedRow] = []
             kept: list[ValidatedRow] = []
             for row in chunk:
-                if (
-                    on_duplicate == "error"
-                    and row.dedupe_key
-                    and row.dedupe_key in existing
-                ):
+                if on_duplicate == "error" and row.dedupe_key and row.dedupe_key in existing:
                     duplicate_rows.append(row)
                     session.add(
                         ImportRowError(
@@ -711,10 +667,7 @@ async def _commit_chunk(
                             column="fein",
                             value=ImportRowError.truncate_value(row.dedupe_key),
                             error_code="duplicate_fein_existing",
-                            error_message=(
-                                "Supplier with this FEIN already exists for "
-                                "this tenant."
-                            ),
+                            error_message=("Supplier with this FEIN already exists for " "this tenant."),
                         )
                     )
                 else:
@@ -735,9 +688,7 @@ async def _commit_chunk(
             )
         except Exception as exc:
             await session.rollback()
-            chunk_errors.append(
-                f"chunk[rows {chunk[0].row_number}..{chunk[-1].row_number}]: {exc}"
-            )
+            chunk_errors.append(f"chunk[rows {chunk[0].row_number}..{chunk[-1].row_number}]: {exc}")
             # Record a job-level error so the report tells the operator
             # which range failed. Reusing this (now-rolled-back) session
             # keeps us at one DB connection in tests.
@@ -748,10 +699,7 @@ async def _commit_chunk(
                     column=None,
                     value=None,
                     error_code="chunk_failed",
-                    error_message=(
-                        f"Chunk rows {chunk[0].row_number}-"
-                        f"{chunk[-1].row_number} failed: {exc}"
-                    )[:512],
+                    error_message=(f"Chunk rows {chunk[0].row_number}-" f"{chunk[-1].row_number} failed: {exc}")[:512],
                 )
             )
             try:
@@ -786,9 +734,7 @@ async def _scan_and_persist_errors(
     """
 
     path = Path(job.file_url)
-    iterator: Iterator[dict[str, str]] = iter_rows(
-        path, filename=job.original_filename
-    )
+    iterator: Iterator[dict[str, str]] = iter_rows(path, filename=job.original_filename)
 
     # Peek the first row to validate headers up front. The parser already
     # consumed the header row internally — for the missing-columns check
@@ -827,24 +773,22 @@ async def _scan_and_persist_errors(
         remapped = importer.remap_row(raw, mapping)
         vr = importer.validate_row(remapped, row_number)
         if vr.ok and vr.dedupe_key:
-            if vr.dedupe_key in in_file_keys:
+            dedupe_key = vr.dedupe_key
+            if dedupe_key in in_file_keys:
                 vr = ValidatedRow(
                     row_number=row_number,
                     errors=[
                         RowError(
                             row_number=row_number,
                             column="fein",
-                            value=vr.dedupe_key,
+                            value=dedupe_key,
                             error_code="duplicate_fein_in_file",
-                            error_message=(
-                                "Duplicate FEIN within the file — first "
-                                "occurrence wins."
-                            ),
+                            error_message=("Duplicate FEIN within the file — first " "occurrence wins."),
                         )
                     ],
                 )
             else:
-                in_file_keys.add(vr.dedupe_key)
+                in_file_keys.add(dedupe_key)
         if vr.ok:
             valid += 1
         else:
@@ -870,8 +814,7 @@ async def _scan_and_persist_errors(
     for raw in iterator:
         if total >= settings.import_max_rows:
             raise TooManyRowsError(
-                f"File has more than {settings.import_max_rows} rows "
-                f"(limit configurable via IMPORT_MAX_ROWS)."
+                f"File has more than {settings.import_max_rows} rows " f"(limit configurable via IMPORT_MAX_ROWS)."
             )
         _process(raw)
 
@@ -928,9 +871,7 @@ async def cancel_job(
 ) -> ImportJob:
     job = await get_job(session, tenant_id=tenant_id, job_id=job_id)
     if job.status in TERMINAL_STATUSES:
-        raise InvalidTransitionError(
-            f"Cannot cancel terminal job {job.id} (status={job.status.value})."
-        )
+        raise InvalidTransitionError(f"Cannot cancel terminal job {job.id} (status={job.status.value}).")
     job.status = ImportStatus.CANCELED
     job.completed_at = datetime.now(UTC)
     await session.flush()

@@ -112,16 +112,10 @@ async def issue_key(
     return IssuedKey(row=row, plaintext=plaintext)
 
 
-async def list_keys(
-    session: AsyncSession, *, tenant_id: str
-) -> tuple[int, list[VerifierApiKey]]:
+async def list_keys(session: AsyncSession, *, tenant_id: str) -> tuple[int, list[VerifierApiKey]]:
     total = int(
         (
-            await session.execute(
-                select(func.count(VerifierApiKey.id)).where(
-                    VerifierApiKey.tenant_id == tenant_id
-                )
-            )
+            await session.execute(select(func.count(VerifierApiKey.id)).where(VerifierApiKey.tenant_id == tenant_id))
         ).scalar_one()
         or 0
     )
@@ -139,9 +133,7 @@ async def list_keys(
     return total, rows
 
 
-async def get_key(
-    session: AsyncSession, *, tenant_id: str, key_id: str
-) -> VerifierApiKey | None:
+async def get_key(session: AsyncSession, *, tenant_id: str, key_id: str) -> VerifierApiKey | None:
     result = await session.execute(
         select(VerifierApiKey).where(
             VerifierApiKey.id == key_id,
@@ -174,9 +166,7 @@ async def revoke_key(
     return row
 
 
-async def find_active_by_prefix(
-    session: AsyncSession, *, prefix: str
-) -> VerifierApiKey | None:
+async def find_active_by_prefix(session: AsyncSession, *, prefix: str) -> VerifierApiKey | None:
     """Look up an unrevoked key by its public prefix. Cross-tenant."""
 
     result = await session.execute(
@@ -188,6 +178,20 @@ async def find_active_by_prefix(
     return result.scalar_one_or_none()
 
 
+async def _find_active_by_prefix_for_update(session: AsyncSession, *, prefix: str) -> VerifierApiKey | None:
+    """Look up an unrevoked key and lock it for a usage-counter update."""
+
+    result = await session.execute(
+        select(VerifierApiKey)
+        .where(
+            VerifierApiKey.key_prefix == prefix,
+            VerifierApiKey.revoked_at.is_(None),
+        )
+        .with_for_update()
+    )
+    return result.scalar_one_or_none()
+
+
 def verify_plaintext(row: VerifierApiKey, plaintext: str) -> bool:
     """Constant-time compare of a candidate plaintext against the stored hash."""
 
@@ -195,9 +199,7 @@ def verify_plaintext(row: VerifierApiKey, plaintext: str) -> bool:
     return hmac.compare_digest(candidate, row.key_hash)
 
 
-async def touch_last_used(
-    session: AsyncSession, *, row: VerifierApiKey
-) -> None:
+async def touch_last_used(session: AsyncSession, *, row: VerifierApiKey) -> None:
     """Bump ``last_used_at`` to now. Best-effort; caller commits."""
 
     row.last_used_at = datetime.now(tz=UTC)
@@ -242,7 +244,7 @@ async def charge_usage(
 
     period = _period_month_now()
     prefix = plaintext[:KEY_PREFIX_LENGTH]
-    row = await find_active_by_prefix(session, prefix=prefix)
+    row = await _find_active_by_prefix_for_update(session, prefix=prefix)
     if row is None or not verify_plaintext(row, plaintext):
         return ChargeResult(
             status="invalid_key",
@@ -262,9 +264,7 @@ async def charge_usage(
         )
     ).scalar_one_or_none()
     if usage is None:
-        usage = VerifierApiKeyUsage(
-            api_key_id=row.id, period_month=period, count=1
-        )
+        usage = VerifierApiKeyUsage(api_key_id=row.id, period_month=period, count=1)
         session.add(usage)
     else:
         usage.count += 1

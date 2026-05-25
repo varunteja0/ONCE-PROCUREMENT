@@ -1,7 +1,7 @@
 /**
  * Tests for the new lib/api endpoints — `getSubmissionReceipt` and
  * `getConsentForPortal`. Verifies the canonical HTTP method + path is
- * sent via the background `API_CALL` proxy.
+ * sent via the background `api.call` proxy.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,7 +29,7 @@ describe("getSubmissionReceipt", () => {
 
     const sendMessage = chrome.runtime.sendMessage as unknown as ReturnType<typeof vi.fn>;
     const sent = sendMessage.mock.calls[0]![0] as ApiCallMsg;
-    expect(sent.type).toBe("API_CALL");
+    expect(sent.type).toBe("api.call");
     expect(sent.method).toBe("GET");
     expect(sent.path).toBe("/v1/submissions/sub-abc/receipt");
   });

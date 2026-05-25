@@ -5,8 +5,7 @@ export const meta: MetaFunction = () => [
   { title: "OnceTax — Sales tax filing prep for Shopify" },
   {
     name: "description",
-    content:
-      "Generate filing-prep PDFs per state from your Shopify orders. $79/mo + $19/state.",
+    content: "Generate filing-prep PDFs per state from your Shopify orders. $79/mo + $19/state.",
   },
 ];
 
@@ -14,16 +13,17 @@ export default function Index() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <header className="mb-12">
-        <p className="text-sm font-semibold uppercase tracking-widest text-brand">
-          OnceTax
-        </p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-          Sales tax filing prep for Shopify
-        </h1>
+        <p className="text-sm font-semibold uppercase tracking-widest text-brand">OnceTax</p>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">Sales tax filing prep for Shopify</h1>
         <p className="mt-4 max-w-2xl text-lg text-slate-600">
-          We turn your Shopify orders into clean, state-by-state filing-prep
-          PDFs. You stay in control — review, then file with your state portal
-          yourself.
+          We turn your Shopify orders into clean, state-by-state filing-prep PDFs. You stay in control — review, then
+          file with your state portal yourself.
+        </p>
+
+        <p className="mt-4 max-w-2xl rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <strong>Not tax-of-record.</strong> OnceTax produces filing-prep worksheets based on state base rates only. It
+          is not tax or legal advice and is not a substitute for a CPA or your state tax authority. Review every figure
+          before you file.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -43,25 +43,18 @@ export default function Index() {
       </header>
 
       <section className="grid gap-8 sm:grid-cols-3">
-        <Card title="$79/mo base">
-          Includes nexus map, orders sync, and filing-prep PDFs for your first
-          state.
-        </Card>
-        <Card title="$19 per extra state">
-          Add states as your nexus grows. CA, TX, NY, FL, WA supported in v0.
-        </Card>
+        <Card title="$79/mo base">Includes nexus map, orders sync, and filing-prep PDFs for your first state.</Card>
+        <Card title="$19 per extra state">Add states as your nexus grows. CA, TX, NY, FL, WA supported in v0.</Card>
         <Card title="No auto-filing — yet">
-          We generate the numbers and the PDF. You file with your state. We
-          never submit on your behalf in v0.
+          We generate the numbers and the PDF. You file with your state. We never submit on your behalf in v0.
         </Card>
       </section>
 
       <section className="mt-16 rounded-lg border border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
         <p className="font-semibold">v0 limitation</p>
         <p className="mt-1">
-          OnceTax v0 supports state-level base rates only (CA, TX, NY, FL, WA).
-          Local / district rates are not modeled yet. PDFs are filing-prep
-          worksheets — not state-portal submissions.
+          OnceTax v0 supports state-level base rates only (CA, TX, NY, FL, WA). Local / district rates are not modeled
+          yet. PDFs are filing-prep worksheets — not state-portal submissions.
         </p>
       </section>
     </main>

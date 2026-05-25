@@ -33,7 +33,7 @@ def _build_dry_instance(submitter_cls: type) -> Any:
     class exposes (``supplier``, ``portal``, ``payload``, ``consent``).
     """
 
-    instance = submitter_cls.__new__(submitter_cls)
+    instance = submitter_cls.__new__(submitter_cls)  # type: ignore[call-overload]
     instance.supplier = None
     instance.portal = None
     instance.payload = {}

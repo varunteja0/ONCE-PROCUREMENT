@@ -25,7 +25,6 @@ from _common import (  # noqa: E402
     VERIFIER,
     bold,
     cyan,
-    dim,
     header,
     run,
     which,
@@ -53,9 +52,16 @@ def _prettier() -> int:
         print(f"  {yellow('-')} npx not installed, skipping prettier")
         return 0
     cp = run(
-        [npx, "--yes", "prettier", "--write", "--log-level=warn",
-         "**/*.{json,jsonc,md,yml,yaml,css,scss}",
-         "--ignore-path", ".gitignore"],
+        [
+            npx,
+            "--yes",
+            "prettier",
+            "--write",
+            "--log-level=warn",
+            "**/*.{json,jsonc,md,yml,yaml,css,scss}",
+            "--ignore-path",
+            ".gitignore",
+        ],
         cwd=ROOT,
     )
     return cp.returncode

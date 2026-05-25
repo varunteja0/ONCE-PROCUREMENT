@@ -88,6 +88,7 @@ export function App(): JSX.Element {
   const banner = usePopupStore((s) => s.banner);
   const setBanner = usePopupStore((s) => s.setBanner);
   const suppliers = usePopupStore((s) => s.suppliers);
+  const detection = usePopupStore((s) => s.detection);
 
   const [user, setUser] = useState<UserMe | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
@@ -119,6 +120,28 @@ export function App(): JSX.Element {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (typeof chrome === "undefined" || !chrome.runtime?.onMessage) {
+      return undefined;
+    }
+    const listener = (
+      message: unknown,
+      _sender: chrome.runtime.MessageSender,
+      sendResponse: (response: { ok: true }) => void,
+    ): boolean => {
+      if (typeof message !== "object" || message === null || (message as { type?: unknown }).type !== "vault.lock") {
+        return false;
+      }
+      vaultLock();
+      setVaultUnlocked(false);
+      setBoot("locked");
+      sendResponse({ ok: true });
+      return false;
+    };
+    chrome.runtime.onMessage.addListener(listener);
+    return (): void => chrome.runtime.onMessage.removeListener(listener);
+  }, [setVaultUnlocked]);
 
   // Auto-dismiss banner after 4s.
   useEffect(() => {
@@ -175,8 +198,6 @@ export function App(): JSX.Element {
       </Shell>
     );
   }
-
-  const detection = usePopupStore((s) => s.detection);
 
   return (
     <Shell>

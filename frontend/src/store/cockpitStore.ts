@@ -1,14 +1,14 @@
-import { create } from 'zustand';
 import {
   COCKPIT_ACTING_AS_KEY,
   COCKPIT_OPERATOR_KEY,
   cockpitTokenStorage,
   type OperatorMe,
   type OperatorTokenPair,
-} from '@/services/cockpitApi';
+} from "@/services/cockpitApi";
+import { create } from "zustand";
 
 function loadOperator(): OperatorMe | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(COCKPIT_OPERATOR_KEY);
     return raw ? (JSON.parse(raw) as OperatorMe) : null;
@@ -18,7 +18,7 @@ function loadOperator(): OperatorMe | null {
 }
 
 function persistOperator(op: OperatorMe | null): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     if (op) {
       window.localStorage.setItem(COCKPIT_OPERATOR_KEY, JSON.stringify(op));
@@ -31,7 +31,7 @@ function persistOperator(op: OperatorMe | null): void {
 }
 
 function loadActingAs(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     return window.localStorage.getItem(COCKPIT_ACTING_AS_KEY);
   } catch {
@@ -40,7 +40,7 @@ function loadActingAs(): string | null {
 }
 
 function persistActingAs(tenantId: string | null): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     if (tenantId) {
       window.localStorage.setItem(COCKPIT_ACTING_AS_KEY, tenantId);
@@ -69,8 +69,7 @@ export interface CockpitState {
 
 const initialOperator = loadOperator();
 const initialActingAs = loadActingAs();
-const initialAuthenticated =
-  initialOperator !== null && cockpitTokenStorage.getAccess() !== null;
+const initialAuthenticated = initialOperator !== null && cockpitTokenStorage.getAccess() !== null;
 
 export const useCockpitStore = create<CockpitState>((set) => ({
   operator: initialOperator,
@@ -101,8 +100,7 @@ export const useCockpitStore = create<CockpitState>((set) => ({
     set({
       operator,
       actingAsTenantId: actingAs,
-      isAuthenticated:
-        operator !== null && cockpitTokenStorage.getAccess() !== null,
+      isAuthenticated: operator !== null && cockpitTokenStorage.getAccess() !== null,
     });
   },
 }));

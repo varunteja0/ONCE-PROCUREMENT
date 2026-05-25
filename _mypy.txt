@@ -1,0 +1,6 @@
+﻿app\automation\submitters\applied_epic.py:59: error: Cannot override class variable (previously declared on base class "PlaywrightSubmitter") with instance variable  [misc]
+app\automation\submitters\vertafore_ams360.py:59: error: Cannot override class variable (previously declared on base class "PlaywrightSubmitter") with instance variable  [misc]
+app\automation\submitters\sircon.py:63: error: Cannot override class variable (previously declared on base class "PlaywrightSubmitter") with instance variable  [misc]
+app\automation\submitters\markel.py:58: error: Cannot override class variable (previously declared on base class "PlaywrightSubmitter") with instance variable  [misc]
+app\automation\submitters\amtrust.py:68: error: Cannot override class variable (previously declared on base class "PlaywrightSubmitter") with instance variable  [misc]
+Found 5 errors in 5 files (checked 224 source files)

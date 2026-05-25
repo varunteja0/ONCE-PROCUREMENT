@@ -38,8 +38,15 @@ def _parsed(
 
 
 async def _seed_tenant(session: AsyncSession, slug: str = "acme") -> Tenant:
+    # ``inbound_secret_token`` has a Python-side ``default`` callable that
+    # fires on INSERT regardless of an explicit ``None`` in the constructor;
+    # clear it post-flush so legacy tests that POST to ``inbox+acme@...``
+    # without a token still route. See ``test_inbound_routing_token.py`` for
+    # token-specific coverage.
     t = Tenant(name="Acme", slug=slug, plan="pilot", is_active=True)
     session.add(t)
+    await session.flush()
+    t.inbound_secret_token = None
     await session.flush()
     return t
 
@@ -53,20 +60,25 @@ def _storage(tmp_path, monkeypatch):
 
 
 def test_parse_to_address_subdomain():
-    addr, slug = svc.parse_to_address("Submissions <submissions@acme.in.getonce.com>", inbound_domain="in.getonce.com")
+    addr, slug, token = svc.parse_to_address(
+        "Submissions <submissions@acme.in.getonce.com>", inbound_domain="in.getonce.com"
+    )
     assert addr == "submissions@acme.in.getonce.com"
     assert slug == "acme"
+    assert token is None
 
 
 def test_parse_to_address_local_part_only():
-    addr, slug = svc.parse_to_address("acme@in.getonce.com", inbound_domain="in.getonce.com")
+    addr, slug, token = svc.parse_to_address("acme@in.getonce.com", inbound_domain="in.getonce.com")
     assert slug == "acme"
     assert addr.endswith("@in.getonce.com")
+    assert token is None
 
 
 def test_parse_to_address_strips_plus_tag():
-    _, slug = svc.parse_to_address("acme+amtrust@in.getonce.com", inbound_domain="in.getonce.com")
+    _, slug, token = svc.parse_to_address("acme+amtrust@in.getonce.com", inbound_domain="in.getonce.com")
     assert slug == "acme"
+    assert token == "amtrust"
 
 
 def test_parse_to_address_wrong_domain():

@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from "react";
 
 const DEFAULT_TIMEOUT_MIN = 30;
 const ACTIVITY_EVENTS: ReadonlyArray<keyof WindowEventMap> = [
-  'mousemove',
-  'mousedown',
-  'keydown',
-  'scroll',
-  'touchstart',
+  "mousemove",
+  "mousedown",
+  "keydown",
+  "scroll",
+  "touchstart",
 ];
 
 function resolveTimeoutMs(): number {
   try {
     const raw = import.meta.env.VITE_IDLE_TIMEOUT_MIN;
-    const n = typeof raw === 'string' ? Number(raw) : NaN;
+    const n = typeof raw === "string" ? Number(raw) : NaN;
     if (Number.isFinite(n) && n > 0) return n * 60_000;
   } catch {
     /* ignore */
@@ -24,11 +24,7 @@ function resolveTimeoutMs(): number {
  * Fires `onIdle` after the configured period of user inactivity.
  * Listener is a no-op when `enabled === false`.
  */
-export function useIdleTimeout(
-  enabled: boolean,
-  onIdle: () => void,
-  timeoutMs?: number,
-): void {
+export function useIdleTimeout(enabled: boolean, onIdle: () => void, timeoutMs?: number): void {
   const onIdleRef = useRef(onIdle);
   onIdleRef.current = onIdle;
 

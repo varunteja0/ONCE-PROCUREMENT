@@ -52,8 +52,8 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _hsts_default_enabled() -> bool:
-    env = (getattr(settings, "env", None) or getattr(settings, "app_env", "")).lower()
-    return env == "production"
+    env_val = getattr(settings, "env", None) or getattr(settings, "app_env", "") or ""
+    return str(env_val).lower() == "production"
 
 
 def _hsts_value() -> str:
@@ -115,14 +115,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     ) -> None:
         super().__init__(app)
         self._hsts_enabled = (
-            hsts_enabled
-            if hsts_enabled is not None
-            else _env_bool("SECURITY_HSTS_ENABLED", _hsts_default_enabled())
+            hsts_enabled if hsts_enabled is not None else _env_bool("SECURITY_HSTS_ENABLED", _hsts_default_enabled())
         )
         self._csp_report_uri = (
-            csp_report_uri
-            if csp_report_uri is not None
-            else (os.environ.get("SECURITY_CSP_REPORT_URI") or None)
+            csp_report_uri if csp_report_uri is not None else (os.environ.get("SECURITY_CSP_REPORT_URI") or None)
         )
 
     async def dispatch(
@@ -130,7 +126,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], object],
     ) -> Response:
-        response: Response = await call_next(request)  # type: ignore[assignment]
+        response: Response = await call_next(request)  # type: ignore[assignment,misc]
 
         host_header = (request.headers.get("host") or "").split(":", 1)[0].strip().lower()
         is_local = host_header in _LOCAL_HOSTS

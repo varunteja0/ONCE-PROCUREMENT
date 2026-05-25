@@ -12,8 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "wrangler dev",
-    "db:migrate:local": "wrangler d1 execute oncetax --local --file=app/schema.sql",
-    "db:migrate:remote": "wrangler d1 execute oncetax --remote --file=app/schema.sql"
+    "db:migrate:local": "wrangler d1 migrations apply oncetax --local",
+    "db:migrate:remote": "wrangler d1 migrations apply oncetax --remote"
   },
   "dependencies": {
     "@remix-run/cloudflare": "^2.14.0",

@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 import app.db as app_db
 from app.api.cockpit.router import cockpit_router
+from app.config import settings
 from app.middleware.operator_act_as import OperatorActAsMiddleware
 from app.models import (
     Operator,
@@ -31,7 +32,7 @@ STRONG_PWD = "C0ckpit-Act-As-T3st!2026"
 
 @pytest_asyncio.fixture
 async def cockpit_app(_test_engine, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
-    monkeypatch.setenv("COCKPIT_JWT_SECRET_KEY", "test-cockpit-secret-" + "k" * 32)
+    monkeypatch.setattr(settings, "cockpit_jwt_secret_key", "test-cockpit-secret-" + "k" * 32)
     monkeypatch.setenv("ACCOUNT_LOCKOUT_MAX_FAILS", "50")
     reset_default_tracker()
     app = FastAPI(title="cockpit-actas-test")
@@ -80,11 +81,7 @@ async def _seed(
 
         if grants:
             for tid in grants:
-                session.add(
-                    OperatorTenantGrant(
-                        operator_id=op.id, tenant_id=tid, permission="write"
-                    )
-                )
+                session.add(OperatorTenantGrant(operator_id=op.id, tenant_id=tid, permission="write"))
 
         if suppliers:
             for tid, sname in suppliers:
@@ -252,10 +249,9 @@ async def test_suspended_operator_blocked_by_dep(cockpit_client: AsyncClient) ->
     # Suspend after issuing the token
     async with app_db.AsyncSessionLocal() as session:
         from sqlalchemy import update
+
         await session.execute(
-            update(Operator)
-            .where(Operator.email == "founder@once.dev")
-            .values(status=OperatorStatus.SUSPENDED.value)
+            update(Operator).where(Operator.email == "founder@once.dev").values(status=OperatorStatus.SUSPENDED.value)
         )
         await session.commit()
 
@@ -326,9 +322,7 @@ async def test_list_tenants_scoped_to_grants(cockpit_client: AsyncClient) -> Non
         )
         await session.commit()
     access = await _login(cockpit_client, "support@once.dev")
-    resp = await cockpit_client.get(
-        "/cockpit/tenants", headers={"Authorization": f"Bearer {access}"}
-    )
+    resp = await cockpit_client.get("/cockpit/tenants", headers={"Authorization": f"Bearer {access}"})
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["total"] == 1
