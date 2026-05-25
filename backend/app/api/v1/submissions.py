@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentTenantId, CurrentTenantUser
+from app.api.deps import CurrentTenantId, CurrentTenantUser, get_current_tenant_user
+from app.api.v1.receipts import _receipt_to_read
 from app.db import get_db
-from app.models import AuditLog
+from app.models import AuditLog, TenantUser
 from app.models.submission import SubmissionStatus
 from app.schemas.receipt import ReceiptRead
 from app.schemas.submission import (
@@ -58,9 +59,28 @@ def _write_audit(
     )
 
 
-def _verify_url(request: Request, receipt_id: str) -> str:
-    base = str(request.base_url).rstrip("/")
-    return f"{base}/verify/{receipt_id}"
+_WRITER_ROLES: frozenset[str] = frozenset({"agent", "admin", "owner"})
+
+
+def _require_writer(
+    tu: Annotated[TenantUser, Depends(get_current_tenant_user)],
+) -> TenantUser:
+    """Reject member-only roles from mutating submissions.
+
+    Members may read; agents/admins/owners may create or retry. Receipts
+    remain viewable by any tenant member (no role check there).
+    """
+
+    role = (getattr(tu, "role", "") or "").lower()
+    if role not in _WRITER_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "writer_role_required",
+                "message": "Submission mutations require agent, admin, or owner role.",
+            },
+        )
+    return tu
 
 
 @router.post(
@@ -72,7 +92,7 @@ def _verify_url(request: Request, receipt_id: str) -> str:
 async def create_submission(
     payload: SubmissionCreate,
     request: Request,
-    tenant_user: CurrentTenantUser,
+    tenant_user: Annotated[TenantUser, Depends(_require_writer)],
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> SubmissionRead:
     submission = await submission_service.create_submission(
@@ -160,7 +180,7 @@ async def get_submission(
 async def retry_submission(
     submission_id: str,
     request: Request,
-    tenant_user: CurrentTenantUser,
+    tenant_user: Annotated[TenantUser, Depends(_require_writer)],
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> SubmissionRead:
     submission = await submission_service.retry_submission(
@@ -209,7 +229,4 @@ async def get_submission_receipt(
         ip_address=_client_ip(request),
         metadata={"submission_id": submission_id},
     )
-    data = ReceiptRead.model_validate(receipt).model_copy(
-        update={"verify_url": _verify_url(request, receipt.id)}
-    )
-    return data
+    return _receipt_to_read(request, receipt)

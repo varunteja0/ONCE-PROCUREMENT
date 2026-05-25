@@ -165,6 +165,36 @@ services:
       timeout: 3s
       retries: 3
 
+  # Public Ed25519 receipt verifier microservice (port 8080). Independent
+  # of the main backend — anyone holding a receipt id can verify it
+  # without authentication. Mirrors the production Fly deployment.
+  verifier:
+    build:
+      context: ./verifier
+      dockerfile: Dockerfile
+    image: once/verifier:dev
+    restart: unless-stopped
+    environment:
+      BACKEND_BASE_URL: http://backend:8000
+      BACKEND_RECEIPT_PATH: /v1/public/receipts/
+      SIGNING_KEY_ID: ${RECEIPT_SIGNING_KEY_ID:-default}
+      PUBLIC_KEY_PEM: ${RECEIPT_SIGNING_PUBLIC_KEY_PEM:-}
+      REQUEST_TIMEOUT_SEC: "10"
+      ENV: ${APP_ENV:-development}
+      SENTRY_DSN: ${VERIFIER_SENTRY_DSN:-}
+      BACKEND_INTERNAL_TOKEN: ${VERIFIER_BACKEND_INTERNAL_TOKEN:-}
+      UNAUTH_RATE_LIMIT: ${VERIFIER_UNAUTH_RATE_LIMIT:-100/day;20/hour;5/minute}
+    ports:
+      - "${VERIFIER_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).status==200 else 1)" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   # ClamAV antivirus sidecar (L4). Behind the ``full`` profile so the
   # default ``docker compose up`` doesn't pull the ~600MB image. Enable
   # with: ``docker compose --profile full up``. When this service is

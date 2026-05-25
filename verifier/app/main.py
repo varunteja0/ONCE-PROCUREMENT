@@ -8,7 +8,6 @@ a configured public key (PEM). Intended to be auditable / runnable by anyone.
 from __future__ import annotations
 
 import base64
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -27,6 +26,7 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.api_key import enforce_api_key_or_rate_limit
+from app.canonical import canonical_json_bytes as _rfc8785_bytes
 from app.content_negotiation import negotiate
 from app.observability import init_sentry
 from app.views import _render_html, router as views_router
@@ -111,9 +111,11 @@ def _load_public_key(pem: str) -> Ed25519PublicKey:
 
 
 def _canonical_json_bytes(payload: dict[str, Any]) -> bytes:
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    """RFC8785 canonical JSON. Must byte-match ``backend/app/utils/canonical_json.py``
+    so the verifier can validate any backend-signed receipt.
+    """
+
+    return _rfc8785_bytes(payload)
 
 
 def _decode_signature(sig: str) -> bytes:
@@ -212,6 +214,21 @@ async def perform_verification(receipt_id: str) -> VerificationResult:
 
     payload = envelope.get("payload")
     signature_str = envelope.get("signature") or envelope.get("sig")
+
+    # Accept the real backend envelope shape (PublicReceiptVerifyResponse):
+    # ``{ receipt: { public_payload_json, signature_b64, ... }, ... }``.
+    if (not isinstance(payload, dict)) or (not isinstance(signature_str, str)):
+        receipt_obj = envelope.get("receipt")
+        if isinstance(receipt_obj, dict):
+            if not isinstance(payload, dict):
+                candidate = receipt_obj.get("public_payload_json")
+                if isinstance(candidate, dict):
+                    payload = candidate
+            if not isinstance(signature_str, str):
+                candidate_sig = receipt_obj.get("signature_b64")
+                if isinstance(candidate_sig, str):
+                    signature_str = candidate_sig
+
     if not isinstance(payload, dict) or not isinstance(signature_str, str):
         return VerificationResult(
             status="error",

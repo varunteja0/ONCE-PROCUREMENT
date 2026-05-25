@@ -59,7 +59,15 @@ class PublicReceiptRead(BaseModel):
 
 
 class PublicReceiptVerifyResponse(BaseModel):
-    """Envelope for the public verifier endpoint."""
+    """Envelope for the public verifier endpoint.
+
+    Includes top-level ``payload`` and ``signature`` fields so the
+    standalone verifier service (and any third-party tool) can verify
+    directly from the canonical envelope without unwrapping ``receipt``.
+    The two top-level fields are byte-identical to
+    ``receipt.public_payload_json`` and ``receipt.signature_b64``
+    respectively; both shapes are accepted by the verifier.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,3 +75,5 @@ class PublicReceiptVerifyResponse(BaseModel):
     verified: bool
     public_key_b64: str | None = None
     reason: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    signature: str = ""

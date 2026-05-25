@@ -345,6 +345,21 @@ class Settings(BaseSettings):
                 f"Refusing to start in APP_ENV={self.app_env}: placeholder values "
                 f"detected for: {joined}. Set real secrets before booting."
             )
+
+        # Stripe live-mode safety: production must NOT silently run mock billing.
+        if self.is_production:
+            if self.stripe_mock_mode:
+                raise ValueError(
+                    "Refusing to start in APP_ENV=production with STRIPE_MOCK_MODE=true. "
+                    "Set STRIPE_MOCK_MODE=false and provide a real STRIPE_SECRET_KEY."
+                )
+            if not self.stripe_secret_key or _looks_like_placeholder(
+                self.stripe_secret_key
+            ):
+                raise ValueError(
+                    "Refusing to start in APP_ENV=production: STRIPE_SECRET_KEY "
+                    "is missing or a placeholder. Configure live Stripe credentials."
+                )
         return self
 
 

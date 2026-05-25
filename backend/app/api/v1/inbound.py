@@ -117,8 +117,13 @@ async def get_email(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> InboundEmailDetail:
-    email = await session.get(InboundEmail, email_id)
-    if email is None or email.tenant_id != tenant_id:
+    email = await session.scalar(
+        select(InboundEmail).where(
+            InboundEmail.id == email_id,
+            InboundEmail.tenant_id == tenant_id,
+        )
+    )
+    if email is None:
         raise HTTPException(status_code=404, detail="not_found")
     att_rows = list(
         (
@@ -159,8 +164,13 @@ async def retry_email(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> InboundRetryResponse:
-    email = await session.get(InboundEmail, email_id)
-    if email is None or email.tenant_id != tenant_id:
+    email = await session.scalar(
+        select(InboundEmail).where(
+            InboundEmail.id == email_id,
+            InboundEmail.tenant_id == tenant_id,
+        )
+    )
+    if email is None:
         raise HTTPException(status_code=404, detail="not_found")
     try:
         updated = await inbound_email_service.retry_routing(
@@ -179,8 +189,13 @@ async def quarantine_email(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> InboundRetryResponse:
-    email = await session.get(InboundEmail, email_id)
-    if email is None or email.tenant_id != tenant_id:
+    email = await session.scalar(
+        select(InboundEmail).where(
+            InboundEmail.id == email_id,
+            InboundEmail.tenant_id == tenant_id,
+        )
+    )
+    if email is None:
         raise HTTPException(status_code=404, detail="not_found")
     updated = await inbound_email_service.quarantine(
         session, tenant_id=tenant_id, email_id=email_id
@@ -238,8 +253,13 @@ async def update_rule(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> InboundRuleRead:
-    rule = await session.get(InboundRoutingRule, rule_id)
-    if rule is None or rule.tenant_id != tenant_id:
+    rule = await session.scalar(
+        select(InboundRoutingRule).where(
+            InboundRoutingRule.id == rule_id,
+            InboundRoutingRule.tenant_id == tenant_id,
+        )
+    )
+    if rule is None:
         raise HTTPException(status_code=404, detail="not_found")
     data = payload.model_dump(exclude_unset=True)
     if "action" in data:
@@ -257,11 +277,19 @@ async def delete_rule(
     tenant_id: CurrentTenantId,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> Response:
-    rule = await session.get(InboundRoutingRule, rule_id)
-    if rule is None or rule.tenant_id != tenant_id:
+    rule = await session.scalar(
+        select(InboundRoutingRule).where(
+            InboundRoutingRule.id == rule_id,
+            InboundRoutingRule.tenant_id == tenant_id,
+        )
+    )
+    if rule is None:
         raise HTTPException(status_code=404, detail="not_found")
     await session.execute(
-        delete(InboundRoutingRule).where(InboundRoutingRule.id == rule_id)
+        delete(InboundRoutingRule).where(
+            InboundRoutingRule.id == rule_id,
+            InboundRoutingRule.tenant_id == tenant_id,
+        )
     )
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

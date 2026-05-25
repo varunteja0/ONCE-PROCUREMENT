@@ -1,0 +1,57 @@
+name: Nightly E2E demo
+
+# Runs the end-to-end demo happy-path test once per day. The standard CI
+# suite (`ci.yml`) intentionally skips this test so PR turnaround stays
+# fast; this workflow is the safety net that catches receipt-signing or
+# canonical-JSON drift between the backend signer and the public
+# verifier service.
+
+on:
+  schedule:
+    - cron: "17 4 * * *"  # 04:17 UTC every day
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e-demo:
+    name: backend e2e demo (py3.12)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: development
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      REDIS_URL: "redis://localhost:6379/0"
+      SECRET_KEY: "ci-secret-key-not-used-in-prod-xxxxxxxxxxxxx"
+      JWT_SECRET_KEY: "ci-jwt-secret-not-used-in-prod-yyyyyyyyyyy"
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "30"
+      RECEIPT_SIGNING_KEY_ID: "ci"
+      ENABLE_IN_PROCESS_PROCESSOR: "True"
+      RUN_E2E_DEMO: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install verifier deps (needed for canonical-JSON parity check)
+        working-directory: verifier
+        run: pip install -r requirements.txt
+
+      - name: Run E2E demo (sign + offline verify + canonical parity)
+        run: pytest tests/test_e2e_demo_flow.py -v

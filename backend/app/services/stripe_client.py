@@ -263,21 +263,40 @@ class _LiveStripeClient:
 
 
 _cached_client: StripeClient | None = None
+_mock_warning_emitted: bool = False
 
 
 def get_stripe_client() -> StripeClient:
-    """Return the process-wide Stripe client (mock or live)."""
+    """Return the process-wide Stripe client (mock or live).
 
-    global _cached_client
+    Fails closed in production: if ``stripe_mock_mode`` is False and
+    ``stripe_secret_key`` is missing we raise rather than silently dropping
+    into the in-memory fake. Test/dev environments retain the mock fallback,
+    but log a single ``stripe_mock_fallback`` warning so misconfiguration is
+    visible in logs.
+    """
+
+    global _cached_client, _mock_warning_emitted
     if _cached_client is not None:
         return _cached_client
 
-    if settings.stripe_mock_mode or not settings.stripe_secret_key:
-        if not settings.stripe_mock_mode:
+    if settings.stripe_mock_mode:
+        _cached_client = _MockStripeClient()
+        return _cached_client
+
+    if not settings.stripe_secret_key:
+        if settings.is_production:
+            raise RuntimeError(
+                "STRIPE_SECRET_KEY is required when STRIPE_MOCK_MODE=false "
+                "in production. Refusing to fall back to the in-memory mock."
+            )
+        if not _mock_warning_emitted:
             _logger.warning(
                 "stripe_mock_fallback",
                 reason="STRIPE_SECRET_KEY not configured; using mock client",
+                env=settings.app_env,
             )
+            _mock_warning_emitted = True
         _cached_client = _MockStripeClient()
     else:
         _cached_client = _LiveStripeClient(api_key=settings.stripe_secret_key)
@@ -287,5 +306,6 @@ def get_stripe_client() -> StripeClient:
 def reset_stripe_client_cache() -> None:
     """Drop the cached client (test helper, e.g. after env mutation)."""
 
-    global _cached_client
+    global _cached_client, _mock_warning_emitted
     _cached_client = None
+    _mock_warning_emitted = False

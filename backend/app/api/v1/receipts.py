@@ -234,6 +234,7 @@ async def _verify_receipt_public(
         metadata={"verified": verified, "reason": reason},
     )
 
+    public_payload = dict(receipt.public_payload_json or {})
     public = PublicReceiptRead(
         receipt_id=receipt.id,
         portal_platform=receipt.portal_platform,
@@ -242,13 +243,17 @@ async def _verify_receipt_public(
         tos_version_hash=receipt.tos_version_hash,
         signing_key_id=receipt.signing_key_id,
         signature_b64=receipt.signature_b64,
-        public_payload_json=dict(receipt.public_payload_json or {}),
+        public_payload_json=public_payload,
     )
     return PublicReceiptVerifyResponse(
         receipt=public,
         verified=verified,
         public_key_b64=public_key_b64,
         reason=reason,
+        # Top-level aliases so the standalone verifier service can verify
+        # without unwrapping ``receipt``. Byte-identical to the nested fields.
+        payload=public_payload,
+        signature=receipt.signature_b64,
     )
 
 

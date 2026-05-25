@@ -258,10 +258,19 @@ async def run_extraction(
 async def get_extraction(
     session: AsyncSession, *, tenant_id: str, extraction_id: str
 ) -> ExtractionResult | None:
-    row = await session.get(ExtractionResult, extraction_id)
-    if row is None or row.tenant_id != tenant_id:
-        return None
-    return row
+    """Load an extraction with a single tenant-filtered SELECT.
+
+    Cross-tenant ids return ``None`` (caller treats as 404). The previous
+    ``session.get`` + post-check pattern violated repo policy and was fragile
+    under refactors.
+    """
+
+    return await session.scalar(
+        select(ExtractionResult).where(
+            ExtractionResult.id == extraction_id,
+            ExtractionResult.tenant_id == tenant_id,
+        )
+    )
 
 
 async def list_extractions(

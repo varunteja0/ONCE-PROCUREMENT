@@ -11,6 +11,7 @@ from .health import router as health_router
 from .loss_runs import router as loss_runs_router
 from .portals import router as portals_router
 from .producer_licenses import router as producer_licenses_router
+from .public_keys import router as public_keys_router
 from .receipts import public_receipt_router
 from .receipts import router as receipts_router
 from .risk_schedules import router as risk_schedules_router
@@ -28,6 +29,7 @@ api_router.include_router(portals_router)
 api_router.include_router(submissions_router)
 api_router.include_router(consents_router)
 api_router.include_router(receipts_router)
+api_router.include_router(public_keys_router)
 api_router.include_router(loss_runs_router)
 api_router.include_router(producer_licenses_router)
 api_router.include_router(eo_certificates_router)

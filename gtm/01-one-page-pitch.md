@@ -17,7 +17,7 @@
 We are a **done-for-you portal submission service** + browser extension:
 
 1. **You give us your master data ONCE** — producer licenses, E&O cert, W-9, COI, surplus-lines authorizations, banking, beneficial-owner KYC, sanctions attestations, all carrier-specific addendums.
-2. **We push it to every carrier portal you're appointed at** — Applied, Vertafore, Sapiens, Duck Creek, Guidewire, and any direct carrier portal. Currently supported: 30+ carriers, adding 4–6/month based on customer request.
+2. **We push it to every carrier portal you're appointed at** — Applied, Vertafore, Sapiens, Duck Creek, Guidewire, and any direct carrier portal. Currently in production: 3 carrier portals (Applied Epic, Vertafore AMS360, AmTrust) with a documented add-a-portal SDK; we ship 1–2 new portals per pilot month as customers request them.
 3. **We keep it current** — license renewals, E&O refreshes, sanctions list re-checks, COI auto-renewals tracked and pushed when they change.
 4. **Every submission gets a cryptographically signed receipt** — Ed25519-signed JSON proving *"MGA X submitted exactly this data to Carrier Y at Time T under Carrier Y's ToS version V."* Use it for state DOI exams, E&O claims defense, carrier audits, and (starting Aug 2, 2026) EU AI Act compliance if you write any cross-border.
 5. **You stay in control** — every submission requires your one-click approval. We never auto-submit without explicit per-submission consent.

@@ -76,8 +76,10 @@ Tenant B row, by either explicit ID or by query.
 - **CSRF:** double-submit cookie on every state-changing route for
   browser clients (the extension uses a bearer token only and sets a
   custom header that bypasses CSRF).
-- **Password hashing:** Argon2id with sensible defaults (via
-  `passlib`).
+- **Password hashing:** bcrypt cost 12 via `passlib[bcrypt]` (see
+  `backend/app/auth/security.py`). Migration to Argon2id is tracked on the
+  roadmap; the existing bcrypt hashes will be rehashed on next successful
+  login once the change ships.
 - **Rate limiting:** slowapi on `/v1/auth/*` (5/min/IP for login,
   10/min/IP for register).
 

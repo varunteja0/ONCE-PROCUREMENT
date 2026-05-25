@@ -1,7 +1,7 @@
-# Once â€” Landing site (`getonce.com`)
+# Once — Landing site (`getonce.com`)
 
 Static one-pager that lives at the root of `getonce.com`. The app (React/Vite)
-lives at `app.getonce.com` and the verifier at `verify.getonce.com` â€” this
+lives at `app.getonce.com` and the verifier at `verify.getonce.com` — this
 folder is intentionally just `index.html` + `vercel.json` so the marketing
 root deploys in ~2 seconds and never blocks on the app build.
 
@@ -9,8 +9,9 @@ root deploys in ~2 seconds and never blocks on the app build.
 - Single HTML file.
 - Tailwind via the `cdn.tailwindcss.com` script (no build step).
 - Inter from Google Fonts.
-- Cal.com embed placeholder (`data-cal-link="once/demo"`) â€” wire up once the
-  Cal.com booking page exists.
+- Calendly inline embed (`varun-once/discovery`) — provision the slug at
+  https://calendly.com before first launch, or the iframe will show "page
+  not found".
 
 ## Local preview
 Any static server works:
@@ -21,22 +22,38 @@ python -m http.server 8000
 # open http://localhost:8000
 ```
 
-## Deploy (Vercel)
-
-This is a **separate Vercel project** from `frontend/` so the marketing
-homepage and the app deploy independently.
-
-### One-time setup
+## Deploy (Vercel) — fastest path
 
 ```bash
 cd landing
-vercel link               # create a new project, e.g. "once-landing"
-vercel domains add getonce.com
-vercel domains add www.getonce.com
-vercel alias getonce.com
+npx vercel login                # one-time
+npx vercel --prod               # creates project on first run, then deploys
 ```
 
-Then in the Vercel dashboard for the `once-landing` project:
+That's it. Subsequent pushes to `main` deploy automatically via Vercel's
+native Git integration (no GitHub Actions needed for the static site).
+
+### 1. Point the apex + `www` at Vercel (one-time, after first deploy)
+
+In Cloudflare DNS, add:
+
+| Name           | Type  | Value                  | Proxy    |
+| -------------- | ----- | ---------------------- | -------- |
+| `getonce.com`  | CNAME | `cname.vercel-dns.com` | DNS-only |
+| `www`          | CNAME | `cname.vercel-dns.com` | DNS-only |
+
+Cloudflare supports CNAME flattening at the apex; otherwise use Vercel's A
+record `76.76.21.21`.
+
+Then attach the domain in Vercel:
+
+```bash
+npx vercel domains add getonce.com
+npx vercel domains add www.getonce.com
+npx vercel alias getonce.com
+```
+
+### 2. Project settings (set once in the Vercel dashboard)
 
 - **Root directory**: `landing`
 - **Framework preset**: Other
@@ -45,24 +62,12 @@ Then in the Vercel dashboard for the `once-landing` project:
 - **Install command**: (leave blank)
 - **Production branch**: `main`
 
-### CI/CD
+### CI/CD note
 
 The repo-level GitHub workflow `deploy-frontend.yml` only handles the **app**
-project. The landing project deploys via Vercel's native Git integration
-(push to `main` with changes in `landing/**` â†’ auto-deploy).
+project. The landing site uses Vercel's native Git integration — push to
+`main` with changes under `landing/**` and it auto-deploys.
 
 If you'd rather drive it from GitHub Actions, mirror `deploy-frontend.yml`
 with `working-directory: landing` and a separate `VERCEL_PROJECT_ID_LANDING`
 secret.
-
-## DNS
-
-In Cloudflare, point the apex and `www` at Vercel:
-
-| Name           | Type  | Value                  | Proxy   |
-| -------------- | ----- | ---------------------- | ------- |
-| `getonce.com`  | CNAME | `cname.vercel-dns.com` | DNS-only |
-| `www`          | CNAME | `cname.vercel-dns.com` | DNS-only |
-
-Cloudflare supports CNAME flattening at the apex; otherwise use Vercel's A
-records (76.76.21.21).
