@@ -140,6 +140,7 @@ screenshots/
 
 # ─── Once: ad-hoc scratch test/log dumps (never commit) ──────────────
 backend/full_test.txt
+backend/pytest-out.txt
 backend/test_out.txt
 backend/ptlog*.txt
 backend/vk_out.txt
