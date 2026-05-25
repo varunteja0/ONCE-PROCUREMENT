@@ -57,12 +57,7 @@ const AuditDetailPage = lazy(() => import('@/pages/audit/AuditDetail'));
 const AuditExportsPage = lazy(() => import('@/pages/audit/AuditExports'));
 // --- /L3.10 audit ---
 
-// --- Public trust surface (Wedge A: cryptographic audit / coverage scorecard) ---
-const Coverage = lazy(() => import('@/pages/public/Coverage'));
-const PublicVerify = lazy(() => import('@/pages/public/PublicVerify'));
-const Trust = lazy(() => import('@/pages/public/Trust'));
-// --- /Public trust surface ---
-
+// --- Public trust surface --- (deferred — pages live on a feature branch)
 // --- L3.5 billing ---
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Billing = lazy(() => import('@/pages/Billing'));
@@ -151,23 +146,7 @@ export const routes: RouteObject[] = [
     errorElement: <RouteError />,
   },
   // --- /L3.5 billing ---
-  // --- Public trust surface (no auth) ---
-  {
-    path: '/coverage',
-    element: wrap(<Coverage />),
-    errorElement: <RouteError />,
-  },
-  {
-    path: '/verify',
-    element: wrap(<PublicVerify />),
-    errorElement: <RouteError />,
-  },
-  {
-    path: '/trust',
-    element: wrap(<Trust />),
-    errorElement: <RouteError />,
-  },
-  // --- /Public trust surface ---
+  // --- Public trust surface routes deferred ---
   // --- L3.6 onboarding ---
   { path: '/onboarding', element: wrap(<OnboardingWizard />), errorElement: <RouteError /> },
   { path: '/onboarding/signup', element: wrap(<OnboardingSignup />), errorElement: <RouteError /> },
