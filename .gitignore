@@ -146,6 +146,9 @@ backend/vk_out.txt
 backend/all_out.txt
 verifier/all_out.txt
 verifier/vk_api.txt
+_logs_*.txt
+*.orig.new
+**/*.ts.new
 **/.coverage
 **/coverage.json
 README.md.new

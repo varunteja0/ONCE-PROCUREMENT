@@ -16,10 +16,10 @@ submitters and the extension popup ↔ backend round-trip wired:
 
 | Subproject   | Tests passing          |
 | ------------ | ---------------------- |
-| `backend/`   | **1144** (`pytest -q`) |
+| `backend/`   | **1146** (`pytest -q`, 30 integration tests skipped pending `RUN_INTEGRATION_TESTS=1`) |
 | `frontend/`  | **165** (`vitest run`) |
 | `extension/` | **84** (`vitest run`)  |
-| `verifier/`  | ~10 (`pytest -q`)      |
+| `verifier/`  | **56** (`pytest -q`)   |
 
 Real submitters in `backend/app/automation/submitters/` (with integration
 tests in `backend/tests/integration/`): Vertafore AMS360, Sircon,
