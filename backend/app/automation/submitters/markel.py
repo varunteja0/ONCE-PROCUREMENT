@@ -55,7 +55,7 @@ class MarkelSubmitter(PlaywrightSubmitter):
         "target_states",
     )
 
-    FIELD_MAP: dict[str, str] = {
+    FIELD_MAP = {
         "named_insured": "Insured Legal Name",
         "fein": "Tax ID (FEIN)",
         "agency_code": "Agency Code",
@@ -95,13 +95,9 @@ class MarkelSubmitter(PlaywrightSubmitter):
     def _fill_form(self, page: Page, payload: dict[str, Any]) -> None:
         tracker = SelectorDriftTracker(threshold=1)
         premium_cents = payload.get("premium_cents")
-        premium_dollars = (
-            f"{int(premium_cents) / 100:.2f}" if premium_cents is not None else ""
-        )
+        premium_dollars = f"{int(premium_cents) / 100:.2f}" if premium_cents is not None else ""
         target_states = payload.get("target_states") or []
-        states_text = (
-            ",".join(target_states) if isinstance(target_states, list | tuple) else str(target_states)
-        )
+        states_text = ",".join(target_states) if isinstance(target_states, list | tuple) else str(target_states)
         fills: list[tuple[str, str]] = [
             ("named_insured", str(payload.get("named_insured", ""))),
             ("fein", str(payload.get("fein", ""))),

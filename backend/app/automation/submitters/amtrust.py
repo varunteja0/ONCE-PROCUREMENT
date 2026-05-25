@@ -65,7 +65,7 @@ class AmTrustSubmitter(PlaywrightSubmitter):
         "line_of_business",
     )
 
-    FIELD_MAP: dict[str, str] = {
+    FIELD_MAP = {
         "named_insured": "Named Insured",
         "fein": "FEIN",
         "producer_code": "Producer Code",
@@ -105,9 +105,7 @@ class AmTrustSubmitter(PlaywrightSubmitter):
     def _fill_form(self, page: Page, payload: dict[str, Any]) -> None:
         tracker = SelectorDriftTracker(threshold=1)
         premium_cents = payload.get("premium_cents")
-        premium_dollars = (
-            f"{int(premium_cents) / 100:.2f}" if premium_cents is not None else ""
-        )
+        premium_dollars = f"{int(premium_cents) / 100:.2f}" if premium_cents is not None else ""
         fills: list[tuple[str, str]] = [
             ("named_insured", str(payload.get("named_insured", ""))),
             ("fein", str(payload.get("fein", ""))),

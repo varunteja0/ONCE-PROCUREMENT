@@ -60,7 +60,7 @@ class SirconSubmitter(PlaywrightSubmitter):
         "license_states",
     )
 
-    FIELD_MAP: dict[str, str] = {
+    FIELD_MAP = {
         "legal_name": "Producer Legal Name",
         "ein": "Tax ID (EIN)",
         "npn": "NPN",
@@ -98,11 +98,7 @@ class SirconSubmitter(PlaywrightSubmitter):
     def _fill_form(self, page: Page, payload: dict[str, Any]) -> None:
         tracker = SelectorDriftTracker(threshold=1)
         license_states = payload.get("license_states") or []
-        states_text = (
-            ",".join(license_states)
-            if isinstance(license_states, list | tuple)
-            else str(license_states)
-        )
+        states_text = ",".join(license_states) if isinstance(license_states, list | tuple) else str(license_states)
         fills: list[tuple[str, str]] = [
             ("legal_name", str(payload.get("legal_name", ""))),
             ("ein", str(payload.get("ein", ""))),
