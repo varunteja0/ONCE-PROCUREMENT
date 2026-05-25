@@ -369,7 +369,7 @@ export async function listProfileIds(): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 export const __test__ = {
-  AUTO_LOCK_MS,
+  DEFAULT_AUTO_LOCK_MIN,
   DB_NAME,
   STORE_NAME,
   VERIFIER_ID,
