@@ -19,7 +19,7 @@
     "@remix-run/cloudflare": "^2.14.0",
     "@remix-run/cloudflare-pages": "^2.14.0",
     "@remix-run/react": "^2.14.0",
-    "@shopify/shopify-api": "^11.6.1",
+    "@shopify/shopify-api": "^13.0.0",
     "isbot": "^5.1.17",
     "pdf-lib": "^1.17.1",
     "react": "^18.3.1",
