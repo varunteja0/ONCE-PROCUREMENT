@@ -55,6 +55,7 @@ Windows without GNU Make? Use the PowerShell mirror: `.\tasks.ps1 doctor`,
 
 - 👉 [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — friendly walkthrough with screenshots.
 - 👉 [`docs/DEMO.md`](docs/DEMO.md) — the canonical end-to-end demo script (90s tour).
+- 👉 [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) — founder pre-flight checklist (legal, banking, first customer, conferences).
 - 👉 [`LOCAL-BUILD.md`](LOCAL-BUILD.md) — deeper local-build guide and current status.
 - 👉 [`CONTRACTS.md`](CONTRACTS.md) — non-negotiable stack, models, env vars, file ownership.
 

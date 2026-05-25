@@ -290,7 +290,11 @@ const baseURL: string = resolveBaseUrl();
 
 export const api: AxiosInstance = axios.create({
   baseURL,
-  withCredentials: false,
+  // Enabled so the backend can roll cookie-based auth in front of the
+  // existing Authorization-header flow without a coordinated frontend
+  // release. Backend remains the source of truth for which auth path is
+  // active; sending cookies costs nothing when the server doesn't set any.
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
