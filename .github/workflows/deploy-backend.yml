@@ -20,7 +20,7 @@ jobs:
     # Skip cleanly on PRs from forks (no token). Push to main always has it.
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Guard — FLY_API_TOKEN present
         id: guard
