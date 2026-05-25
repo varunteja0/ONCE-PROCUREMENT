@@ -43,10 +43,10 @@ from app.models import (
 
 
 async def _mk_tenant(session: AsyncSession) -> Tenant:
+    suffix = uuid.uuid4().hex[:8]
     t = Tenant(
-        name=f"acme-{uuid.uuid4().hex[:8]}",
-        display_name="Acme Test",
-        slug=f"acme-{uuid.uuid4().hex[:8]}",
+        name=f"Acme Test {suffix}",
+        slug=f"acme-{suffix}",
     )
     session.add(t)
     await session.flush()
@@ -115,14 +115,17 @@ class TestCarrier:
         await _mk_carrier(async_session, tenant.id, naic_code="12345")
         await async_session.commit()
 
-        await _mk_carrier(
-            async_session,
-            tenant.id,
-            legal_name="Duplicate Carrier",
-            naic_code="12345",
+        async_session.add(
+            Carrier(
+                tenant_id=tenant.id,
+                legal_name="Duplicate Carrier",
+                naic_code="12345",
+                kind=CarrierKind.ADMITTED,
+                status=CarrierStatus.ACTIVE,
+            )
         )
         with pytest.raises(IntegrityError):
-            await async_session.commit()
+            await async_session.flush()
         await async_session.rollback()
 
     @pytest.mark.asyncio
@@ -230,8 +233,9 @@ class TestLossRunClaim:
         loss_run = LossRun(
             tenant_id=tenant.id,
             supplier_id=supplier.id,
+            carrier_name="Travelers Indemnity",
             line_of_business="general_liability",
-            status=LossRunStatus.RECEIVED,
+            status=LossRunStatus.PARSED.value,
             period_start=date(2023, 1, 1),
             period_end=date(2025, 12, 31),
         )
