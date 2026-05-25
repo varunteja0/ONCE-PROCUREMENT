@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn } from 'lucide-react';
@@ -7,6 +7,7 @@ import { loginSchema, type LoginFormValues } from '@/schemas/auth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
+import { sanitizeRedirect } from '@/lib/security';
 
 interface LocationState {
   from?: string;
@@ -16,9 +17,11 @@ export default function Login(): JSX.Element {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const redirectTo =
-    (location.state as LocationState | null)?.from ?? '/dashboard';
+  const nextParam = searchParams.get('next');
+  const fromState = (location.state as LocationState | null)?.from ?? null;
+  const redirectTo = sanitizeRedirect(nextParam ?? fromState ?? '/dashboard');
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -82,6 +85,14 @@ export default function Login(): JSX.Element {
             className="font-medium text-slate-900 underline hover:no-underline dark:text-slate-200"
           >
             Create an account
+          </Link>
+        </p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          <Link
+            to="/auth/forgot-password"
+            className="font-medium text-slate-900 underline hover:no-underline dark:text-slate-200"
+          >
+            Forgot your password?
           </Link>
         </p>
       </div>

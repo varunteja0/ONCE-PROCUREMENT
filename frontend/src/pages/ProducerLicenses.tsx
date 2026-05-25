@@ -11,6 +11,18 @@ import {
 } from '@/schemas/artifacts';
 import type { ProducerLicense, ProducerLicenseCreateInput } from '@/types/api';
 
+function toCreateInput(v: ProducerLicenseFormValues): ProducerLicenseCreateInput {
+  return {
+    supplier_id: v.supplier_id,
+    state: v.state,
+    license_number: v.license_number,
+    license_type: v.license_type ?? null,
+    expires_at: v.expires_at,
+    file_url: v.file_url ?? null,
+    notes: v.notes ?? null,
+  };
+}
+
 function LicenseForm({
   onSubmit,
   submitting,
@@ -35,9 +47,7 @@ function LicenseForm({
 
   return (
     <form
-      onSubmit={form.handleSubmit((v) =>
-        onSubmit(v as unknown as ProducerLicenseCreateInput),
-      )}
+      onSubmit={form.handleSubmit((v) => onSubmit(toCreateInput(v)))}
       className="space-y-3"
       noValidate
     >

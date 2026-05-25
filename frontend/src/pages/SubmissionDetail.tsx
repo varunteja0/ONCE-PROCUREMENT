@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import {
@@ -6,6 +6,8 @@ import {
   useSubmissionReceipt,
   useRetrySubmission,
 } from '@/hooks/useSubmissions';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { usePortals } from '@/hooks/usePortals';
 import {
   Button,
   Card,
@@ -17,8 +19,6 @@ import {
 } from '@/components/ui';
 import ReceiptVerifierWidget from '@/components/ReceiptVerifierWidget';
 import { toast } from '@/lib/toast';
-
-const LIVE_STATUSES = new Set(['queued', 'running', 'retrying']);
 
 export default function SubmissionDetail(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -32,14 +32,26 @@ export default function SubmissionDetail(): JSX.Element {
   );
   const retry = useRetrySubmission();
 
-  const isLive = detail.data ? LIVE_STATUSES.has(detail.data.status) : false;
-  useEffect(() => {
-    if (!isLive) return undefined;
-    const t = window.setInterval(() => {
-      void detail.refetch();
-    }, 2500);
-    return () => window.clearInterval(t);
-  }, [isLive, detail]);
+  const suppliersQuery = useSuppliers({ pageSize: 200 });
+  const portalsQuery = usePortals({ pageSize: 200 });
+
+  const supplierName = useMemo(() => {
+    if (!detail.data) return null;
+    return (
+      (suppliersQuery.data ?? []).find(
+        (s) => s.id === detail.data?.supplier_id,
+      )?.legal_name ?? null
+    );
+  }, [detail.data, suppliersQuery.data]);
+
+  const portalName = useMemo(() => {
+    if (!detail.data) return null;
+    return (
+      (portalsQuery.data?.items ?? []).find(
+        (p) => p.id === detail.data?.portal_id,
+      )?.display_name ?? null
+    );
+  }, [detail.data, portalsQuery.data]);
 
   async function onRetry(): Promise<void> {
     if (!id) return;
@@ -81,8 +93,14 @@ export default function SubmissionDetail(): JSX.Element {
                 Submission {detail.data.id.slice(0, 8)}
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Supplier {detail.data.supplier_id.slice(0, 8)} · Portal{' '}
-                {detail.data.portal_id.slice(0, 8)}
+                Supplier{' '}
+                <span className="text-slate-700 dark:text-slate-200">
+                  {supplierName ?? detail.data.supplier_id.slice(0, 8)}
+                </span>{' '}
+                · Portal{' '}
+                <span className="text-slate-700 dark:text-slate-200">
+                  {portalName ?? detail.data.portal_id.slice(0, 8)}
+                </span>
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -109,16 +127,22 @@ export default function SubmissionDetail(): JSX.Element {
                 <dt className="text-xs text-slate-500 dark:text-slate-400">
                   Attempts
                 </dt>
-                <dd>{detail.data.attempt_count}</dd>
+                <dd className="text-slate-900 dark:text-slate-100">
+                  {detail.data.attempt_count}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">Created</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  Created
+                </dt>
                 <dd>
                   <DateDisplay value={detail.data.created_at} />
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500 dark:text-slate-400">Started</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  Started
+                </dt>
                 <dd>
                   <DateDisplay value={detail.data.started_at} />
                 </dd>

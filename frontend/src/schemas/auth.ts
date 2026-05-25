@@ -31,3 +31,22 @@ export const passwordChangeSchema = z
     path: ['confirm_password'],
   });
 export type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Enter a valid email address.'),
+});
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    new_password: z
+      .string()
+      .min(8, 'New password must be at least 8 characters.')
+      .max(256),
+    confirm_password: z.string().min(8),
+  })
+  .refine((v) => v.new_password === v.confirm_password, {
+    message: 'Passwords do not match.',
+    path: ['confirm_password'],
+  });
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

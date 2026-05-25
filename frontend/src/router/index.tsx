@@ -16,6 +16,9 @@ import { Skeleton } from '@/components/ui/Skeleton';
 
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
+const ChangePassword = lazy(() => import('@/pages/auth/ChangePassword'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Submissions = lazy(() => import('@/pages/Submissions'));
 const SubmissionNew = lazy(() => import('@/pages/SubmissionNew'));
@@ -53,6 +56,12 @@ const AuditLogPage = lazy(() => import('@/pages/audit/AuditLog'));
 const AuditDetailPage = lazy(() => import('@/pages/audit/AuditDetail'));
 const AuditExportsPage = lazy(() => import('@/pages/audit/AuditExports'));
 // --- /L3.10 audit ---
+
+// --- Public trust surface (Wedge A: cryptographic audit / coverage scorecard) ---
+const Coverage = lazy(() => import('@/pages/public/Coverage'));
+const PublicVerify = lazy(() => import('@/pages/public/PublicVerify'));
+const Trust = lazy(() => import('@/pages/public/Trust'));
+// --- /Public trust surface ---
 
 // --- L3.5 billing ---
 const Pricing = lazy(() => import('@/pages/Pricing'));
@@ -125,6 +134,16 @@ export const routes: RouteObject[] = [
     element: wrap(<Register />),
     errorElement: <RouteError />,
   },
+  {
+    path: '/auth/forgot-password',
+    element: wrap(<ForgotPassword />),
+    errorElement: <RouteError />,
+  },
+  {
+    path: '/auth/reset-password',
+    element: wrap(<ResetPassword />),
+    errorElement: <RouteError />,
+  },
   // --- L3.5 billing ---
   {
     path: '/pricing',
@@ -132,6 +151,23 @@ export const routes: RouteObject[] = [
     errorElement: <RouteError />,
   },
   // --- /L3.5 billing ---
+  // --- Public trust surface (no auth) ---
+  {
+    path: '/coverage',
+    element: wrap(<Coverage />),
+    errorElement: <RouteError />,
+  },
+  {
+    path: '/verify',
+    element: wrap(<PublicVerify />),
+    errorElement: <RouteError />,
+  },
+  {
+    path: '/trust',
+    element: wrap(<Trust />),
+    errorElement: <RouteError />,
+  },
+  // --- /Public trust surface ---
   // --- L3.6 onboarding ---
   { path: '/onboarding', element: wrap(<OnboardingWizard />), errorElement: <RouteError /> },
   { path: '/onboarding/signup', element: wrap(<OnboardingSignup />), errorElement: <RouteError /> },
@@ -169,6 +205,7 @@ export const routes: RouteObject[] = [
       { path: '/acord-forms', element: wrap(<AcordForms />) },
       { path: '/risk-schedules', element: wrap(<RiskSchedules />) },
       { path: '/settings', element: wrap(<Settings />) },
+      { path: '/auth/change-password', element: wrap(<ChangePassword />) },
       // --- L6.1 verifier API keys ---
       { path: '/verifier-keys', element: wrap(<VerifierKeys />) },
       // --- /L6.1 verifier API keys ---

@@ -6,7 +6,7 @@
 
 - React 18 + TypeScript (**strict**) · Vite · Tailwind
 - TanStack Query v5 (server state) · Zustand (client state)
-- axios (with JWT refresh interceptor) · Lucide icons · react-hot-toast
+- axios (with JWT refresh interceptor) · Lucide icons · sonner
 - Vitest + Testing Library for tests
 
 ## Layout

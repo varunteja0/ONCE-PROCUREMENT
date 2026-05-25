@@ -9,6 +9,22 @@ import { applyTheme, readTheme } from '@/lib/theme';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './index.css';
 
+// Sentry init: install @sentry/react and uncomment the block below to
+// enable production error reporting. Gate on VITE_SENTRY_DSN so dev / CI
+// builds without the env var stay a no-op.
+//
+// import * as Sentry from '@sentry/react';
+// const dsn = import.meta.env.VITE_SENTRY_DSN;
+// if (dsn) {
+//   Sentry.init({
+//     dsn,
+//     environment: import.meta.env.MODE,
+//     tracesSampleRate: 0.1,
+//     replaysSessionSampleRate: 0,
+//     replaysOnErrorSampleRate: 1.0,
+//   });
+// }
+
 applyTheme(readTheme());
 
 const rootElement = document.getElementById('root');

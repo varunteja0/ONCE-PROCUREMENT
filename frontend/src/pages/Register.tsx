@@ -7,6 +7,15 @@ import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
+import { scorePassword } from '@/lib/passwordStrength';
+
+const SEGMENT_COLORS: ReadonlyArray<string> = [
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-yellow-500',
+  'bg-lime-500',
+  'bg-emerald-500',
+];
 
 export default function Register(): JSX.Element {
   const { register: registerUser } = useAuth();
@@ -34,6 +43,11 @@ export default function Register(): JSX.Element {
   }
 
   const submitting = form.formState.isSubmitting;
+  const pw = form.watch('password');
+  const email = form.watch('email');
+  const strength = scorePassword(pw, { email });
+  const filled = pw.length === 0 ? 0 : strength.score + 1;
+  const disableSubmit = submitting || (pw.length > 0 && strength.score < 2);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
@@ -74,17 +88,39 @@ export default function Register(): JSX.Element {
             {...form.register('email')}
             error={form.formState.errors.email?.message}
           />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="new-password"
-            required
-            hint="Minimum 8 characters."
-            disabled={submitting}
-            {...form.register('password')}
-            error={form.formState.errors.password?.message}
-          />
-          <Button type="submit" fullWidth loading={submitting} disabled={submitting}>
+          <div>
+            <Input
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              required
+              hint="Minimum 8 characters."
+              disabled={submitting}
+              {...form.register('password')}
+              error={form.formState.errors.password?.message}
+            />
+            <div className="mt-1" aria-live="polite">
+              <div className="flex gap-1" role="presentation">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 flex-1 rounded ${
+                      pw.length > 0 && i < filled
+                        ? SEGMENT_COLORS[strength.score]
+                        : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              {pw.length > 0 ? (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Strength: <span className="font-medium">{strength.label}</span>
+                  {strength.reasons.length > 0 ? ` — ${strength.reasons[0]}` : ''}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <Button type="submit" fullWidth loading={submitting} disabled={disableSubmit}>
             {submitting ? 'Creating account…' : 'Create account'}
           </Button>
         </form>

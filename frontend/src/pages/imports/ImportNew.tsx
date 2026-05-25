@@ -143,13 +143,13 @@ export default function ImportNew(): JSX.Element {
     <div className="space-y-6 p-6">
       <header>
         <h1 className="text-2xl font-semibold">New Bulk Import</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           Upload a CSV or XLSX, map columns, review validation, then commit.
         </p>
       </header>
 
       {/* Step 1 — pick entity + file */}
-      <section className="space-y-3 rounded border border-gray-200 p-4 dark:border-gray-800">
+      <section className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
         <h2 className="text-lg font-medium">1 · Choose what to import</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           <Select
@@ -174,7 +174,7 @@ export default function ImportNew(): JSX.Element {
           />
           <div className="flex items-end">
             <a
-              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+              className="text-sm text-emerald-600 hover:underline dark:text-emerald-400"
               href={importsApi.templateUrl(entity)}
               download
             >
@@ -188,7 +188,7 @@ export default function ImportNew(): JSX.Element {
           onFileSelected={(f) => void handleFileSelected(f)}
         />
         {file ? (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             Selected: <span className="font-mono">{file.name}</span> (
             {(file.size / 1024).toFixed(1)} KB)
           </p>
@@ -197,7 +197,7 @@ export default function ImportNew(): JSX.Element {
 
       {/* Step 2 — column mapping */}
       {step !== 'pick' ? (
-        <section className="space-y-3 rounded border border-gray-200 p-4 dark:border-gray-800">
+        <section className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
           <h2 className="text-lg font-medium">2 · Map columns</h2>
           {columnsQ.isLoading ? (
             <Skeleton className="h-32 w-full" />
@@ -248,7 +248,7 @@ export default function ImportNew(): JSX.Element {
 
       {/* Step 3 — review */}
       {step === 'review' && uploadedJob ? (
-        <section className="space-y-3 rounded border border-gray-200 p-4 dark:border-gray-800">
+        <section className="space-y-3 rounded border border-slate-200 p-4 dark:border-slate-800">
           <h2 className="text-lg font-medium">3 · Review &amp; commit</h2>
           {jobDetailQ.isLoading && !detail ? (
             <Skeleton className="h-32 w-full" />

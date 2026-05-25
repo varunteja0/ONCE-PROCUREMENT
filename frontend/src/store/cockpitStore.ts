@@ -53,10 +53,14 @@ function persistActingAs(tenantId: string | null): void {
 }
 
 export interface CockpitState {
+  /** @deprecated Source of truth is `useCockpit().operator` (TanStack Query).
+   *  Kept populated by the Query layer for back-compat with route guards. */
   operator: OperatorMe | null;
   actingAsTenantId: string | null;
   isAuthenticated: boolean;
+  /** @deprecated Use `useCockpit().login`; back-compat shim. */
   setSession: (operator: OperatorMe, tokens?: OperatorTokenPair) => void;
+  /** @deprecated Use `useCockpit().refreshMe`; back-compat shim. */
   setOperator: (operator: OperatorMe) => void;
   setActingAs: (tenantId: string | null) => void;
   clear: () => void;

@@ -1,32 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from '@/lib/toast';
-import { Download, Key, Loader2, LogOut, Server, User } from 'lucide-react';
+import { Download, Key, Loader2, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api, extractErrorMessage, tokenStorage } from '@/services/api';
 
-type TabId = 'profile' | 'api' | 'tokens';
-
-const API_BASE_KEY = 'once.api_base';
-
-function readApiBase(): string {
-  try {
-    const stored = localStorage.getItem(API_BASE_KEY);
-    if (stored) return stored;
-  } catch {
-    /* ignore */
-  }
-  const env: unknown = import.meta.env.VITE_API_BASE;
-  return typeof env === 'string' && env.length > 0 ? env : '/v1';
-}
-
-function writeApiBase(value: string): void {
-  try {
-    localStorage.setItem(API_BASE_KEY, value);
-  } catch {
-    /* ignore */
-  }
-}
+type TabId = 'profile' | 'account' | 'tokens';
 
 interface ProfileTabProps {
   initialName: string;
@@ -61,7 +40,7 @@ function ProfileTab({ initialName }: ProfileTabProps): JSX.Element {
       <div>
         <label
           htmlFor="full_name"
-          className="mb-1 block text-sm font-medium text-slate-700"
+          className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200"
         >
           Full name
         </label>
@@ -70,7 +49,7 @@ function ProfileTab({ initialName }: ProfileTabProps): JSX.Element {
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           disabled={saving}
         />
       </div>
@@ -86,60 +65,56 @@ function ProfileTab({ initialName }: ProfileTabProps): JSX.Element {
   );
 }
 
-function ApiBaseTab(): JSX.Element {
-  const [base, setBase] = useState(() => readApiBase());
+function truncateMiddle(s: string, head = 8, tail = 4): string {
+  if (s.length <= head + tail + 1) return s;
+  return `${s.slice(0, head)}…${s.slice(-tail)}`;
+}
 
-  function onSave(): void {
-    writeApiBase(base.trim());
-    toast.success('API base URL saved. Reload to apply.');
-  }
+function AccountTab(): JSX.Element {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  function onReset(): void {
-    try {
-      localStorage.removeItem(API_BASE_KEY);
-    } catch {
-      /* ignore */
-    }
-    setBase(readApiBase());
-    toast.success('API base URL reset.');
+  function onSignOutEverywhere(): void {
+    // BACKEND-COUPLED: this currently only clears local tokens. A real
+    // "sign out everywhere" needs POST /auth/sessions/revoke-all on the
+    // backend to invalidate every issued refresh token for this user.
+    logout();
+    toast.success('Signed out on this device.');
+    navigate('/login', { replace: true });
   }
 
   return (
-    <div className="max-w-md space-y-4">
-      <div>
-        <label
-          htmlFor="api_base"
-          className="mb-1 block text-sm font-medium text-slate-700"
+    <div className="max-w-md space-y-6">
+      <dl className="grid grid-cols-[7rem,1fr] gap-y-2 text-sm">
+        <dt className="text-slate-500 dark:text-slate-400">Email</dt>
+        <dd className="font-medium text-slate-900 dark:text-slate-100">
+          {user?.email ?? '—'}
+        </dd>
+        <dt className="text-slate-500 dark:text-slate-400">Role</dt>
+        <dd className="font-medium text-slate-900 dark:text-slate-100">
+          {user?.role ?? '—'}
+        </dd>
+        <dt className="text-slate-500 dark:text-slate-400">Tenant ID</dt>
+        <dd className="font-mono text-xs text-slate-700 dark:text-slate-300">
+          {user?.tenant_id ? truncateMiddle(user.tenant_id) : '—'}
+        </dd>
+      </dl>
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to="/auth/change-password"
+          className="inline-flex items-center gap-2 rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
-          API base URL
-        </label>
-        <input
-          id="api_base"
-          type="url"
-          value={base}
-          onChange={(e) => setBase(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-          placeholder="https://api.once.example/v1"
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          Used by the axios client. Defaults to <code>/v1</code>. Reload the
-          page after changing.
-        </p>
-      </div>
-      <div className="flex gap-2">
+          <Key className="h-4 w-4" aria-hidden="true" />
+          Change password
+        </Link>
         <button
           type="button"
-          onClick={onSave}
-          className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+          onClick={onSignOutEverywhere}
+          className="inline-flex items-center gap-2 rounded border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/60"
         >
-          Save
-        </button>
-        <button
-          type="button"
-          onClick={onReset}
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-        >
-          Reset to default
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          Sign out everywhere
         </button>
       </div>
     </div>
@@ -147,8 +122,6 @@ function ApiBaseTab(): JSX.Element {
 }
 
 function TokensTab(): JSX.Element {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
 
   const access = tokenStorage.getAccess();
@@ -158,12 +131,6 @@ function TokensTab(): JSX.Element {
     if (!token) return '— none —';
     if (token.length <= 12) return token;
     return `${token.slice(0, 6)}…${token.slice(-4)}`;
-  }
-
-  function onLogout(): void {
-    logout();
-    toast.success('Signed out.');
-    navigate('/login', { replace: true });
   }
 
   async function onDownloadKey(): Promise<void> {
@@ -194,28 +161,22 @@ function TokensTab(): JSX.Element {
   return (
     <div className="max-w-md space-y-6">
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900">Active tokens</h3>
-        <dl className="grid grid-cols-[6rem,1fr] gap-y-1 text-xs text-slate-600">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          Active tokens
+        </h3>
+        <dl className="grid grid-cols-[6rem,1fr] gap-y-1 text-xs text-slate-600 dark:text-slate-400">
           <dt className="text-slate-400">Access</dt>
           <dd className="font-mono">{mask(access)}</dd>
           <dt className="text-slate-400">Refresh</dt>
           <dd className="font-mono">{mask(refresh)}</dd>
         </dl>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="inline-flex items-center gap-2 rounded border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
-        >
-          <LogOut className="h-4 w-4" aria-hidden="true" />
-          Sign out
-        </button>
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           Receipt signing key
         </h3>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Download the public key Once uses to sign your submission receipts.
           Distribute this PEM to anyone who needs to verify a receipt offline.
         </p>
@@ -223,7 +184,7 @@ function TokensTab(): JSX.Element {
           type="button"
           onClick={() => void onDownloadKey()}
           disabled={downloading}
-          className="inline-flex items-center gap-2 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           {downloading ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -239,7 +200,7 @@ function TokensTab(): JSX.Element {
 
 const TABS: ReadonlyArray<{ id: TabId; label: string; icon: typeof User }> = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'api', label: 'API base URL', icon: Server },
+  { id: 'account', label: 'Account', icon: Key },
   { id: 'tokens', label: 'Tokens & keys', icon: Key },
 ];
 
@@ -250,17 +211,19 @@ export default function Settings(): JSX.Element {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-        <p className="text-sm text-slate-500">
-          Manage your profile, API connection, and credentials.
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Settings
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Manage your profile, account, and credentials.
         </p>
       </header>
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div
           role="tablist"
           aria-label="Settings sections"
-          className="flex border-b border-slate-200"
+          className="flex border-b border-slate-200 dark:border-slate-800"
         >
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -274,8 +237,8 @@ export default function Settings(): JSX.Element {
                 onClick={() => setTab(t.id)}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium ${
                   active
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    ? 'border-slate-900 text-slate-900 dark:border-slate-100 dark:text-slate-100'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -289,7 +252,7 @@ export default function Settings(): JSX.Element {
           {tab === 'profile' && (
             <ProfileTab initialName={user?.full_name ?? ''} />
           )}
-          {tab === 'api' && <ApiBaseTab />}
+          {tab === 'account' && <AccountTab />}
           {tab === 'tokens' && <TokensTab />}
         </div>
       </div>

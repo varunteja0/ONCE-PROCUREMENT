@@ -41,10 +41,16 @@ function persistUser(user: UserMe | null): void {
 }
 
 export interface AuthState {
+  /** @deprecated Source of truth is `useAuth().user` (TanStack Query). Kept
+   *  populated by the Query layer for back-compat with route guards. */
   user: UserMe | null;
+  /** @deprecated Derived from `user.tenant_id`; kept for back-compat. */
   tenantId: string | null;
   isAuthenticated: boolean;
+  setAuthenticated: (value: boolean) => void;
+  /** @deprecated Use `useAuth().login`; this is now a back-compat shim. */
   setSession: (user: UserMe, tokens?: TokenPair) => void;
+  /** @deprecated Use `useAuth().refreshMe`; back-compat shim. */
   setUser: (user: UserMe) => void;
   clearSession: () => void;
   hydrate: () => void;
@@ -58,6 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: initialUser,
   tenantId: initialTenantId,
   isAuthenticated: initialAuthenticated,
+  setAuthenticated: (value) => set({ isAuthenticated: value }),
   setSession: (user, tokens) => {
     if (tokens) tokenStorage.setPair(tokens);
     persistUser(user);

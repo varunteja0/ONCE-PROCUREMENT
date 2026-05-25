@@ -1,6 +1,7 @@
 // --- L3.6 onboarding ---
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import StepShell from '@/components/onboarding/StepShell';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +15,13 @@ import {
 import { onboarding } from '@/services/onboardingApi';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
+const TERMINAL_STATUSES: ReadonlyArray<string> = [
+  'completed',
+  'failed',
+  'blocked',
+  'platform_unsupported',
+];
+
 export default function StepFirstSubmission(): JSX.Element {
   const navigate = useNavigate();
   const setDraft = useOnboardingStore((s) => s.setDraft);
@@ -24,7 +32,6 @@ export default function StepFirstSubmission(): JSX.Element {
   const [supplierId, setSupplierId] = useState('');
   const [portalId, setPortalId] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [pollStatus, setPollStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +59,28 @@ export default function StepFirstSubmission(): JSX.Element {
     };
   }, []);
 
+  const pendingSubmissionId = draft.pendingSubmissionId;
+
+  // Poll submission status until terminal via TanStack `refetchInterval`,
+  // replacing the previous manual `setTimeout` loop.
+  const statusQuery = useQuery<{ status: string }, Error>({
+    queryKey: ['onboarding', 'submission', pendingSubmissionId],
+    enabled: Boolean(pendingSubmissionId),
+    queryFn: async () => {
+      const r = await api.get<{ status: string }>(
+        `/submissions/${pendingSubmissionId}`,
+      );
+      return r.data;
+    },
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      if (!s) return 2000;
+      return TERMINAL_STATUSES.includes(s) ? false : 2000;
+    },
+  });
+
+  const pollStatus = statusQuery.data?.status ?? null;
+
   const canSubmit = useMemo(
     () => Boolean(supplierId && portalId) && !submitting,
     [supplierId, portalId, submitting],
@@ -65,7 +94,6 @@ export default function StepFirstSubmission(): JSX.Element {
         portal_id: portalId,
       });
       setDraft({ pendingSubmissionId: r.submission_id });
-      setPollStatus(r.status);
       toast.success('First submission queued — sit tight.');
     } catch (err) {
       toast.error(err, 'Could not queue submission');
@@ -73,30 +101,6 @@ export default function StepFirstSubmission(): JSX.Element {
       setSubmitting(false);
     }
   }
-
-  // Poll submission status until terminal, then advance.
-  useEffect(() => {
-    const id = draft.pendingSubmissionId;
-    if (!id) return;
-    let cancelled = false;
-    const tick = async (): Promise<void> => {
-      try {
-        const r = await api.get<{ status: string }>(`/submissions/${id}`);
-        if (cancelled) return;
-        setPollStatus(r.data.status);
-        if (['completed', 'failed', 'blocked', 'platform_unsupported'].includes(r.data.status)) {
-          return;
-        }
-        setTimeout(() => void tick(), 2000);
-      } catch {
-        /* swallow */
-      }
-    };
-    void tick();
-    return () => {
-      cancelled = true;
-    };
-  }, [draft.pendingSubmissionId]);
 
   async function skip(): Promise<void> {
     try {
@@ -118,7 +122,9 @@ export default function StepFirstSubmission(): JSX.Element {
           value={supplierId}
           onChange={(e) => setSupplierId(e.target.value)}
           disabled={submitting || suppliers.length === 0}
-          placeholder={suppliers.length === 0 ? 'No suppliers yet — add one first' : undefined}
+          placeholder={
+            suppliers.length === 0 ? 'No suppliers yet — add one first' : undefined
+          }
           options={suppliers.map((s) => ({ value: s.id, label: s.legal_name }))}
         />
         <Select
@@ -144,7 +150,7 @@ export default function StepFirstSubmission(): JSX.Element {
           <Button
             variant="outline"
             onClick={() => navigate('/onboarding/done')}
-            disabled={!draft.pendingSubmissionId}
+            disabled={!pendingSubmissionId}
           >
             Continue
           </Button>

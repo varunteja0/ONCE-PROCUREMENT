@@ -5,6 +5,7 @@ import { useCockpit } from '@/hooks/useCockpit';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
+import { sanitizeRedirect } from '@/lib/security';
 
 interface LocationState {
   from?: string;
@@ -15,8 +16,9 @@ export default function CockpitLogin(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectTo =
-    (location.state as LocationState | null)?.from ?? '/cockpit';
+  const redirectTo = sanitizeRedirect(
+    (location.state as LocationState | null)?.from ?? '/cockpit',
+  );
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

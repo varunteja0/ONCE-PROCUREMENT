@@ -1,12 +1,14 @@
 import { cn } from '@/lib/cn';
 import {
     BadgeCheck,
+    BookOpen,
     FileBarChart2,
     FileCheck2,
     FileText,
     KeyRound,
     LayoutDashboard,
     ListChecks,
+    Mail,
     Plug,
     ReceiptText,
     Send,
@@ -31,32 +33,56 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/suppliers', label: 'Suppliers', icon: Users },
-  { to: '/submissions', label: 'Submissions', icon: Send },
-  { to: '/receipts', label: 'Receipts', icon: ReceiptText },
-  { to: '/consent-ledger', label: 'Consent Ledger', icon: ShieldCheck },
-  { to: '/cois', label: 'COIs', icon: FileCheck2 },
-  { to: '/loss-runs', label: 'Loss Runs', icon: FileBarChart2 },
-  { to: '/producer-licenses', label: 'Producer Licenses', icon: BadgeCheck },
-  { to: '/eo-certificates', label: 'E&O Certificates', icon: ShieldAlert },
-  { to: '/acord-forms', label: 'ACORD Forms', icon: FileText },
-  { to: '/risk-schedules', label: 'Risk Schedules', icon: ListChecks },
-  { to: '/portals', label: 'Portals', icon: Plug },
-  // --- L3.7 imports ---
-  { to: '/imports', label: 'Imports', icon: Upload },
-  // --- /L3.7 imports ---
-  // --- L6.1 verifier API keys ---
-  { to: '/verifier-keys', label: 'Verifier Keys', icon: KeyRound },
-  // --- /L6.1 verifier API keys ---
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
+interface NavSection {
+  heading: string;
+  items: readonly NavItem[];
+}
+
+const NAV_SECTIONS: readonly NavSection[] = [
+  {
+    heading: 'Procurement',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/suppliers', label: 'Suppliers', icon: Users },
+      { to: '/submissions', label: 'Submissions', icon: Send },
+      { to: '/portals', label: 'Portals', icon: Plug },
+    ],
+  },
+  {
+    heading: 'Artifacts',
+    items: [
+      { to: '/cois', label: 'COIs', icon: FileCheck2 },
+      { to: '/loss-runs', label: 'Loss Runs', icon: FileBarChart2 },
+      { to: '/producer-licenses', label: 'Producer Licenses', icon: BadgeCheck },
+      { to: '/eo-certificates', label: 'E&O Certificates', icon: ShieldAlert },
+      { to: '/acord-forms', label: 'ACORD Forms', icon: FileText },
+      { to: '/risk-schedules', label: 'Risk Schedules', icon: ListChecks },
+    ],
+  },
+  {
+    heading: 'Operations',
+    items: [
+      { to: '/receipts', label: 'Receipts', icon: ReceiptText },
+      { to: '/consent-ledger', label: 'Consent Ledger', icon: ShieldCheck },
+      { to: '/audit', label: 'Audit Log', icon: BookOpen },
+      { to: '/inbound', label: 'Inbound Email', icon: Mail },
+      { to: '/imports', label: 'Imports', icon: Upload },
+    ],
+  },
+  {
+    heading: 'Account',
+    items: [
+      { to: '/verifier-keys', label: 'Verifier Keys', icon: KeyRound },
+      { to: '/settings', label: 'Settings', icon: SettingsIcon },
+    ],
+  },
 ];
 
 export default function Sidebar({
   mobileOpen = false,
   onNavigate,
 }: SidebarProps = {}): JSX.Element {
+  const version = import.meta.env.VITE_APP_VERSION ?? 'dev';
   return (
     <aside
       aria-label="Primary navigation"
@@ -76,43 +102,50 @@ export default function Sidebar({
         <span className="text-sm font-semibold tracking-tight dark:text-slate-100">Once</span>
       </div>
       <nav className="flex-1 overflow-y-auto p-3" aria-label="Sections">
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
-              <NavLink
-                to={to}
-                end={to === '/dashboard'}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  cn(
-                    'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2',
-                    isActive
-                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      aria-hidden="true"
-                      className={cn(
-                        'h-4 w-4 shrink-0',
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.heading} className="mb-4 last:mb-0">
+            <h3 className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {section.heading}
+            </h3>
+            <ul className="space-y-0.5">
+              {section.items.map(({ to, label, icon: Icon }) => (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    end={to === '/dashboard'}
+                    onClick={onNavigate}
+                    className={({ isActive }) =>
+                      cn(
+                        'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2',
                         isActive
-                          ? 'text-white dark:text-slate-900'
-                          : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-100',
-                      )}
-                    />
-                    <span>{label}</span>
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+                          ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon
+                          aria-hidden="true"
+                          className={cn(
+                            'h-4 w-4 shrink-0',
+                            isActive
+                              ? 'text-white dark:text-slate-900'
+                              : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-100',
+                          )}
+                        />
+                        <span>{label}</span>
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
       <div className="border-t border-slate-200 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-        v0 · Once Procurement
+        Once Procurement · v{version}
       </div>
     </aside>
   );

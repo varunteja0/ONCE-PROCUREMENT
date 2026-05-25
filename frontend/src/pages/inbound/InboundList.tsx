@@ -24,7 +24,7 @@ export default function InboundList(): JSX.Element {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Inbound email</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Emails received at <code>submissions@&lt;your-slug&gt;.in.getonce.com</code>.
           </p>
         </div>
@@ -52,9 +52,9 @@ export default function InboundList(): JSX.Element {
           description="Forward broker submissions to your inbound address to see them here."
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+        <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
+          <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-900 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2">Received</th>
                 <th className="px-3 py-2">From</th>
@@ -63,18 +63,18 @@ export default function InboundList(): JSX.Element {
                 <th className="px-3 py-2">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {data.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40">
-                  <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">
                     {formatDate(item.received_at)}
                   </td>
                   <td className="px-3 py-2">
                     <div className="font-medium">{item.from_name ?? item.from_address}</div>
-                    <div className="text-xs text-gray-500">{item.from_address}</div>
+                    <div className="text-xs text-slate-500">{item.from_address}</div>
                   </td>
                   <td className="px-3 py-2">
-                    <Link to={`/inbound/${item.id}`} className="text-sky-700 hover:underline dark:text-sky-300">
+                    <Link to={`/inbound/${item.id}`} className="text-emerald-700 hover:underline dark:text-emerald-300">
                       {item.subject ?? '(no subject)'}
                     </Link>
                   </td>

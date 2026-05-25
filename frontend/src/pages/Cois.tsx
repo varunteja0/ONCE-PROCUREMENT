@@ -8,6 +8,20 @@ import { coisHooks } from '@/hooks/useArtifacts';
 import { coiSchema, type CoiFormValues } from '@/schemas/artifacts';
 import type { Coi, CoiCreateInput } from '@/types/api';
 
+function toCreateInput(v: CoiFormValues): CoiCreateInput {
+  return {
+    supplier_id: v.supplier_id,
+    carrier: v.carrier,
+    policy_number: v.policy_number ?? null,
+    effective_date: v.effective_date ?? null,
+    expires_at: v.expires_at,
+    coverage_type: v.coverage_type ?? null,
+    limit_amount: v.limit_amount ?? null,
+    file_url: v.file_url ?? null,
+    notes: v.notes ?? null,
+  };
+}
+
 function CoiForm({
   onSubmit,
   submitting,
@@ -34,7 +48,7 @@ function CoiForm({
 
   return (
     <form
-      onSubmit={form.handleSubmit((v) => onSubmit(v as unknown as CoiCreateInput))}
+      onSubmit={form.handleSubmit((v) => onSubmit(toCreateInput(v)))}
       className="space-y-3"
       noValidate
     >

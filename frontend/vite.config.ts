@@ -23,5 +23,24 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     target: 'es2022',
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-forms': [
+            'react-hook-form',
+            'zod',
+            '@hookform/resolvers/zod',
+          ],
+          'vendor-ui': ['lucide-react', 'sonner', 'clsx'],
+        },
+      },
+    },
   },
+  // To inspect bundle composition, install `rollup-plugin-visualizer` and
+  // enable here:
+  //   import { visualizer } from 'rollup-plugin-visualizer';
+  //   plugins: [react(), visualizer({ filename: 'dist/stats.html', open: true })],
 });

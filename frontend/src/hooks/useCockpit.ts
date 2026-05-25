@@ -14,11 +14,18 @@ import {
   type CockpitAuditListResponse,
   type CockpitTenantListResponse,
   type OperatorLoginInput,
+  type OperatorMe,
 } from '@/services/cockpitApi';
 import { useCockpitStore } from '@/store/cockpitStore';
 
+export const cockpitKeys = {
+  me: ['cockpit', 'me'] as const,
+  tenants: ['cockpit', 'tenants'] as const,
+  audit: (params: object) => ['cockpit', 'audit', params] as const,
+};
+
 export function useCockpit() {
-  const operator = useCockpitStore((s) => s.operator);
+  const storeOperator = useCockpitStore((s) => s.operator);
   const isAuthenticated = useCockpitStore((s) => s.isAuthenticated);
   const actingAsTenantId = useCockpitStore((s) => s.actingAsTenantId);
   const setSession = useCockpitStore((s) => s.setSession);
@@ -26,6 +33,23 @@ export function useCockpit() {
   const setActingAs = useCockpitStore((s) => s.setActingAs);
   const clear = useCockpitStore((s) => s.clear);
   const navigate = useNavigate();
+
+  // Server-state for the current operator. The legacy `operator` field on
+  // the Zustand store is kept populated for out-of-boundary consumers
+  // (CockpitLayout, ProtectedRoute, etc.), but TanStack Query is the
+  // authoritative source going forward.
+  const meQuery = useQuery<OperatorMe, Error>({
+    queryKey: cockpitKeys.me,
+    queryFn: async () => {
+      const op = await cockpitMe();
+      setOperator(op);
+      return op;
+    },
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  });
+
+  const operator: OperatorMe | null = meQuery.data ?? storeOperator;
 
   const login = useCallback(
     async (input: OperatorLoginInput) => {
@@ -66,6 +90,7 @@ export function useCockpit() {
     operator,
     isAuthenticated,
     actingAsTenantId,
+    isLoading: meQuery.isLoading,
     login,
     logout,
     refreshMe,
@@ -75,7 +100,7 @@ export function useCockpit() {
 
 export function useCockpitTenants() {
   return useQuery<CockpitTenantListResponse>({
-    queryKey: ['cockpit', 'tenants'],
+    queryKey: cockpitKeys.tenants,
     queryFn: cockpitListTenants,
   });
 }
@@ -86,7 +111,7 @@ export function useCockpitAudit(params: {
   tenant_id?: string;
 } = {}) {
   return useQuery<CockpitAuditListResponse>({
-    queryKey: ['cockpit', 'audit', params],
+    queryKey: cockpitKeys.audit(params),
     queryFn: () => cockpitListAudit(params),
   });
 }

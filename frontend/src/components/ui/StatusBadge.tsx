@@ -59,3 +59,5 @@ export function StatusBadge({ status, className }: StatusBadgeProps): JSX.Elemen
     </span>
   );
 }
+
+export default StatusBadge;

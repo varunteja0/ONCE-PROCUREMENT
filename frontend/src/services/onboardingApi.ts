@@ -1,6 +1,7 @@
 // --- L3.6 onboarding ---
-import axios, { AxiosHeaders, type AxiosInstance } from 'axios';
-import type { TokenPair } from '@/services/api';
+import { AxiosHeaders, type AxiosRequestConfig } from 'axios';
+import { api } from '@/services/api';
+import type { TokenPair } from '@/types/api';
 
 export const ONBOARDING_TOKEN_KEY = 'once.onboarding_token';
 
@@ -109,34 +110,34 @@ export const onboardingTokenStorage = {
   },
 };
 
-function resolveBaseUrl(): string {
-  const raw: unknown = import.meta.env.VITE_API_BASE;
-  return typeof raw === 'string' && raw.length > 0 ? raw : '/v1';
-}
-
-const onboardingApi: AxiosInstance = axios.create({
-  baseURL: resolveBaseUrl(),
-  headers: { 'Content-Type': 'application/json' },
-});
-
-onboardingApi.interceptors.request.use((config) => {
+/**
+ * Build an AxiosRequestConfig that bypasses the tenant-auth interceptor
+ * (_onceSkipAuth) and instead injects the onboarding session token as a
+ * Bearer credential. Returns `{ _onceSkipAuth: true }` with no Authorization
+ * header when no onboarding token is stored.
+ */
+function withOnboardingAuth(
+  extra: AxiosRequestConfig = {},
+): AxiosRequestConfig {
+  const cfg: AxiosRequestConfig = { ...extra, _onceSkipAuth: true };
   const token = onboardingTokenStorage.get();
   if (token) {
     const headers =
-      config.headers instanceof AxiosHeaders
-        ? config.headers
-        : new AxiosHeaders(config.headers);
+      cfg.headers instanceof AxiosHeaders
+        ? cfg.headers
+        : new AxiosHeaders(cfg.headers as Record<string, string> | undefined);
     headers.set('Authorization', `Bearer ${token}`);
-    config.headers = headers;
+    cfg.headers = headers;
   }
-  return config;
-});
+  return cfg;
+}
 
 export const onboarding = {
   async start(input: OnboardingStartInput): Promise<OnboardingStartResponse> {
-    const r = await onboardingApi.post<OnboardingStartResponse>(
+    const r = await api.post<OnboardingStartResponse>(
       '/onboarding/start',
       input,
+      withOnboardingAuth(),
     );
     if (r.data.onboarding_session_token) {
       onboardingTokenStorage.set(r.data.onboarding_session_token);
@@ -144,54 +145,65 @@ export const onboarding = {
     return r.data;
   },
   async verifyEmail(code: string): Promise<VerifyEmailResponse> {
-    const r = await onboardingApi.post<VerifyEmailResponse>(
+    const r = await api.post<VerifyEmailResponse>(
       '/onboarding/verify-email',
       { code },
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async state(): Promise<OnboardingStateRead> {
-    const r = await onboardingApi.get<OnboardingStateRead>('/onboarding/state');
+    const r = await api.get<OnboardingStateRead>(
+      '/onboarding/state',
+      withOnboardingAuth(),
+    );
     return r.data;
   },
   async companyProfile(input: CompanyProfileInput): Promise<OnboardingStateRead> {
-    const r = await onboardingApi.post<OnboardingStateRead>(
+    const r = await api.post<OnboardingStateRead>(
       '/onboarding/company-profile',
       input,
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async connectPortal(input: ConnectPortalInput): Promise<OnboardingStateRead> {
-    const r = await onboardingApi.post<OnboardingStateRead>(
+    const r = await api.post<OnboardingStateRead>(
       '/onboarding/connect-portal',
       input,
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async addSupplier(input: AddSupplierInput): Promise<OnboardingStateRead> {
-    const r = await onboardingApi.post<OnboardingStateRead>(
+    const r = await api.post<OnboardingStateRead>(
       '/onboarding/add-supplier',
       input,
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async runFirstSubmission(input: RunFirstSubmissionInput): Promise<SubmissionPollRead> {
-    const r = await onboardingApi.post<SubmissionPollRead>(
+    const r = await api.post<SubmissionPollRead>(
       '/onboarding/run-first-submission',
       input,
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async skipStep(step: SkippableStep): Promise<OnboardingStateRead> {
-    const r = await onboardingApi.post<OnboardingStateRead>(
+    const r = await api.post<OnboardingStateRead>(
       '/onboarding/skip-step',
       { step },
+      withOnboardingAuth(),
     );
     return r.data;
   },
   async complete(): Promise<OnboardingCompleteResponse> {
-    const r = await onboardingApi.post<OnboardingCompleteResponse>(
+    const r = await api.post<OnboardingCompleteResponse>(
       '/onboarding/complete',
+      undefined,
+      withOnboardingAuth(),
     );
     return r.data;
   },

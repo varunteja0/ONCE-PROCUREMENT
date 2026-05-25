@@ -3,6 +3,7 @@ import PricingTable from '@/components/PricingTable';
 import { usePricing, useCreateCheckout } from '@/hooks/useBilling';
 import { tokenStorage, extractErrorMessage } from '@/services/api';
 import toast from '@/lib/toast';
+import { sanitizeRedirect } from '@/lib/security';
 
 export default function Pricing(): JSX.Element {
   const navigate = useNavigate();
@@ -13,7 +14,8 @@ export default function Pricing(): JSX.Element {
 
   async function onCta(): Promise<void> {
     if (!isAuthed) {
-      navigate('/login?next=/billing');
+      const next = sanitizeRedirect('/billing');
+      navigate(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
     try {

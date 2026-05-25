@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Download } from 'lucide-react';
+import { ArrowLeft, Copy, Download, Mail, Send } from 'lucide-react';
 import { useReceipt } from '@/hooks/useReceipts';
 import {
   Button,
@@ -42,6 +42,28 @@ export default function ReceiptDetail(): JSX.Element {
     URL.revokeObjectURL(url);
   }
 
+  function emailVerifyUrl(): void {
+    if (!query.data) return;
+    const subject = encodeURIComponent(
+      `Verify submission receipt ${query.data.id.slice(0, 8)}`,
+    );
+    const body = encodeURIComponent(
+      `Hi,\n\nPlease verify the attached submission receipt at:\n${query.data.verify_url}\n\nReceipt ID: ${query.data.id}\nSubmitted: ${query.data.submitted_at}\nPortal: ${query.data.portal_platform}\n`,
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  function sendToUnderwriter(): void {
+    if (!query.data) return;
+    const subject = encodeURIComponent(
+      `Submission receipt ${query.data.id.slice(0, 8)} — ${query.data.portal_platform}`,
+    );
+    const body = encodeURIComponent(
+      `Hello underwriter,\n\nAttached is the cryptographically-signed receipt for our recent submission.\n\nVerify online: ${query.data.verify_url}\nReceipt ID: ${query.data.id}\nSubmission ID: ${query.data.submission_id}\nSubmitted at: ${query.data.submitted_at}\nSigning key: ${query.data.signing_key_id}\n\nThanks,\n`,
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
   return (
     <div className="space-y-4">
       <Button
@@ -75,24 +97,14 @@ export default function ReceiptDetail(): JSX.Element {
                 Platform {query.data.portal_platform}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyVerifyUrl}
-                leadingIcon={<Copy className="h-3.5 w-3.5" />}
-              >
-                Copy verify URL
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadJson}
-                leadingIcon={<Download className="h-3.5 w-3.5" />}
-              >
-                Download JSON
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={sendToUnderwriter}
+              leadingIcon={<Send className="h-3.5 w-3.5" />}
+            >
+              Send to underwriter
+            </Button>
           </header>
 
           <Card>
@@ -137,6 +149,45 @@ export default function ReceiptDetail(): JSX.Element {
                 </dd>
               </div>
             </dl>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Share"
+              description="Distribute the verifier link or download the signed envelope."
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyVerifyUrl}
+                leadingIcon={<Copy className="h-3.5 w-3.5" />}
+              >
+                Copy URL
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={emailVerifyUrl}
+                leadingIcon={<Mail className="h-3.5 w-3.5" />}
+              >
+                Email
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadJson}
+                leadingIcon={<Download className="h-3.5 w-3.5" />}
+              >
+                Download JSON
+              </Button>
+              {/* TODO(qr): once `qrcode` (or a tree-shakable canvas alternative)
+                  is added to the bundle, render a QR for `query.data.verify_url`
+                  alongside these share actions. */}
+            </div>
+            <p className="mt-3 break-all rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              {query.data.verify_url}
+            </p>
           </Card>
 
           <Card>

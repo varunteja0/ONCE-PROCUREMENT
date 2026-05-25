@@ -41,13 +41,13 @@ export default function InboundDetail(): JSX.Element {
     <div className="space-y-6 p-6">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <Link to="/inbound" className="text-xs text-sky-700 hover:underline dark:text-sky-300">
+          <Link to="/inbound" className="text-xs text-emerald-700 hover:underline dark:text-emerald-300">
             ← Back to inbound
           </Link>
           <h1 className="mt-1 truncate text-2xl font-semibold">
             {data.subject ?? '(no subject)'}
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             From <span className="font-medium">{data.from_address}</span> ·{' '}
             {new Date(data.received_at).toLocaleString()}
           </p>
@@ -73,27 +73,27 @@ export default function InboundDetail(): JSX.Element {
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase text-gray-500">Metadata</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-500">Metadata</h2>
           <dl className="space-y-1 text-sm">
             <div className="flex gap-2">
-              <dt className="w-32 text-gray-500">To</dt>
+              <dt className="w-32 text-slate-500">To</dt>
               <dd className="truncate">{data.to_address}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 text-gray-500">Message-ID</dt>
+              <dt className="w-32 text-slate-500">Message-ID</dt>
               <dd className="truncate font-mono text-xs">{data.message_id}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 text-gray-500">Spam score</dt>
+              <dt className="w-32 text-slate-500">Spam score</dt>
               <dd>{data.spam_score?.toFixed(2) ?? '—'}</dd>
             </div>
             {data.draft_submission_id ? (
               <div className="flex gap-2">
-                <dt className="w-32 text-gray-500">Submission</dt>
+                <dt className="w-32 text-slate-500">Submission</dt>
                 <dd>
                   <Link
                     to={`/submissions/${data.draft_submission_id}`}
-                    className="text-sky-700 hover:underline dark:text-sky-300"
+                    className="text-emerald-700 hover:underline dark:text-emerald-300"
                   >
                     {data.draft_submission_id.slice(0, 8)}…
                   </Link>
@@ -102,21 +102,21 @@ export default function InboundDetail(): JSX.Element {
             ) : null}
             {data.routing_error ? (
               <div className="flex gap-2">
-                <dt className="w-32 text-gray-500">Error</dt>
+                <dt className="w-32 text-slate-500">Error</dt>
                 <dd className="text-rose-700 dark:text-rose-300">{data.routing_error}</dd>
               </div>
             ) : null}
           </dl>
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase text-gray-500">Attachments</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-500">Attachments</h2>
           <AttachmentList attachments={data.attachments} />
         </div>
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase text-gray-500">Body</h2>
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="text-sm font-semibold uppercase text-slate-500">Body</h2>
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900">
           {data.raw_body_text ?? '(no plain-text body)'}
         </pre>
       </section>

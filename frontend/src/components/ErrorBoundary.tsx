@@ -30,6 +30,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
       stack: error.stack,
       componentStack: info.componentStack,
     });
+    logger.captureException(error, { componentStack: info.componentStack });
     this.props.onError?.(error, info);
   }
 

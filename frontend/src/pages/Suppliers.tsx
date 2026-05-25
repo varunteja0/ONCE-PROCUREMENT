@@ -1,19 +1,26 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import toast from '@/lib/toast';
-import { Loader2, Pencil, Plus, Search, Users, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Download, Pencil, Plus, Users } from 'lucide-react';
 import {
   useCreateSupplier,
+  useSupplier,
   useSuppliers,
   useUpdateSupplier,
 } from '@/hooks/useSuppliers';
 import { extractErrorMessage } from '@/services/api';
-import type {
-  Supplier,
-  SupplierCreateInput,
-  SupplierListItem,
-} from '@/services/api';
-import EmptyState from '@/components/EmptyState';
+import type { SupplierCreateInput, SupplierListItem } from '@/services/api';
+import {
+  Button,
+  EmptyState,
+  Modal,
+  PaginationControls,
+  SearchInput,
+  Skeleton,
+} from '@/components/ui';
+import { downloadCsv, toCsv } from '@/lib/csv';
+import { toast } from '@/lib/toast';
+
+const PAGE_SIZE = 25;
 
 interface FormState {
   legal_name: string;
@@ -50,31 +57,35 @@ function toPayload(form: FormState): SupplierCreateInput {
   };
 }
 
-interface ModalProps {
-  initial: Supplier | null;
+interface ModalContentProps {
+  editingId: string | null;
   onClose: () => void;
 }
 
-function SupplierModal({ initial, onClose }: ModalProps): JSX.Element {
+function SupplierForm({ editingId, onClose }: ModalContentProps): JSX.Element {
+  const detail = useSupplier(editingId ?? undefined);
   const create = useCreateSupplier();
   const update = useUpdateSupplier();
-  const [form, setForm] = useState<FormState>(() =>
-    initial
-      ? {
-          legal_name: initial.legal_name,
-          dba_name: initial.dba_name ?? '',
-          ein: initial.ein ?? '',
-          naics_code: initial.naics_code ?? '',
-          primary_email: initial.primary_email ?? '',
-          primary_phone: initial.primary_phone ?? '',
-          website: initial.website ?? '',
-        }
-      : emptyForm(),
-  );
-
   const submitting = create.isPending || update.isPending;
 
-  function update_<K extends keyof FormState>(key: K) {
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [hydrated, setHydrated] = useState(false);
+
+  if (editingId && detail.data && !hydrated) {
+    const d = detail.data;
+    setForm({
+      legal_name: d.legal_name,
+      dba_name: d.dba_name ?? '',
+      ein: d.ein ?? '',
+      naics_code: d.naics_code ?? '',
+      primary_email: d.primary_email ?? '',
+      primary_phone: d.primary_phone ?? '',
+      website: d.website ?? '',
+    });
+    setHydrated(true);
+  }
+
+  function field<K extends keyof FormState>(key: K) {
     return (e: ChangeEvent<HTMLInputElement>): void => {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
     };
@@ -88,8 +99,8 @@ function SupplierModal({ initial, onClose }: ModalProps): JSX.Element {
       return;
     }
     try {
-      if (initial) {
-        await update.mutateAsync({ id: initial.id, patch: toPayload(form) });
+      if (editingId) {
+        await update.mutateAsync({ id: editingId, patch: toPayload(form) });
         toast.success('Supplier updated.');
       } else {
         await create.mutateAsync(toPayload(form));
@@ -97,7 +108,7 @@ function SupplierModal({ initial, onClose }: ModalProps): JSX.Element {
       }
       onClose();
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Save failed'));
+      toast.error(err, 'Save failed');
     }
   }
 
@@ -116,155 +127,164 @@ function SupplierModal({ initial, onClose }: ModalProps): JSX.Element {
     { key: 'website', label: 'Website', type: 'url' },
   ];
 
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={initial ? 'Edit supplier' : 'New supplier'}
-    >
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-          <h2 className="text-base font-semibold text-slate-900">
-            {initial ? 'Edit supplier' : 'New supplier'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
-        <form onSubmit={onSubmit} className="space-y-3 px-5 py-4">
-          {fields.map((f) => (
-            <div key={f.key}>
-              <label
-                htmlFor={`supplier_${f.key}`}
-                className="mb-1 block text-xs font-medium text-slate-700"
-              >
-                {f.label}
-                {f.required && <span className="text-red-600"> *</span>}
-              </label>
-              <input
-                id={`supplier_${f.key}`}
-                type={f.type ?? 'text'}
-                value={form[f.key]}
-                onChange={update_(f.key)}
-                required={f.required}
-                disabled={submitting}
-                className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-              />
-            </div>
-          ))}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-1 rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-            >
-              {submitting && (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              )}
-              {initial ? 'Save changes' : 'Create supplier'}
-            </button>
-          </div>
-        </form>
+  if (editingId && detail.isLoading) {
+    return (
+      <div className="space-y-2" aria-busy="true">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <form
+      id="supplier-form"
+      onSubmit={(e) => void onSubmit(e)}
+      className="space-y-3"
+    >
+      {fields.map((f) => (
+        <div key={f.key}>
+          <label
+            htmlFor={`supplier_${f.key}`}
+            className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+          >
+            {f.label}
+            {f.required && <span className="text-rose-600"> *</span>}
+          </label>
+          <input
+            id={`supplier_${f.key}`}
+            type={f.type ?? 'text'}
+            value={form[f.key]}
+            onChange={field(f.key)}
+            required={f.required}
+            disabled={submitting}
+            className="w-full rounded border border-slate-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+        </div>
+      ))}
+    </form>
   );
 }
 
 export default function Suppliers(): JSX.Element {
-  const [search, setSearch] = useState('');
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') ?? '';
+  const page = Math.max(1, Number(params.get('page') ?? '1'));
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Supplier | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const params = useMemo(
-    () => ({ search: search.trim() || undefined, pageSize: 100 }),
-    [search],
+  const query = useSuppliers(
+    useMemo(
+      () => ({
+        search: search.trim() || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+      [search, page],
+    ),
   );
-  const query = useSuppliers(params);
   const suppliers: SupplierListItem[] = query.data ?? [];
 
+  function setSearch(next: string): void {
+    setParams((prev) => {
+      const out = new URLSearchParams(prev);
+      if (next.trim() === '') out.delete('q');
+      else out.set('q', next);
+      out.set('page', '1');
+      return out;
+    });
+  }
+
+  function setPage(next: number): void {
+    setParams((prev) => {
+      const out = new URLSearchParams(prev);
+      out.set('page', String(next));
+      return out;
+    });
+  }
+
   function openCreate(): void {
-    setEditing(null);
+    setEditingId(null);
     setModalOpen(true);
   }
 
-  function openEdit(row: SupplierListItem): void {
-    // We only have list-item data here; cast minimally into Supplier shape for
-    // the form. Missing optional fields will be hydrated as null/empty.
-    const partial: Supplier = {
-      id: row.id,
-      tenant_id: '',
-      legal_name: row.legal_name,
-      dba_name: row.dba_name,
-      ein: null,
-      naics_code: null,
-      primary_email: row.primary_email,
-      primary_phone: null,
-      address_json: null,
-      website: null,
-      created_at: row.created_at,
-      updated_at: row.created_at,
-    };
-    setEditing(partial);
+  function openEdit(id: string): void {
+    setEditingId(id);
     setModalOpen(true);
   }
 
+  function closeModal(): void {
+    setModalOpen(false);
+    setEditingId(null);
+  }
+
+  function exportCsv(): void {
+    if (suppliers.length === 0) {
+      toast.error('Nothing to export.');
+      return;
+    }
+    const csv = toCsv(suppliers, [
+      { header: 'ID', value: (r) => r.id },
+      { header: 'Legal name', value: (r) => r.legal_name },
+      { header: 'DBA name', value: (r) => r.dba_name ?? '' },
+      { header: 'Primary email', value: (r) => r.primary_email ?? '' },
+      { header: 'Created', value: (r) => r.created_at },
+    ]);
+    downloadCsv(`suppliers-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
+
+  // BACKEND-COUPLED: `/suppliers` returns a bare array (no `total`); page
+  // navigation relies on result-count fallback in PaginationControls.
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Suppliers</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            Suppliers
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Producers and MGAs whose submissions you orchestrate.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by legal name…"
-              className="w-64 rounded border border-slate-300 bg-white py-1.5 pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-              aria-label="Search suppliers by legal name"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-1 rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by legal name…"
+            ariaLabel="Search suppliers by legal name"
+            className="w-64"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportCsv}
+            disabled={suppliers.length === 0}
+            leadingIcon={<Download className="h-3.5 w-3.5" />}
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
+            Export CSV
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={openCreate}
+            leadingIcon={<Plus className="h-3.5 w-3.5" />}
+          >
             New supplier
-          </button>
+          </Button>
         </div>
       </header>
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {query.isLoading ? (
-          <div className="flex items-center justify-center py-12 text-slate-500">
-            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            <span className="ml-2 text-sm">Loading suppliers…</span>
+          <div className="space-y-2 p-5" aria-busy="true">
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
           </div>
         ) : query.error ? (
-          <div className="px-5 py-8 text-sm text-red-700">
+          <div className="px-5 py-8 text-sm text-red-700 dark:text-red-400">
             {extractErrorMessage(query.error, 'Failed to load suppliers')}
           </div>
         ) : suppliers.length === 0 ? (
@@ -282,7 +302,7 @@ export default function Suppliers(): JSX.Element {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <th className="px-5 py-2 font-medium">Legal name</th>
                   <th className="px-5 py-2 font-medium">DBA</th>
@@ -291,10 +311,13 @@ export default function Suppliers(): JSX.Element {
                   <th className="px-5 py-2 font-medium" aria-label="Actions" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {suppliers.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-2 font-medium text-slate-900">
+                  <tr
+                    key={row.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
+                    <td className="px-5 py-2 font-medium text-slate-900 dark:text-slate-100">
                       <Link
                         to={`/suppliers/${row.id}`}
                         className="hover:underline"
@@ -302,24 +325,24 @@ export default function Suppliers(): JSX.Element {
                         {row.legal_name}
                       </Link>
                     </td>
-                    <td className="px-5 py-2 text-slate-600">
+                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">
                       {row.dba_name ?? '—'}
                     </td>
-                    <td className="px-5 py-2 text-slate-600">
+                    <td className="px-5 py-2 text-slate-600 dark:text-slate-300">
                       {row.primary_email ?? '—'}
                     </td>
-                    <td className="px-5 py-2 text-slate-500">
+                    <td className="px-5 py-2 text-slate-500 dark:text-slate-400">
                       {new Date(row.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(row)}
-                        className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(row.id)}
+                        leadingIcon={<Pencil className="h-3.5 w-3.5" />}
                       >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         Edit
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -327,11 +350,39 @@ export default function Suppliers(): JSX.Element {
             </table>
           </div>
         )}
+
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={null}
+          onPageChange={setPage}
+          isLoading={query.isLoading}
+        />
       </div>
 
-      {modalOpen && (
-        <SupplierModal initial={editing} onClose={() => setModalOpen(false)} />
-      )}
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editingId ? 'Edit supplier' : 'New supplier'}
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={closeModal}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="supplier-form"
+              variant="primary"
+              size="sm"
+            >
+              {editingId ? 'Save changes' : 'Create supplier'}
+            </Button>
+          </>
+        }
+      >
+        <SupplierForm editingId={editingId} onClose={closeModal} />
+      </Modal>
     </div>
   );
 }

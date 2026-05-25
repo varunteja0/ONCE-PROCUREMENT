@@ -8,6 +8,19 @@ import { lossRunsHooks } from '@/hooks/useArtifacts';
 import { lossRunSchema, type LossRunFormValues } from '@/schemas/artifacts';
 import type { LossRun, LossRunCreateInput } from '@/types/api';
 
+function toCreateInput(v: LossRunFormValues): LossRunCreateInput {
+  return {
+    supplier_id: v.supplier_id,
+    period_start: v.period_start,
+    period_end: v.period_end,
+    carrier: v.carrier ?? null,
+    total_claims: v.total_claims ?? null,
+    total_incurred: v.total_incurred ?? null,
+    file_url: v.file_url ?? null,
+    notes: v.notes ?? null,
+  };
+}
+
 function LossRunForm({
   onSubmit,
   submitting,
@@ -33,7 +46,7 @@ function LossRunForm({
 
   return (
     <form
-      onSubmit={form.handleSubmit((v) => onSubmit(v as unknown as LossRunCreateInput))}
+      onSubmit={form.handleSubmit((v) => onSubmit(toCreateInput(v)))}
       className="space-y-3"
       noValidate
     >
