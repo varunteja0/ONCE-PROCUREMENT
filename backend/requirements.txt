@@ -51,7 +51,7 @@ playwright==1.47.*
 structlog==24.*
 
 # Observability
-sentry-sdk[fastapi]==2.18.0
+sentry-sdk[fastapi]==2.62.0
 prometheus-client>=0.20
 
 # Tests / lint
@@ -69,14 +69,14 @@ fakeredis==2.*
 
 # --- L4 security hardening ---
 # pyotp: RFC 6238 TOTP for cockpit MFA. Pure-python, no native deps.
-pyotp==2.9.0
+pyotp==2.10.0
 # clamd: TCP/Unix client for ClamAV daemon. We never bundle clamd itself —
 # it runs as a sidecar service in compose / k8s. clamd-py is a tiny client
 # (~300 LOC) with no transitive deps.
 clamd==1.0.2
 # segno: pure-python QR code generator for MFA enrollment URIs (otpauth://).
 # Stdlib-only, no Pillow / no ImageMagick.
-segno==1.6.1
+segno==1.6.6
 # --- /L4 security hardening ---
 
 # --- L3.7 imports (bulk CSV/XLSX) ---
