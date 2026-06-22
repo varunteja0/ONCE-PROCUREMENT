@@ -32,7 +32,7 @@ jobs:
       RECEIPT_SIGNING_KEY_ID: "ci"
       ENABLE_IN_PROCESS_PROCESSOR: "True"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,7 +62,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -100,7 +100,7 @@ jobs:
       BACKEND_BASE_URL: "http://localhost:8000"
       SIGNING_KEY_ID: "ci"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -130,7 +130,7 @@ jobs:
       run:
         working-directory: extension
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -161,7 +161,7 @@ jobs:
       run:
         working-directory: oncetax
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node
         uses: actions/setup-node@v4

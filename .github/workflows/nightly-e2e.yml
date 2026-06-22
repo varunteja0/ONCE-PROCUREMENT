@@ -35,7 +35,7 @@ jobs:
       ENABLE_IN_PROCESS_PROCESSOR: "True"
       RUN_E2E_DEMO: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
