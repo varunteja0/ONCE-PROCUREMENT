@@ -1,7 +1,7 @@
 # Once backend — pinned dependencies (Python 3.12)
 
 # Web framework
-fastapi==0.115.*
+fastapi==0.136.*
 uvicorn[standard]==0.30.*
 python-multipart==0.0.*
 email-validator==2.*
